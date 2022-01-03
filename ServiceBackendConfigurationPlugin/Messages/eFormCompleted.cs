@@ -1,6 +1,7 @@
-MIT License
+/*
+The MIT License (MIT)
 
-Copyright (c) 2007 - 2021 Microting A/S
+Copyright (c) 2007 - 2022 Microting A/S
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +20,20 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+*/
+namespace ServiceBackendConfigurationPlugin.Messages
+{
+    public class eFormCompleted
+    {
+        public int? CaseId { get; protected set; }
+        public int? MicrotingUId { get; protected set; }
+        public int? CheckId { get; protected set; }
+
+        public eFormCompleted(int? caseId, int? MicrotingUId, int? checkId)
+        {
+            this.CaseId = caseId;
+            this.MicrotingUId = MicrotingUId;
+            this.CheckId = checkId;
+        }
+    }
+}
