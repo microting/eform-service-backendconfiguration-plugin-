@@ -61,16 +61,16 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             await using ItemsPlanningPnDbContext itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
             await using BackendConfigurationPnDbContext backendConfigurationPnDbContext = _backendConfigurationDbContextHelper.GetDbContext();
             var planningCaseSite =
-                await itemsPlanningPnDbContext.PlanningCaseSites.SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == message.CaseId);
+                await itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking().SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == message.CaseId);
 
             if (planningCaseSite == null)
             {
                 // var site = await sdkDbContext.Sites.SingleOrDefaultAsync(x => x.MicrotingUid == caseDto.SiteUId);
                 var checkListSite = await sdkDbContext.CheckListSites.SingleOrDefaultAsync(x =>
-                    x.MicrotingUid == message.MicrotingUId);
+                    x.MicrotingUid == message.MicrotingUId).ConfigureAwait(false);
                 planningCaseSite =
-                    await itemsPlanningPnDbContext.PlanningCaseSites.SingleOrDefaultAsync(x =>
-                        x.MicrotingCheckListSitId == checkListSite.Id);
+                    await itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking().SingleOrDefaultAsync(x =>
+                        x.MicrotingCheckListSitId == checkListSite.Id).ConfigureAwait(false);
             }
 
             if (planningCaseSite == null)
@@ -83,9 +83,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             {
                 Thread.Sleep(1000);
                 Console.WriteLine($"Waiting for case {planningCaseSite.MicrotingSdkCaseId} to be completed");
-                planningCaseSite = itemsPlanningPnDbContext.PlanningCaseSites.Single(x => x.Id == planningCaseSite.Id);
+                planningCaseSite = itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking().Single(x => x.Id == planningCaseSite.Id);
+                if (planningCaseSite.Status == 100)
+                {
+                    planningCaseSite = itemsPlanningPnDbContext.PlanningCaseSites.Single(x => x.Id == planningCaseSite.Id);
+                }
             }
             Console.WriteLine($"planningCaseSite {planningCaseSite.MicrotingSdkCaseId} is completed");
+            Thread.Sleep(10000);
 
             var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
 
@@ -104,6 +109,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 {
                     var planningCases =
                         await itemsPlanningPnDbContext.PlanningCases
+                            .AsNoTracking()
                             .Where(x => x.PlanningId == areaRulePlanning.ItemPlanningId)
                             .Where(x => x.Status != 100)
                             .Where(x => x.WorkflowState != Constants.WorkflowStates.Retracted)
@@ -113,9 +119,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     foreach (PlanningCase planningCase in planningCases)
                     {
                         var planning =
-                            await itemsPlanningPnDbContext.Plannings.Where(x =>
-                                    x.Id == planningCase.PlanningId)
-                                // .Where(x => x.RepeatEvery != 1 && x.RepeatType != RepeatType.Day)
+                            await itemsPlanningPnDbContext.Plannings
+                                .AsNoTracking()
+                                .Where(x => x.Id == planningCase.PlanningId)
                                 .Where(x => x.RepeatEvery != 0)
                                 .Where(x => x.StartDate < DateTime.UtcNow)
                                 .SingleOrDefaultAsync();
