@@ -8,4 +8,4 @@ fi
 
 mkdir Documents/workspace/microting/eform-debian-service/Plugins
 
-cp -av Documents/workspace/microting/eform-service-backend-configuration-plugin/ServiceBackendConfigurationPlugin Documents/workspace/microting/eform-debian-service/Plugins/ServiceBackendConfigurationPlugin
+cp -av Documents/workspace/microting/eform-service-backendconfiguration-plugin/ServiceBackendConfigurationPlugin Documents/workspace/microting/eform-debian-service/Plugins/ServiceBackendConfigurationPlugin
