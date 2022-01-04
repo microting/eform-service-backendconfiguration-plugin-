@@ -57,6 +57,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
         public async Task Handle(eFormCompleted message)
         {
+            Console.WriteLine($"EFormCompletedHandler .Handle called");
+            Console.WriteLine($"message.CaseId: {message.CaseId}");
+            Console.WriteLine($"message.MicrotingUId: {message.MicrotingUId}");
+            Console.WriteLine($"message.CheckId: {message.CheckId}");
             await using MicrotingDbContext sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
             await using ItemsPlanningPnDbContext itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
             await using BackendConfigurationPnDbContext backendConfigurationPnDbContext = _backendConfigurationDbContextHelper.GetDbContext();
@@ -75,7 +79,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             if (planningCaseSite == null)
             {
-                Console.WriteLine($"planningCaseSite is null for caseId: {message.CaseId}");
+                Console.WriteLine($"planningCaseSite is null for CheckId: {message.CheckId}");
                 return;
             }
 
