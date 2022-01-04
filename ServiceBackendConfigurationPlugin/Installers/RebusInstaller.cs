@@ -58,7 +58,7 @@ namespace ServiceBackendConfigurationPlugin.Installers
         {
             Configure.With(new CastleWindsorContainerAdapter(container))
                 .Logging(l => l.ColoredConsole(LogLevel.Info))
-                .Transport(t => t.UseRabbitMq($"amqp://{_rabbitMqUser}:{_rabbitMqPassword}@{_rabbitMqHost}", "eform-service-items-planning-plugin"))
+                .Transport(t => t.UseRabbitMq($"amqp://{_rabbitMqUser}:{_rabbitMqPassword}@{_rabbitMqHost}", "eform-service-backend-configuration-plugin"))
                 .Options(o =>
                 {
                     o.SetMaxParallelism(_maxParallelism);

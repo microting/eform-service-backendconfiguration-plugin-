@@ -79,7 +79,6 @@ namespace ServiceBackendConfigurationPlugin
 
             if (trigger.MicrotingUId != null)
             {
-                Console.WriteLine($"Sending message to ItemsPlanning with MicrotingUId: {trigger.MicrotingUId}");
                 _bus.SendLocal(new EformParsedByServer(trigger.CaseId, trigger.MicrotingUId, trigger.CheckUId));
             }
         }

@@ -86,14 +86,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             while (planningCaseSite.Status != 100)
             {
                 Thread.Sleep(1000);
-                Console.WriteLine($"Waiting for case {planningCaseSite.MicrotingSdkCaseId} to be completed");
+                Console.WriteLine($"Waiting for case {planningCaseSite.Id} to be completed");
                 planningCaseSite = itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking().Single(x => x.Id == planningCaseSite.Id);
                 if (planningCaseSite.Status == 100)
                 {
                     planningCaseSite = itemsPlanningPnDbContext.PlanningCaseSites.Single(x => x.Id == planningCaseSite.Id);
                 }
             }
-            Console.WriteLine($"planningCaseSite {planningCaseSite.MicrotingSdkCaseId} is completed");
+            Console.WriteLine($"planningCaseSite {planningCaseSite.Id} is completed");
             Thread.Sleep(10000);
 
             var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
