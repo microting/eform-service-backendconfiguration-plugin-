@@ -74,9 +74,12 @@ namespace ServiceBackendConfigurationPlugin
         public void eFormProcessed(object sender, EventArgs args)
         {
             CaseDto trigger = (CaseDto)sender;
+            Console.WriteLine($"Received eFormProcessed event with caseId: {trigger.CaseId}");
+            Console.WriteLine($"Received eFormProcessed event with MicrotingUId: {trigger.MicrotingUId}");
 
             if (trigger.MicrotingUId != null)
             {
+                Console.WriteLine($"Sending message to ItemsPlanning with MicrotingUId: {trigger.MicrotingUId}");
                 _bus.SendLocal(new EformParsedByServer(trigger.CaseId, trigger.MicrotingUId, trigger.CheckUId));
             }
         }

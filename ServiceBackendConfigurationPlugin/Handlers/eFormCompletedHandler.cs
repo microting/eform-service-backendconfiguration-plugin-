@@ -75,14 +75,17 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             if (planningCaseSite == null)
             {
+                Console.WriteLine($"planningCaseSite is null for caseId: {message.CaseId}");
                 return;
             }
 
             while (planningCaseSite.Status != 100)
             {
                 Thread.Sleep(1000);
+                Console.WriteLine($"Waiting for case {planningCaseSite.MicrotingSdkCaseId} to be completed");
                 planningCaseSite = itemsPlanningPnDbContext.PlanningCaseSites.Single(x => x.Id == planningCaseSite.Id);
             }
+            Console.WriteLine($"planningCaseSite {planningCaseSite.MicrotingSdkCaseId} is completed");
 
             var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
 
@@ -112,8 +115,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         var planning =
                             await itemsPlanningPnDbContext.Plannings.Where(x =>
                                     x.Id == planningCase.PlanningId)
-                                .Where(x => x.RepeatEvery != 1 && x.RepeatType != RepeatType.Day)
-                                .Where(x => x.RepeatEvery != 0 && x.RepeatType != RepeatType.Day)
+                                // .Where(x => x.RepeatEvery != 1 && x.RepeatType != RepeatType.Day)
+                                .Where(x => x.RepeatEvery != 0)
                                 .Where(x => x.StartDate < DateTime.UtcNow)
                                 .SingleOrDefaultAsync();
 
@@ -121,12 +124,19 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         {
                             continue;
                         }
+
+                        if (planning.RepeatEvery == 1 && planning.RepeatType == RepeatType.Day)
+                        {
+                            continue;
+                        }
+
                         preList.Add(planning.Id);
                     }
                 }
 
                 if (preList.Count == 0)
                 {
+                    Console.WriteLine($"All cases has been completed for property {property.Name}, so setting compliance status to 0");
                     property.ComplianceStatus = 0;
                     await property.Update(backendConfigurationPnDbContext);
                 }
