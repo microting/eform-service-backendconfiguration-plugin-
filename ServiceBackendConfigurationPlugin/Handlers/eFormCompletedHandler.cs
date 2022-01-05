@@ -96,14 +96,17 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             Console.WriteLine($"planningCaseSite {planningCaseSite.Id} is completed");
             Thread.Sleep(10000);
 
+            Planning planning =
+                await itemsPlanningPnDbContext.Plannings.AsNoTracking().SingleAsync(x => x.Id == planningCaseSite.PlanningId);
 
-            Compliance compliance = await backendConfigurationPnDbContext.Compliances.SingleOrDefaultAsync(x => x.PlanningId == planningCaseSite.PlanningId);
+            Compliance compliance = await backendConfigurationPnDbContext.Compliances
+                .Where(x => x.Deadline == planning.NextExecutionTime)
+                .SingleOrDefaultAsync(x => x.PlanningId == planningCaseSite.PlanningId);
 
             if (compliance != null)
             {
                 await compliance.Delete(backendConfigurationPnDbContext);
             }
-
 
             var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
 
@@ -114,64 +117,25 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 return;
             }
 
-            if (property.ComplianceStatus > 0)
+            if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.WorkflowState != Constants.WorkflowStates.Removed))
             {
-                var preList = new List<int>();
-                var backendPlannings = await backendConfigurationPnDbContext.AreaRulePlannings.Where(x => x.PropertyId == property.Id).ToListAsync();
-                foreach (AreaRulePlanning areaRulePlanning in backendPlannings)
-                {
-                    var planningCases =
-                        await itemsPlanningPnDbContext.PlanningCases
-                            .AsNoTracking()
-                            .Where(x => x.PlanningId == areaRulePlanning.ItemPlanningId)
-                            .Where(x => x.Status != 100)
-                            .Where(x => x.WorkflowState != Constants.WorkflowStates.Retracted)
-                            .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-                            .ToListAsync();
+                property.ComplianceStatus = 2;
+                await property.Update(backendConfigurationPnDbContext);
+            }
 
-                    foreach (PlanningCase planningCase in planningCases)
-                    {
-                        var planning =
-                            await itemsPlanningPnDbContext.Plannings
-                                .AsNoTracking()
-                                .Where(x => x.Id == planningCase.PlanningId)
-                                .Where(x => x.RepeatEvery != 0)
-                                .Where(x => x.StartDate < DateTime.UtcNow)
-                                .SingleOrDefaultAsync();
-
-                        if (planning == null)
-                        {
-                            continue;
-                        }
-
-                        if (planning.RepeatEvery == 1 && planning.RepeatType == RepeatType.Day)
-                        {
-                            continue;
-                        }
-
-                        if (planning.RepeatEvery == 0 && planning.RepeatType == RepeatType.Day)
-                        {
-                            continue;
-                        }
-
-                        preList.Add(planning.Id);
-                    }
-                }
-
-                if (preList.Count == 0)
-                {
-                    Console.WriteLine($"All cases has been completed for property {property.Name}, so setting compliance status to 0");
-                    property.ComplianceStatus = 0;
-                    await property.Update(backendConfigurationPnDbContext);
-                }
-                if (!backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.WorkflowState != Constants.WorkflowStates.Removed))
+            if (backendConfigurationPnDbContext.Compliances.Any(x => x.WorkflowState != Constants.WorkflowStates.Removed))
+            {
+                if (property is {ComplianceStatus: 0})
                 {
                     property.ComplianceStatus = 1;
                     await property.Update(backendConfigurationPnDbContext);
                 }
-
             }
-
+            else
+            {
+                property.ComplianceStatus = 0;
+                await property.Update(backendConfigurationPnDbContext);
+            }
         }
     }
 }
