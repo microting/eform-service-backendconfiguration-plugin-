@@ -82,7 +82,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 {
                     PropertyId = property.Id,
                     PlanningId = planningCaseSite.PlanningId,
-                    AreaId = backendPlannings.AreaId.ToString(),
+                    AreaId = backendPlannings.AreaId,
                     Deadline = (DateTime)planning.NextExecutionTime,
                     StartDate = (DateTime)planning.LastExecutedTime
                 };

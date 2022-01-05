@@ -22,10 +22,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+using Castle.MicroKernel.Registration;
+using Microting.eForm.Infrastructure.Constants;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data;
+using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data.Factories;
 using Microting.ItemsPlanningBase.Infrastructure.Data;
+using Microting.ItemsPlanningBase.Infrastructure.Data.Entities;
 using Microting.ItemsPlanningBase.Infrastructure.Data.Factories;
+using Property = Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities.Property;
 
 namespace ServiceBackendConfigurationPlugin
 {
@@ -34,7 +39,6 @@ namespace ServiceBackendConfigurationPlugin
     using System.Linq;
     using System.Text.RegularExpressions;
     using System.Threading;
-    using Castle.MicroKernel.Registration;
     using Castle.Windsor;
     using Infrastructure.Helpers;
     using Installers;
@@ -168,6 +172,7 @@ namespace ServiceBackendConfigurationPlugin
                         .SingleOrDefault(x => x.Name == "BackendConfigurationBaseSettings:NumberOfWorkers")?.Value;
                     _numberOfWorkers = string.IsNullOrEmpty(temp) ? 1 : int.Parse(temp);
 
+                    CheckComplianceIntegrity(connectionString, itemsPlanningConnectionString);
 
                     _container = new WindsorContainer();
                     _container.Register(Component.For<IWindsorContainer>().Instance(_container));
@@ -239,14 +244,91 @@ namespace ServiceBackendConfigurationPlugin
             _sdkCore.StartSqlOnly(sdkConnectionString);
         }
 
-        // private void ConfigureScheduler()
-        // {
-        //     var job = _container.Resolve<SearchListJob>();
-        //
-        //     _scheduleTimer = new Timer(async x =>
-        //     {
-        //         await job.Execute();
-        //     }, null, TimeSpan.Zero, TimeSpan.FromMinutes(60));
-        // }
+        private void CheckComplianceIntegrity(string connectionStringBackend, string connectionStringItemsPlanning)
+        {
+            var contextFactory = new BackendConfigurationPnContextFactory();
+            var backendConfigurationPnDbContext = contextFactory.CreateDbContext(new[] { connectionStringBackend });
+
+            var contextFactoryItemsPlanning = new ItemsPlanningPnContextFactory();
+            var itemsPlanningPnDbContext = contextFactoryItemsPlanning.CreateDbContext(new[] { connectionStringItemsPlanning });
+
+            var properties = backendConfigurationPnDbContext.Properties
+                .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                .ToList();
+
+            foreach (Property property in properties)
+            {
+                int i = 0;
+                var backendPlannings = backendConfigurationPnDbContext.AreaRulePlannings
+                    .Where(x => x.PropertyId == property.Id)
+                    .Where(x => x.ItemPlanningId != 0)
+                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                    .ToList();
+
+                foreach (AreaRulePlanning areaRulePlanning in backendPlannings)
+                {
+                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.PlanningId == areaRulePlanning.ItemPlanningId && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    {
+                        continue;
+                    }
+
+                    var planningCases =
+                        itemsPlanningPnDbContext.PlanningCases
+                            .Where(x => x.PlanningId == areaRulePlanning.ItemPlanningId)
+                            .Where(x => x.Status != 100)
+                            .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                            .ToList();
+
+                    foreach (PlanningCase planningCase in planningCases)
+                    {
+                        var planning =
+                            itemsPlanningPnDbContext.Plannings
+                                .Where(x => x.Id == planningCase.PlanningId)
+                                .Where(x => x.RepeatEvery != 0)
+                                .SingleOrDefault(x => x.StartDate < DateTime.UtcNow);
+
+                        if (planning == null)
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            Compliance compliance = new Compliance()
+                            {
+                                PlanningId = planning.Id,
+                                AreaId = areaRulePlanning.AreaId,
+                                Deadline = (DateTime) planning.NextExecutionTime,
+                                StartDate = (DateTime) planning.LastExecutedTime,
+                                MicrotingSdkCaseId = planningCase.MicrotingSdkCaseId,
+                                MicrotingSdkeFormId = planning.RelatedEFormId,
+                                PropertyId = property.Id
+                            };
+
+                            compliance.Create(backendConfigurationPnDbContext).GetAwaiter().GetResult();
+                            i++;
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                            // throw;
+                        }
+                    }
+                }
+
+                if (i > 0)
+                {
+                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    {
+                        property.ComplianceStatus = 2;
+                    } else
+                    {
+                        property.ComplianceStatus = 1;
+                    }
+                    property.Update(backendConfigurationPnDbContext).GetAwaiter().GetResult();
+                }
+            }
+
+        }
     }
 }
