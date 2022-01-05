@@ -22,11 +22,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microting.eForm.Infrastructure;
+using Microting.eForm.Infrastructure.Constants;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data;
+using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
 using Microting.ItemsPlanningBase.Infrastructure.Data;
 using Rebus.Handlers;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
@@ -69,12 +72,37 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             var backendPlannings = await backendConfigurationPnDbContext.AreaRulePlannings.Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
 
-            var property = await backendConfigurationPnDbContext.Properties.SingleOrDefaultAsync(x => x.Id == backendPlannings.PropertyId);
-            if (property is {ComplianceStatus: 0})
+            if (backendPlannings != null)
             {
-                property.ComplianceStatus = 1;
-                await property.Update(backendConfigurationPnDbContext);
+                var property = await backendConfigurationPnDbContext.Properties.SingleAsync(x => x.Id == backendPlannings.PropertyId);
+
+                var planning = await itemsPlanningPnDbContext.Plannings.SingleAsync(x => x.Id == planningCaseSite.PlanningId);
+
+                Compliance compliance = new Compliance()
+                {
+                    PropertyId = property.Id,
+                    PlanningId = planningCaseSite.PlanningId,
+                    AreaId = backendPlannings.AreaId.ToString(),
+                    Deadline = (DateTime)planning.NextExecutionTime,
+                    StartDate = (DateTime)planning.LastExecutedTime
+                };
+
+                await compliance.Create(backendConfigurationPnDbContext);
+
+                if (property is {ComplianceStatus: 0})
+                {
+                    property.ComplianceStatus = 1;
+                    await property.Update(backendConfigurationPnDbContext);
+                }
+
+                if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.WorkflowState != Constants.WorkflowStates.Removed))
+                {
+                    property.ComplianceStatus = 2;
+                    await property.Update(backendConfigurationPnDbContext);
+                }
             }
+
+
 
         }
     }
