@@ -277,6 +277,7 @@ namespace ServiceBackendConfigurationPlugin
                             .Where(x => x.PlanningId == areaRulePlanning.ItemPlanningId)
                             .Where(x => x.Status != 100)
                             .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                            .Where(x => x.WorkflowState != Constants.WorkflowStates.Retracted)
                             .ToList();
 
                     foreach (PlanningCase planningCase in planningCases)
