@@ -117,23 +117,33 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 return;
             }
 
-            if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.WorkflowState != Constants.WorkflowStates.Removed))
+            if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id  && x.WorkflowState != Constants.WorkflowStates.Removed))
             {
                 property.ComplianceStatus = 2;
+                property.ComplianceStatusThirty = 2;
                 await property.Update(backendConfigurationPnDbContext);
             }
 
-            if (backendConfigurationPnDbContext.Compliances.Any(x => x.WorkflowState != Constants.WorkflowStates.Removed))
+            if (backendConfigurationPnDbContext.Compliances.Any(x => x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
             {
                 if (property is {ComplianceStatus: 0})
                 {
                     property.ComplianceStatus = 1;
                     await property.Update(backendConfigurationPnDbContext);
                 }
+                if (property is {ComplianceStatusThirty: 0})
+                {
+                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    {
+                        property.ComplianceStatusThirty = 1;
+                        await property.Update(backendConfigurationPnDbContext);
+                    }
+                }
             }
             else
             {
                 property.ComplianceStatus = 0;
+                property.ComplianceStatusThirty = 0;
                 await property.Update(backendConfigurationPnDbContext);
             }
         }
