@@ -317,17 +317,33 @@ namespace ServiceBackendConfigurationPlugin
                     }
                 }
 
-                if (i > 0)
+                if (backendConfigurationPnDbContext.Compliances.Any(x => x.PropertyId == property.Id && x.Deadline < DateTime.UtcNow && x.WorkflowState != Constants.WorkflowStates.Removed))
                 {
-                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    property.ComplianceStatusThirty = 2;
+                    property.ComplianceStatus = 2;
+                } else
+                {
+                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
-                        property.ComplianceStatus = 2;
-                    } else
-                    {
+                        if (backendConfigurationPnDbContext.Compliances.Any(x =>
+                                x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id &&
+                                x.WorkflowState != Constants.WorkflowStates.Removed))
+                        {
+                            property.ComplianceStatusThirty = 1;
+                        }
+                        else
+                        {
+                            property.ComplianceStatusThirty = 0;
+                        }
                         property.ComplianceStatus = 1;
                     }
-                    property.Update(backendConfigurationPnDbContext).GetAwaiter().GetResult();
+                    else
+                    {
+                        property.ComplianceStatusThirty = 0;
+                        property.ComplianceStatus = 0;
+                    }
                 }
+                property.Update(backendConfigurationPnDbContext).GetAwaiter().GetResult();
             }
 
         }
