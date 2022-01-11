@@ -7,7 +7,7 @@ if (( "$GIT_STATUS" > 0 )); then
 	cd ServiceBackendConfigurationPlugin
   CURRENT_NUMBER_OF_COMMITS=`git log --oneline | wc -l`
 
-	PACKAGES=('Microting.eForm' 'Microting.eFormApi.BasePn' 'Microting.BackendConfigurationBase')
+	PACKAGES=('Microting.eForm' 'Microting.eFormApi.BasePn' 'Microting.EformBackendConfigurationBase' 'Magick.NET-Q16-x64' 'Microting.ItemsPlanningBase')
 	PROJECT_NAME='ServiceBackendConfigurationPlugin.csproj'
 	REPOSITORY='eform-service-backend-configuration-plugin'
 
