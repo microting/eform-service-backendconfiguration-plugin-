@@ -7,7 +7,7 @@ if (( "$GIT_STATUS" > 0 )); then
 	cd ServiceBackendConfigurationPlugin
   CURRENT_NUMBER_OF_COMMITS=`git log --oneline | wc -l`
 
-	PACKAGES=('Microting.eForm' 'Microting.eFormApi.BasePn' 'Microting.BackendConfigurationBase')
+	PACKAGES=('Microting.eForm' 'Microting.eFormApi.BasePn' 'Microting.EformBackendConfigurationBase' 'Magick.NET-Q16-x64' 'Microting.ItemsPlanningBase')
 	PROJECT_NAME='ServiceBackendConfigurationPlugin.csproj'
 	REPOSITORY='eform-service-backend-configuration-plugin'
 
@@ -56,10 +56,6 @@ if (( "$GIT_STATUS" > 0 )); then
 		git push
 		echo "Updated Microting eForm to ${EFORM_VERSION} and pushed new version ${NEW_GIT_VERSION}"
 		cd ..
-		github_changelog_generator -u microting -p $REPOSITORY -t $CHANGELOG_GITHUB_TOKEN
-		git add CHANGELOG.md
-		git commit -m "Updating changelog"
-		git push
 	else
 		echo "nothing to do, everything is up to date."
 	fi
