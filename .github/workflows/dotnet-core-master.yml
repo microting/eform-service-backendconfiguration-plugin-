@@ -54,6 +54,6 @@ jobs:
       uses: voxmedia/github-action-slack-notify-build@v1
       with:
         message_id: ${{ steps.slack.outputs.message_id }}
-        channel_id: C017TF6Q46T
+        channel_id: C02EQEMCB08
         status: FAILED
         color: danger
