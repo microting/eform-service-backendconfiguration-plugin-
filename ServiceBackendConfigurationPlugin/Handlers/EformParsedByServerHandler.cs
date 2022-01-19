@@ -66,6 +66,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 // var site = await sdkDbContext.Sites.SingleOrDefaultAsync(x => x.MicrotingUid == caseDto.SiteUId);
                 var checkListSite = await sdkDbContext.CheckListSites.SingleOrDefaultAsync(x =>
                     x.MicrotingUid == message.MicrotingUId);
+                if (checkListSite == null) return;
                 planningCaseSite =
                     await itemsPlanningPnDbContext.PlanningCaseSites.SingleOrDefaultAsync(x =>
                         x.MicrotingCheckListSitId == checkListSite.Id);
