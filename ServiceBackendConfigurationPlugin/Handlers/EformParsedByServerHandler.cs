@@ -31,6 +31,7 @@ using Microting.eForm.Infrastructure.Constants;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
 using Microting.ItemsPlanningBase.Infrastructure.Data;
+using Microting.ItemsPlanningBase.Infrastructure.Enums;
 using Rebus.Handlers;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 using ServiceBackendConfigurationPlugin.Messages;
@@ -78,42 +79,43 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 var planning = await itemsPlanningPnDbContext.Plannings.SingleAsync(x => x.Id == planningCaseSite.PlanningId);
 
-                Compliance compliance = new Compliance()
+                if (planning.RepeatEvery == 0 && planning.RepeatType == RepeatType.Day) { }
+                else
                 {
-                    PropertyId = property.Id,
-                    PlanningId = planningCaseSite.PlanningId,
-                    AreaId = backendPlannings.AreaId,
-                    Deadline = (DateTime)planning.NextExecutionTime,
-                    StartDate = (DateTime)planning.LastExecutedTime
-                };
-
-                await compliance.Create(backendConfigurationPnDbContext);
-
-                if (property is {ComplianceStatus: 0})
-                {
-                    property.ComplianceStatus = 1;
-                    await property.Update(backendConfigurationPnDbContext);
-                }
-
-                if (property is {ComplianceStatusThirty: 0})
-                {
-                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    Compliance compliance = new Compliance()
                     {
-                        property.ComplianceStatusThirty = 1;
+                        PropertyId = property.Id,
+                        PlanningId = planningCaseSite.PlanningId,
+                        AreaId = backendPlannings.AreaId,
+                        Deadline = (DateTime)planning.NextExecutionTime,
+                        StartDate = (DateTime)planning.LastExecutedTime
+                    };
+
+                    await compliance.Create(backendConfigurationPnDbContext);
+
+                    if (property is {ComplianceStatus: 0})
+                    {
+                        property.ComplianceStatus = 1;
+                        await property.Update(backendConfigurationPnDbContext);
+                    }
+
+                    if (property is {ComplianceStatusThirty: 0})
+                    {
+                        if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
+                        {
+                            property.ComplianceStatusThirty = 1;
+                            await property.Update(backendConfigurationPnDbContext);
+                        }
+                    }
+
+                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    {
+                        property.ComplianceStatus = 2;
+                        property.ComplianceStatusThirty = 2;
                         await property.Update(backendConfigurationPnDbContext);
                     }
                 }
-
-                if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
-                {
-                    property.ComplianceStatus = 2;
-                    property.ComplianceStatusThirty = 2;
-                    await property.Update(backendConfigurationPnDbContext);
-                }
             }
-
-
-
         }
     }
 }
