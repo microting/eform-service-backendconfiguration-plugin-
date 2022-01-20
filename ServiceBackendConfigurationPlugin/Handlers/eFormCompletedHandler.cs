@@ -155,6 +155,16 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             await property.Update(backendConfigurationPnDbContext);
                         }
                     }
+                    else
+                    {
+                        if (!backendConfigurationPnDbContext.Compliances.Any(x =>
+                                x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id &&
+                                x.WorkflowState != Constants.WorkflowStates.Removed))
+                        {
+                            property.ComplianceStatusThirty = 0;
+                            await property.Update(backendConfigurationPnDbContext);
+                        }
+                    }
                 }
                 else
                 {
