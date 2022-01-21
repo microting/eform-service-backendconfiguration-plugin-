@@ -72,6 +72,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         x.MicrotingCheckListSitId == checkListSite.Id);
             }
 
+            if (planningCaseSite == null)
+            {
+                return;
+            }
+
             var backendPlannings = await backendConfigurationPnDbContext.AreaRulePlannings.Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
 
             if (backendPlannings != null)
