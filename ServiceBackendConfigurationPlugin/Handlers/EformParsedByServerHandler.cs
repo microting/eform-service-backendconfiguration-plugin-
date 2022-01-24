@@ -88,16 +88,23 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 if (planning.RepeatEvery == 0 && planning.RepeatType == RepeatType.Day) { }
                 else
                 {
-                    Compliance compliance = new Compliance()
-                    {
-                        PropertyId = property.Id,
-                        PlanningId = planningCaseSite.PlanningId,
-                        AreaId = backendPlannings.AreaId,
-                        Deadline = (DateTime)planning.NextExecutionTime,
-                        StartDate = (DateTime)planning.LastExecutedTime
-                    };
 
-                    await compliance.Create(backendConfigurationPnDbContext);
+                    if (!backendConfigurationPnDbContext.Compliances.Any(x =>
+                            x.Deadline == (DateTime)planning.NextExecutionTime &&
+                            x.PlanningId == planningCaseSite.PlanningId &&
+                            x.WorkflowState != Constants.WorkflowStates.Removed))
+                    {
+                        Compliance compliance = new Compliance()
+                        {
+                            PropertyId = property.Id,
+                            PlanningId = planningCaseSite.PlanningId,
+                            AreaId = backendPlannings.AreaId,
+                            Deadline = (DateTime)planning.NextExecutionTime,
+                            StartDate = (DateTime)planning.LastExecutedTime
+                        };
+
+                        await compliance.Create(backendConfigurationPnDbContext);
+                    }
 
                     if (property is {ComplianceStatus: 0})
                     {
