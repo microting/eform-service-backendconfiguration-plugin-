@@ -77,7 +77,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 return;
             }
 
-            var backendPlannings = await backendConfigurationPnDbContext.AreaRulePlannings.Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
+            var backendPlannings = await backendConfigurationPnDbContext.AreaRulePlannings
+                .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId)
+                .Where(x => x.ComplianceEnabled)
+                .FirstOrDefaultAsync();
 
             if (backendPlannings != null)
             {
