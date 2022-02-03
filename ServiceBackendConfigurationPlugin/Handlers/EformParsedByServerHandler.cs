@@ -103,7 +103,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             PlanningId = planningCaseSite.PlanningId,
                             AreaId = backendPlannings.AreaId,
                             Deadline = (DateTime)planning.NextExecutionTime,
-                            StartDate = (DateTime)planning.LastExecutedTime
+                            StartDate = (DateTime)planning.LastExecutedTime,
+                            MicrotingSdkeFormId = planning.RelatedEFormId
                         };
 
                         await compliance.Create(backendConfigurationPnDbContext);
