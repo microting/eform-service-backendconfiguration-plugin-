@@ -104,7 +104,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             AreaId = backendPlannings.AreaId,
                             Deadline = (DateTime)planning.NextExecutionTime,
                             StartDate = (DateTime)planning.LastExecutedTime,
-                            MicrotingSdkeFormId = planning.RelatedEFormId
+                            MicrotingSdkeFormId = planning.RelatedEFormId,
+                            PlanningCaseSiteId = planningCaseSite.Id
                         };
 
                         await compliance.Create(backendConfigurationPnDbContext);
@@ -125,7 +126,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         }
                     }
 
-                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow.AddDays(1) && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
                         property.ComplianceStatus = 2;
                         property.ComplianceStatusThirty = 2;
