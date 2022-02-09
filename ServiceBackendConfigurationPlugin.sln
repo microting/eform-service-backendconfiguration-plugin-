@@ -1,13 +1,13 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.572
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.31903.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceBackendConfigurationPlugin", "ServiceBackendConfigurationPlugin\ServiceBackendConfigurationPlugin.csproj", "{4DE8ED20-F17D-47C9-B4A3-62D5CFA4F644}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceBackendConfigurationPlugin", "ServiceBackendConfigurationPlugin\ServiceBackendConfigurationPlugin.csproj", "{4DE8ED20-F17D-47C9-B4A3-62D5CFA4F644}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{2FC522CA-C8B6-49B3-B95D-119F17AE84FF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceBackendConfigurationPlugin.Integration.Test", "ServiceBackendConfigurationPlugin.Integration.Test\ServiceBackendConfigurationPlugin.Integration.Test.csproj", "{1FD59BC5-7199-41AC-968E-D94498F349F5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceBackendConfigurationPlugin.Integration.Test", "ServiceBackendConfigurationPlugin.Integration.Test\ServiceBackendConfigurationPlugin.Integration.Test.csproj", "{1FD59BC5-7199-41AC-968E-D94498F349F5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
