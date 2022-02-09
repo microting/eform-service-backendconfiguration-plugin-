@@ -126,7 +126,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         }
                     }
 
-                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow.AddDays(1) && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
                         property.ComplianceStatus = 2;
                         property.ComplianceStatusThirty = 2;
