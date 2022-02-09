@@ -39,6 +39,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
 
     public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
     {
@@ -75,13 +76,13 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             var eformIdForOngoingTasks = await sdkDbContext.CheckListTranslations
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-                .Where(x => x.Text == "02. Ongoing tasks")
+                .Where(x => x.Text == "02. Ongoing task")
                 .Select(x => x.CheckListId)
                 .FirstAsync();
 
             var eformIdForCompletedTasks = await sdkDbContext.CheckListTranslations
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-                .Where(x => x.Text == "03. Completed tasks")
+                .Where(x => x.Text == "03. Completed task")
                 .Select(x => x.CheckListId)
                 .FirstAsync();
 
@@ -142,7 +143,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                   "<strong>Status:</strong> Ongoing;";
 
                 // deploy eform to ongoing status
-                await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label);
+                await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing);
             }
             else if (eformIdForOngoingTasks == message.CheckId && workorderCase != null)
             {
@@ -186,7 +187,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     .FirstAsync();
 
                 var caseWithCreatedBy = await sdkDbContext.Cases
-                    .Where(x => x.Id == property.PropertyWorkers.First(y => y.WorkerId == siteId).WorkorderCases.Select(y => y.CaseId).First())
+                    .Where(x => x.Id == property.PropertyWorkers
+                        .First(y => y.WorkerId == siteId).WorkorderCases
+                        .Where(y => y.WorkflowState != Constants.WorkflowStates.Removed)
+                        .Where(y => y.CaseStatusesEnum == CaseStatusesEnum.NewTask)
+                        .Select(y => y.CaseId)
+                        .Last())
                     .OrderBy(x => x.DoneAt)
                     .Include(x => x.Site)
                     .FirstAsync();
@@ -218,12 +224,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 if (status == "Ongoing")
                 {
                     // deploy eform to ongoing status
-                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label);
+                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing);
                 }
                 else
                 {
                     // deploy eform to completed status
-                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label);
+                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed);
                 }
             }
             else
@@ -344,7 +350,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
         }
 
-        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description)
+        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status)
         {
             await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
             await using var backendConfigurationPnDbContext =
@@ -366,6 +372,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 {
                     CaseId = (int)caseId,
                     PropertyWorkerId = propertyWorker.Id,
+                    CaseStatusesEnum = status,
                 }.Create(backendConfigurationPnDbContext);
             }
         }
