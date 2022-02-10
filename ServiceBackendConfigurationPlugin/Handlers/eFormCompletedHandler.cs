@@ -89,6 +89,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             var workorderCase = await backendConfigurationPnDbContext.WorkorderCases
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                 .Where(x => x.CaseId == message.CaseId)
+                .Include(x => x.ParentWorkorderCase)
                 .Include(x => x.PropertyWorker)
                 .ThenInclude(x => x.Property)
                 .ThenInclude(x => x.PropertyWorkers)
@@ -102,9 +103,6 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var propertyWorkers = property.PropertyWorkers
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                     .ToList();
-
-                // retract eform
-                await RetractEform(propertyWorkers, eformIdForNewTasks, (int)message.CaseId);
 
                 var folderIdForOngoingTasks = await sdkDbContext.Folders
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
@@ -143,7 +141,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                   "<strong>Status:</strong> Ongoing;";
 
                 // deploy eform to ongoing status
-                await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing);
+                await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase.Id);
             }
             else if (eformIdForOngoingTasks == message.CheckId && workorderCase != null)
             {
@@ -152,9 +150,6 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var propertyWorkers = property.PropertyWorkers
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                     .ToList();
-
-                // retract eform
-                await RetractEform(propertyWorkers, eformIdForNewTasks, (int)message.CaseId);
 
                 var folderIdForOngoingTasks = await sdkDbContext.Folders
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
@@ -181,23 +176,13 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
 
-                var siteId = await sdkDbContext.Sites
-                    .Where(x => x.MicrotingUid == message.SiteUId)
-                    .Select(x => x.Id)
-                    .FirstAsync();
-
                 var caseWithCreatedBy = await sdkDbContext.Cases
-                    .Where(x => x.Id == property.PropertyWorkers
-                        .First(y => y.WorkerId == siteId).WorkorderCases
-                        .Where(y => y.WorkflowState != Constants.WorkflowStates.Removed)
-                        .Where(y => y.CaseStatusesEnum == CaseStatusesEnum.NewTask)
-                        .Select(y => y.CaseId)
-                        .Last())
+                    .Where(x => x.Id == workorderCase.ParentWorkorderCase.CaseId)
                     .OrderBy(x => x.DoneAt)
                     .Include(x => x.Site)
                     .FirstAsync();
                 
-                var fieldValuesWithCreatedBy = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id },
+                var fieldValuesWithCreatedBy = await _sdkCore.Advanced_FieldValueReadList(new() { caseWithCreatedBy.Id },
                     await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.Id == caseWithCreatedBy.Site.LanguageId) ??
                     await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.LanguageCode == LocaleNames.Danish));
 
@@ -217,19 +202,23 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                   (string.IsNullOrEmpty(createdBy)
                                       ? $"<strong>Created by:</strong> {createdBy}<br>"
                                       : "") +
-                                  $"<strong>Created date:</strong> {property.PropertyWorkers.First(y => y.WorkerId == siteId).WorkorderCases.Select(y => y.CreatedAt).First(): dd.MM.yyyy}<br><br>" +
+                                  $"<strong>Created date:</strong> {caseWithCreatedBy.DoneAt: dd.MM.yyyy}<br><br>" +
                                   $"<strong>Last updated by:</strong>{cls.Site.Name}<br>" +
                                   $"<strong>Last updated date:</strong>{DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
                                   $"<strong>Status:</strong> {status};";
                 if (status == "Ongoing")
                 {
+                    // retract eform
+                    await RetractEform(propertyWorkers, eformIdForOngoingTasks, (int)message.CaseId);
                     // deploy eform to ongoing status
-                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing);
+                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, (int)workorderCase.ParentWorkorderCaseId);
                 }
                 else
                 {
+                    // retract eform
+                    await RetractEform(propertyWorkers, eformIdForOngoingTasks, (int)message.CaseId);
                     // deploy eform to completed status
-                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed);
+                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, (int)workorderCase.ParentWorkorderCaseId);
                 }
             }
             else
@@ -350,7 +339,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
         }
 
-        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status)
+        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status, int parentCaseId)
         {
             await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
             await using var backendConfigurationPnDbContext =
@@ -373,6 +362,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     CaseId = (int)caseId,
                     PropertyWorkerId = propertyWorker.Id,
                     CaseStatusesEnum = status,
+                    ParentWorkorderCaseId = parentCaseId,
                 }.Create(backendConfigurationPnDbContext);
             }
         }
