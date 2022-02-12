@@ -22,31 +22,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-using Castle.MicroKernel.Registration;
-using Microting.eForm.Infrastructure.Constants;
-using Microting.EformBackendConfigurationBase.Infrastructure.Data;
-using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
-using Microting.EformBackendConfigurationBase.Infrastructure.Data.Factories;
-using Microting.ItemsPlanningBase.Infrastructure.Data;
-using Microting.ItemsPlanningBase.Infrastructure.Data.Entities;
-using Microting.ItemsPlanningBase.Infrastructure.Data.Factories;
-using Property = Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities.Property;
 
 namespace ServiceBackendConfigurationPlugin
 {
-    using System;
-    using System.ComponentModel.Composition;
-    using System.Linq;
-    using System.Text.RegularExpressions;
-    using System.Threading;
+    using Castle.MicroKernel.Registration;
     using Castle.Windsor;
     using Infrastructure.Helpers;
     using Installers;
     using Messages;
     using Microsoft.EntityFrameworkCore;
     using Microting.eForm.Dto;
+    using Microting.eForm.Infrastructure.Constants;
+    using Microting.EformBackendConfigurationBase.Infrastructure.Data;
+    using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
+    using Microting.EformBackendConfigurationBase.Infrastructure.Data.Factories;
+    using Microting.ItemsPlanningBase.Infrastructure.Data;
+    using Microting.ItemsPlanningBase.Infrastructure.Data.Factories;
     using Microting.WindowsService.BasePn;
     using Rebus.Bus;
+    using System;
+    using System.ComponentModel.Composition;
+    using System.Linq;
+    using System.Text.RegularExpressions;
+    using System.Threading;
 
     [Export(typeof(ISdkEventHandler))]
     public class Core : ISdkEventHandler
@@ -77,7 +75,7 @@ namespace ServiceBackendConfigurationPlugin
 
         public void eFormProcessed(object sender, EventArgs args)
         {
-            CaseDto trigger = (CaseDto)sender;
+            var trigger = (CaseDto)sender;
 
             if (trigger.MicrotingUId != null)
             {
@@ -103,11 +101,12 @@ namespace ServiceBackendConfigurationPlugin
 
         public void CaseCompleted(object sender, EventArgs args)
         {
-            CaseDto trigger = (CaseDto)sender;
+            var trigger = (CaseDto)sender;
 
             if (trigger.MicrotingUId != null)
             {
-                _bus.SendLocal(new eFormCompleted(trigger.CaseId, trigger.MicrotingUId, trigger.CheckUId));
+                _bus.SendLocal(new eFormCompleted(trigger.CaseId, trigger.MicrotingUId, trigger.CheckUId,
+                    trigger.SiteUId));
             }
         }
 
@@ -131,7 +130,9 @@ namespace ServiceBackendConfigurationPlugin
 
                 var pluginDbName = $"Database={dbPrefix}_eform-backend-configuration-plugin;";
                 var connectionString = sdkConnectionString.Replace(dbNameSection, pluginDbName);
-                string rabbitmqHost = connectionString.Contains("frontend") ? $"frontend-{dbPrefix}-rabbitmq" :"localhost";
+                var rabbitmqHost = connectionString.Contains("frontend")
+                    ? $"frontend-{dbPrefix}-rabbitmq"
+                    : "localhost";
 
                 if (!_coreAvailable && !_coreStatChanging)
                 {
@@ -144,17 +145,19 @@ namespace ServiceBackendConfigurationPlugin
                     if (string.IsNullOrEmpty(connectionString))
                         throw new ArgumentException("serverConnectionString is not allowed to be null or empty");
 
-                    BackendConfigurationPnContextFactory contextFactory = new BackendConfigurationPnContextFactory();
+                    var contextFactory = new BackendConfigurationPnContextFactory();
 
                     _dbContext = contextFactory.CreateDbContext(new[] { connectionString });
                     _dbContext.Database.Migrate();
-                    _backendConfigurationBackendConfigurationDbContextHelper = new BackendConfigurationDbContextHelper(connectionString);
+                    _backendConfigurationBackendConfigurationDbContextHelper =
+                        new BackendConfigurationDbContextHelper(connectionString);
 
                     pluginDbName = $"Database={dbPrefix}_eform-angular-items-planning-plugin;";
                     var itemsPlanningConnectionString = sdkConnectionString.Replace(dbNameSection, pluginDbName);
-                    ItemsPlanningPnContextFactory itemContextFactory = new ItemsPlanningPnContextFactory();
+                    var itemContextFactory = new ItemsPlanningPnContextFactory();
 
-                    _itemsPlanningDbContext = itemContextFactory.CreateDbContext(new[] { itemsPlanningConnectionString });
+                    _itemsPlanningDbContext =
+                        itemContextFactory.CreateDbContext(new[] { itemsPlanningConnectionString });
                     _itemsPlanningDbContextHelper = new ItemsPlanningDbContextHelper(itemsPlanningConnectionString);
 
                     _coreAvailable = true;
@@ -162,7 +165,7 @@ namespace ServiceBackendConfigurationPlugin
 
                     StartSdkCoreSqlOnly(sdkConnectionString);
 
-                    string temp = _dbContext.PluginConfigurationValues
+                    var temp = _dbContext.PluginConfigurationValues
                         .SingleOrDefault(x => x.Name == "BackendConfigurationBaseSettings:MaxParallelism")?.Value;
                     _maxParallelism = string.IsNullOrEmpty(temp) ? 1 : int.Parse(temp);
 
@@ -174,8 +177,10 @@ namespace ServiceBackendConfigurationPlugin
 
                     _container = new WindsorContainer();
                     _container.Register(Component.For<IWindsorContainer>().Instance(_container));
-                    _container.Register(Component.For<BackendConfigurationDbContextHelper>().Instance(_backendConfigurationBackendConfigurationDbContextHelper));
-                    _container.Register(Component.For<ItemsPlanningDbContextHelper>().Instance(_itemsPlanningDbContextHelper));
+                    _container.Register(Component.For<BackendConfigurationDbContextHelper>()
+                        .Instance(_backendConfigurationBackendConfigurationDbContextHelper));
+                    _container.Register(Component.For<ItemsPlanningDbContextHelper>()
+                        .Instance(_itemsPlanningDbContextHelper));
                     _container.Register(Component.For<eFormCore.Core>().Instance(_sdkCore));
                     _container.Install(
                         new RebusHandlerInstaller()
@@ -187,13 +192,16 @@ namespace ServiceBackendConfigurationPlugin
 
                     // ConfigureScheduler();
                 }
+
                 Console.WriteLine("ServiceBackendConfigurationPlugin started");
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
+                var color = Console.ForegroundColor;
                 Console.ForegroundColor = ConsoleColor.DarkRed;
                 Console.WriteLine("Start failed " + ex.Message);
+                Console.ForegroundColor = color;
                 throw;
             }
         }
@@ -208,18 +216,16 @@ namespace ServiceBackendConfigurationPlugin
 
                     _coreAvailable = false;
 
-                    var tries = 0;
                     while (_coreThreadRunning)
                     {
                         Thread.Sleep(100);
                         _bus.Dispose();
-                        tries++;
                     }
+
                     _sdkCore.Close();
 
                     _coreStatChanging = false;
                 }
-
             }
             catch (ThreadAbortException)
             {
@@ -248,24 +254,26 @@ namespace ServiceBackendConfigurationPlugin
             var backendConfigurationPnDbContext = contextFactory.CreateDbContext(new[] { connectionStringBackend });
 
             var contextFactoryItemsPlanning = new ItemsPlanningPnContextFactory();
-            var itemsPlanningPnDbContext = contextFactoryItemsPlanning.CreateDbContext(new[] { connectionStringItemsPlanning });
+            var itemsPlanningPnDbContext =
+                contextFactoryItemsPlanning.CreateDbContext(new[] { connectionStringItemsPlanning });
 
             var properties = backendConfigurationPnDbContext.Properties
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                 .ToList();
 
-            foreach (Property property in properties)
+            foreach (var property in properties)
             {
-                int i = 0;
                 var backendPlannings = backendConfigurationPnDbContext.AreaRulePlannings
                     .Where(x => x.PropertyId == property.Id)
                     .Where(x => x.ItemPlanningId != 0)
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                     .ToList();
 
-                foreach (AreaRulePlanning areaRulePlanning in backendPlannings)
+                foreach (var areaRulePlanning in backendPlannings)
                 {
-                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.PlanningId == areaRulePlanning.ItemPlanningId && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    if (backendConfigurationPnDbContext.Compliances.Any(x =>
+                            x.PlanningId == areaRulePlanning.ItemPlanningId &&
+                            x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
                         continue;
                     }
@@ -278,7 +286,7 @@ namespace ServiceBackendConfigurationPlugin
                             .Where(x => x.WorkflowState != Constants.WorkflowStates.Retracted)
                             .ToList();
 
-                    foreach (PlanningCase planningCase in planningCases)
+                    foreach (var planningCase in planningCases)
                     {
                         var planning =
                             itemsPlanningPnDbContext.Plannings
@@ -293,19 +301,18 @@ namespace ServiceBackendConfigurationPlugin
 
                         try
                         {
-                            Compliance compliance = new Compliance()
+                            var compliance = new Compliance()
                             {
                                 PlanningId = planning.Id,
                                 AreaId = areaRulePlanning.AreaId,
-                                Deadline = (DateTime) planning.NextExecutionTime,
-                                StartDate = (DateTime) planning.LastExecutedTime,
+                                Deadline = (DateTime)planning.NextExecutionTime,
+                                StartDate = (DateTime)planning.LastExecutedTime,
                                 MicrotingSdkCaseId = planningCase.MicrotingSdkCaseId,
                                 MicrotingSdkeFormId = planning.RelatedEFormId,
                                 PropertyId = property.Id
                             };
 
                             compliance.Create(backendConfigurationPnDbContext).GetAwaiter().GetResult();
-                            i++;
                         }
                         catch (Exception e)
                         {
@@ -315,17 +322,23 @@ namespace ServiceBackendConfigurationPlugin
                     }
                 }
 
-                if (backendConfigurationPnDbContext.Compliances.Any(x => x.PropertyId == property.Id && x.Deadline < DateTime.UtcNow && x.WorkflowState != Constants.WorkflowStates.Removed))
+                if (backendConfigurationPnDbContext.Compliances.Any(x =>
+                        x.PropertyId == property.Id && x.Deadline < DateTime.UtcNow &&
+                        x.WorkflowState != Constants.WorkflowStates.Removed))
                 {
                     property.ComplianceStatusThirty = 2;
                     property.ComplianceStatus = 2;
-                } else
+                }
+                else
                 {
-                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    if (backendConfigurationPnDbContext.Compliances.Any(x =>
+                            x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
                         property.ComplianceStatusThirty = backendConfigurationPnDbContext.Compliances.Any(x =>
                             x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id &&
-                            x.WorkflowState != Constants.WorkflowStates.Removed) ? 1 : 0;
+                            x.WorkflowState != Constants.WorkflowStates.Removed)
+                            ? 1
+                            : 0;
                         property.ComplianceStatus = 1;
                     }
                     else
@@ -334,9 +347,9 @@ namespace ServiceBackendConfigurationPlugin
                         property.ComplianceStatus = 0;
                     }
                 }
+
                 property.Update(backendConfigurationPnDbContext).GetAwaiter().GetResult();
             }
-
         }
     }
 }

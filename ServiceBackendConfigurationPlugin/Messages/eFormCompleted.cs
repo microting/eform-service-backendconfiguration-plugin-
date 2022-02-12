@@ -28,12 +28,14 @@ namespace ServiceBackendConfigurationPlugin.Messages
         public int? CaseId { get; protected set; }
         public int? MicrotingUId { get; protected set; }
         public int? CheckId { get; protected set; }
+        public int? SiteUId { get; protected set; }
 
-        public eFormCompleted(int? caseId, int? MicrotingUId, int? checkId)
+        public eFormCompleted(int? caseId, int? microtingUId, int? checkId, int? siteUId)
         {
-            this.CaseId = caseId;
-            this.MicrotingUId = MicrotingUId;
-            this.CheckId = checkId;
+            CaseId = caseId;
+            MicrotingUId = microtingUId;
+            CheckId = checkId;
+            SiteUId = siteUId;
         }
     }
 }
