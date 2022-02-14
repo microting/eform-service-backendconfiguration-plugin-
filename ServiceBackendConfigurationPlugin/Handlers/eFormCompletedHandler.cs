@@ -36,10 +36,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
     using Rebus.Handlers;
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
+    using Resources;
 
     public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
     {
@@ -120,6 +122,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var language = await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.Id == cls.Site.LanguageId) ??
                                await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.LanguageCode == LocaleNames.Danish);
 
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(language.LanguageCode);
+
                 var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
 
                 var area = fieldValues.First().Value;
@@ -127,18 +131,18 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var createdBy = fieldValues[3].Value;
                 var assignedTo = fieldValues[4].Value;
 
-                var label = $"<strong>Location:</strong>{property.Name}<br>" +
-                                  $"<strong>Assigned to:</strong> {assignedTo}<br>" +
+                var label = $"<strong>{Translations.Location}:</strong>{property.Name}<br>" +
+                                  $"<strong>{Translations.AssignedTo}:</strong> {assignedTo}<br>" +
                                   (string.IsNullOrEmpty(area)
-                                      ? $"<strong>Area:</strong> {area}<br>"
+                                      ? $"<strong>{Translations.Area}:</strong> {area}<br>"
                                       : "") +
-                                  $"<strong>Description:</strong> {descriptionFromCase}<br><br>" +
-                                  $"<strong>Created by:</strong> {assignedTo}<br>" +
+                                  $"<strong>{Translations.Description}:</strong> {descriptionFromCase}<br><br>" +
+                                  $"<strong>{Translations.CreatedBy}:</strong> {assignedTo}<br>" +
                                   (string.IsNullOrEmpty(createdBy)
-                                      ? $"<strong>Created by:</strong> {createdBy}<br>"
+                                      ? $"<strong>{Translations.CreatedBy}:</strong> {createdBy}<br>"
                                       : "") +
-                                  $"<strong>Created date:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                                  "<strong>Status:</strong> Ongoing;";
+                                  $"<strong>{Translations.CreatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
+                                  $"<strong>{Translations.Status}:</strong> Ongoing;";
 
                 // deploy eform to ongoing status
                 await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase.Id);
@@ -174,6 +178,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var language = await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.Id == cls.Site.LanguageId) ??
                                await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.LanguageCode == LocaleNames.Danish);
 
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(language.LanguageCode);
+
                 var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
 
                 var caseWithCreatedBy = await sdkDbContext.Cases
@@ -192,20 +198,20 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var status = fieldValues[4].Value;
                 var createdBy = fieldValuesWithCreatedBy[4].Value;
 
-                var label = $"<strong>Location:</strong>{property.Name}<br>" +
-                                  $"<strong>Assigned to:</strong> {assignedTo}<br>" +
+                var label = $"<strong>{Translations.Location}:</strong>{property.Name}<br>" +
+                                  $"<strong>{Translations.AssignedTo}:</strong> {assignedTo}<br>" +
                                   (string.IsNullOrEmpty(area)
-                                      ? $"<strong>Area:</strong> {area}<br>"
+                                      ? $"<strong>{Translations.Area}:</strong> {area}<br>"
                                       : "") +
-                                  $"<strong>Description:</strong> {descriptionFromCase}<br><br>" +
-                                  $"<strong>Created by:</strong> {assignedTo}<br>" +
+                                  $"<strong>{Translations.Description}:</strong> {descriptionFromCase}<br><br>" +
+                                  $"<strong>{Translations.CreatedBy}:</strong> {assignedTo}<br>" +
                                   (string.IsNullOrEmpty(createdBy)
-                                      ? $"<strong>Created by:</strong> {createdBy}<br>"
+                                      ? $"<strong>{Translations.CreatedBy}:</strong> {createdBy}<br>"
                                       : "") +
-                                  $"<strong>Created date:</strong> {caseWithCreatedBy.DoneAt: dd.MM.yyyy}<br><br>" +
-                                  $"<strong>Last updated by:</strong>{cls.Site.Name}<br>" +
-                                  $"<strong>Last updated date:</strong>{DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                                  $"<strong>Status:</strong> {status};";
+                                  $"<strong>{Translations.CreatedDate}:</strong> {caseWithCreatedBy.DoneAt: dd.MM.yyyy}<br><br>" +
+                                  $"<strong>{Translations.LastUpdatedBy}:</strong>{cls.Site.Name}<br>" +
+                                  $"<strong>{Translations.LastUpdatedDate}:</strong>{DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
+                                  $"<strong>{Translations.Status}:</strong> {status};";
                 if (status == "Ongoing")
                 {
                     // retract eform
