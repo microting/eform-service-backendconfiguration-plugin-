@@ -144,8 +144,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                   $"<strong>{Translations.CreatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
                                   $"<strong>{Translations.Status}:</strong> Ongoing;";
 
+                var deviceUsersGroupUid = await sdkDbContext.EntityGroups
+                    .Where(x => x.Id == property.EntitySelectListDeviceUsers)
+                    .Select(x => x.MicrotingUid)
+                    .FirstAsync();
                 // deploy eform to ongoing status
-                await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase.Id);
+                await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase.Id, int.Parse(deviceUsersGroupUid));
             }
             else if (eformIdForOngoingTasks == message.CheckId && workorderCase != null)
             {
@@ -212,19 +216,23 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                   $"<strong>{Translations.LastUpdatedBy}:</strong>{cls.Site.Name}<br>" +
                                   $"<strong>{Translations.LastUpdatedDate}:</strong>{DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
                                   $"<strong>{Translations.Status}:</strong> {status};";
+                var deviceUsersGroupUid = await sdkDbContext.EntityGroups
+                    .Where(x => x.Id == property.EntitySelectListDeviceUsers)
+                    .Select(x => x.MicrotingUid)
+                    .FirstAsync();
                 if (status == "Ongoing")
                 {
                     // retract eform
                     await RetractEform(propertyWorkers, eformIdForOngoingTasks, (int)message.CaseId);
                     // deploy eform to ongoing status
-                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, (int)workorderCase.ParentWorkorderCaseId);
+                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, (int)workorderCase.ParentWorkorderCaseId, int.Parse(deviceUsersGroupUid));
                 }
                 else
                 {
                     // retract eform
                     await RetractEform(propertyWorkers, eformIdForOngoingTasks, (int)message.CaseId);
                     // deploy eform to completed status
-                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, (int)workorderCase.ParentWorkorderCaseId);
+                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, (int)workorderCase.ParentWorkorderCaseId, null);
                 }
             }
             else
@@ -345,7 +353,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
         }
 
-        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status, int parentCaseId)
+        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status, int parentCaseId, int? deviceUsersGroupId)
         {
             await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
             await using var backendConfigurationPnDbContext =
@@ -359,6 +367,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 mainElement.CheckListFolderName = sdkDbContext.Folders.Single(x => x.Id == folderId)
                     .MicrotingUid.ToString();
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description;
+                if (deviceUsersGroupId != null)
+                {
+                    ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[4]).Source = (int)deviceUsersGroupId;
+                }
 
                 mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
                 mainElement.StartDate = DateTime.Now.ToUniversalTime();
