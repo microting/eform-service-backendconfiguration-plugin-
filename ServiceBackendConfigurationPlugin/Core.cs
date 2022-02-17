@@ -314,9 +314,9 @@ namespace ServiceBackendConfigurationPlugin
 
                             compliance.Create(backendConfigurationPnDbContext).GetAwaiter().GetResult();
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
-                            Console.WriteLine(e);
+                            // Console.WriteLine(e);
                             // throw;
                         }
                     }

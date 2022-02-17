@@ -178,85 +178,22 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var picturesOfTasks = new List<string>();
                 foreach (var pictureFieldValue in pictureFieldValues)
                 {
-                    var uploadedData = await sdkDbContext.UploadedDatas.SingleAsync(x => x.Id == pictureFieldValue.UploadedDataId);
-                    var workOrderCaseImage = new WorkorderCaseImage
+                    if (pictureFieldValue.UploadedDataId != null)
                     {
-                        WorkorderCaseId = newWorkorderCase.Id,
-                        UploadedDataId = (int)pictureFieldValue.UploadedDataId
-                    };
+                        var uploadedData =
+                            await sdkDbContext.UploadedDatas.SingleAsync(x => x.Id == pictureFieldValue.UploadedDataId);
+                        var workOrderCaseImage = new WorkorderCaseImage
+                        {
+                            WorkorderCaseId = newWorkorderCase.Id,
+                            UploadedDataId = (int) pictureFieldValue.UploadedDataId
+                        };
 
-                    picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
-                    await workOrderCaseImage.Create(backendConfigurationPnDbContext);
+                        picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
+                        await workOrderCaseImage.Create(backendConfigurationPnDbContext);
+                    }
                 }
 
-                var resourceString = "ServiceBackendConfigurationPlugin.Resources.Templates.page.html";
-                var assembly = Assembly.GetExecutingAssembly();
-                string html;
-                await using (var resourceStream = assembly.GetManifestResourceStream(resourceString))
-                {
-                    using var reader = new StreamReader(resourceStream ?? throw new InvalidOperationException($"{nameof(resourceStream)} is null"));
-                    html = await reader.ReadToEndAsync();
-                }
-
-                // Read docx stream
-                resourceString = "ServiceBackendConfigurationPlugin.Resources.Templates.file.docx";
-                var docxFileResourceStream = assembly.GetManifestResourceStream(resourceString);
-                if (docxFileResourceStream == null)
-                {
-                    throw new InvalidOperationException($"{nameof(docxFileResourceStream)} is null");
-                }
-
-                var docxFileStream = new MemoryStream();
-                await docxFileResourceStream.CopyToAsync(docxFileStream);
-                await docxFileResourceStream.DisposeAsync();
-                string basePicturePath = Path.Combine(Path.GetTempPath(), "pictures", "workorders");
-                Directory.CreateDirectory(basePicturePath);
-                var word = new WordProcessor(docxFileStream);
-                string imagesHtml = "";
-
-                foreach (var imagesName in picturesOfTasks)
-                {
-                    Console.WriteLine($"Trying to insert image into document : {imagesName}");
-                    imagesHtml = await InsertImage(imagesName, imagesHtml, 700, 650, basePicturePath);
-                }
-
-                html = html.Replace("{%Content%}", imagesHtml);
-
-                word.AddHtml(html);
-                word.Dispose();
-                docxFileStream.Position = 0;
-
-                // Build docx
-                string downloadPath = Path.Combine(Path.GetTempPath(), "reports", "results");
-                Directory.CreateDirectory(downloadPath);
-                string timeStamp = DateTime.UtcNow.ToString("yyyyMMdd") + "_" + DateTime.UtcNow.ToString("hhmmss");
-                string docxFileName = $"{timeStamp}{cls.SiteId}_temp.docx";
-                string tempPDFFileName = $"{timeStamp}{cls.SiteId}_temp.pdf";
-                string tempPDFFilePath = Path.Combine(downloadPath, tempPDFFileName);
-                await using (var docxFile = new FileStream(Path.Combine(Path.GetTempPath(), "reports", "results", docxFileName), FileMode.Create, FileAccess.Write))
-                {
-                    docxFileStream.WriteTo(docxFile);
-                }
-
-                // Convert to PDF
-                ReportHelper.ConvertToPdf(Path.Combine(Path.GetTempPath(), "reports", "results", docxFileName), downloadPath);
-                File.Delete(docxFileName);
-
-                // Upload PDF
-                // string pdfFileName = null;
-                string hash = await _sdkCore.PdfUpload(tempPDFFilePath);
-                if (hash != null)
-                {
-                    //rename local file
-                    FileInfo fileInfo = new FileInfo(tempPDFFilePath);
-                    fileInfo.CopyTo(downloadPath + "/" + hash + ".pdf", true);
-                    fileInfo.Delete();
-                    await _sdkCore.PutFileToStorageSystem(Path.Combine(downloadPath, $"{hash}.pdf"), $"{hash}.pdf");
-
-                    // TODO Remove from file storage?
-
-
-                }
+                var hash = await GeneratePdf(picturesOfTasks, (int)cls.SiteId);
 
                 var label = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
                                   $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
@@ -307,26 +244,69 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(language.LanguageCode);
 
-                var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
+                // var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
 
                 var deviceUsersGroup = await sdkDbContext.EntityGroups
                     .SingleAsync(x => x.Id == property.EntitySelectListDeviceUsers);
 
-                // var areaId = fieldValues[1].Value;
-                var descriptionFromCase = fieldValues[2].Value;
-                var assignedToId = fieldValues[3].Value;
-                var status = fieldValues[4].Value;
-                // var createdBy = workorderCase.cr;
-                var assignedTo = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToId));
+                var pictureField =
+                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 2);
+                var pictureFieldValues = await sdkDbContext.FieldValues.Where(x => x.FieldId == pictureField.Id && x.CaseId == dbCase.Id).ToListAsync();
+
+                var commentField =
+                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 3);
+                var commentFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
+
+                var assignToSelectField =
+                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 4);
+                var assignedToSelectFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
+
+                var statusField =
+                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 5);
+                var statusFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
+
+                var assignedTo = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
                 // var area = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaId));
-                var textStatus = status == "1" ? Translations.Ongoing : Translations.Completed;
+                var textStatus = statusFieldValue.Value == "1" ? Translations.Ongoing : Translations.Completed;
+
+                var picturesOfTasks = new List<string>();
+                foreach (var pictureFieldValue in pictureFieldValues)
+                {
+                    if (pictureFieldValue.UploadedDataId != null)
+                    {
+                        var uploadedData = await sdkDbContext.UploadedDatas.SingleOrDefaultAsync(x => x.Id == pictureFieldValue.UploadedDataId);
+                        var workOrderCaseImage = new WorkorderCaseImage
+                        {
+                            WorkorderCaseId = workorderCase.Id,
+                            UploadedDataId = (int) pictureFieldValue.UploadedDataId
+                        };
+
+                        picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
+                        await workOrderCaseImage.Create(backendConfigurationPnDbContext);
+                    }
+                }
+                var parentCaseImages = await backendConfigurationPnDbContext.WorkorderCaseImages.Where(x => x.WorkorderCaseId == workorderCase.ParentWorkorderCaseId).ToListAsync();
+
+                foreach (var workorderCaseImage in parentCaseImages)
+                {
+                    var uploadedData = await sdkDbContext.UploadedDatas.SingleAsync(x => x.Id == workorderCaseImage.UploadedDataId);
+                    picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
+                    var workOrderCaseImage = new WorkorderCaseImage
+                    {
+                        WorkorderCaseId = workorderCase.Id,
+                        UploadedDataId = (int)uploadedData.Id
+                    };
+                    await workOrderCaseImage.Create(backendConfigurationPnDbContext);
+                }
+
+                var hash = await GeneratePdf(picturesOfTasks, (int)cls.SiteId);
 
                 var label = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
                                   $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
                                   (!string.IsNullOrEmpty(workorderCase.SelectedAreaName)
                                       ? $"<strong>{Translations.Area}:</strong> {workorderCase.SelectedAreaName}<br>"
                                       : "") +
-                                  $"<strong>{Translations.Description}:</strong> {descriptionFromCase}<br><br>" +
+                                  $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
                                   $"<strong>{Translations.CreatedBy}:</strong> {workorderCase.CreatedByName}<br>" +
                                   (!string.IsNullOrEmpty(workorderCase.CreatedByText)
                                       ? $"<strong>{Translations.CreatedBy}:</strong> {workorderCase.CreatedByText}<br>"
@@ -339,19 +319,19 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     .Where(x => x.Id == property.EntitySelectListDeviceUsers)
                     .Select(x => x.MicrotingUid)
                     .FirstAsync();
-                if (status == "Ongoing" || status == "Igangværende" || status == "1")
+                if (textStatus == "Ongoing" || textStatus == "Igangværende" || textStatus == "1")
                 {
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to ongoing status
-                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, descriptionFromCase, int.Parse(deviceUsersGroupUid), "");
+                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash);
                 }
                 else
                 {
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to completed status
-                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, descriptionFromCase, null, "");
+                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, commentFieldValue.Value, null, hash);
                 }
             }
             else
@@ -564,6 +544,80 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             await stream.DisposeAsync();
 
             return itemsHtml;
+        }
+
+        private async Task<string> GeneratePdf(List<string> picturesOfTasks, int sitId)
+        {
+            var resourceString = "ServiceBackendConfigurationPlugin.Resources.Templates.page.html";
+                var assembly = Assembly.GetExecutingAssembly();
+                string html;
+                await using (var resourceStream = assembly.GetManifestResourceStream(resourceString))
+                {
+                    using var reader = new StreamReader(resourceStream ?? throw new InvalidOperationException($"{nameof(resourceStream)} is null"));
+                    html = await reader.ReadToEndAsync();
+                }
+
+                // Read docx stream
+                resourceString = "ServiceBackendConfigurationPlugin.Resources.Templates.file.docx";
+                var docxFileResourceStream = assembly.GetManifestResourceStream(resourceString);
+                if (docxFileResourceStream == null)
+                {
+                    throw new InvalidOperationException($"{nameof(docxFileResourceStream)} is null");
+                }
+
+                var docxFileStream = new MemoryStream();
+                await docxFileResourceStream.CopyToAsync(docxFileStream);
+                await docxFileResourceStream.DisposeAsync();
+                string basePicturePath = Path.Combine(Path.GetTempPath(), "pictures", "workorders");
+                Directory.CreateDirectory(basePicturePath);
+                var word = new WordProcessor(docxFileStream);
+                string imagesHtml = "";
+
+                foreach (var imagesName in picturesOfTasks)
+                {
+                    Console.WriteLine($"Trying to insert image into document : {imagesName}");
+                    imagesHtml = await InsertImage(imagesName, imagesHtml, 700, 650, basePicturePath);
+                }
+
+                html = html.Replace("{%Content%}", imagesHtml);
+
+                word.AddHtml(html);
+                word.Dispose();
+                docxFileStream.Position = 0;
+
+                // Build docx
+                string downloadPath = Path.Combine(Path.GetTempPath(), "reports", "results");
+                Directory.CreateDirectory(downloadPath);
+                string timeStamp = DateTime.UtcNow.ToString("yyyyMMdd") + "_" + DateTime.UtcNow.ToString("hhmmss");
+                string docxFileName = $"{timeStamp}{sitId}_temp.docx";
+                string tempPDFFileName = $"{timeStamp}{sitId}_temp.pdf";
+                string tempPDFFilePath = Path.Combine(downloadPath, tempPDFFileName);
+                await using (var docxFile = new FileStream(Path.Combine(Path.GetTempPath(), "reports", "results", docxFileName), FileMode.Create, FileAccess.Write))
+                {
+                    docxFileStream.WriteTo(docxFile);
+                }
+
+                // Convert to PDF
+                ReportHelper.ConvertToPdf(Path.Combine(Path.GetTempPath(), "reports", "results", docxFileName), downloadPath);
+                File.Delete(docxFileName);
+
+                // Upload PDF
+                // string pdfFileName = null;
+                string hash = await _sdkCore.PdfUpload(tempPDFFilePath);
+                if (hash != null)
+                {
+                    //rename local file
+                    FileInfo fileInfo = new FileInfo(tempPDFFilePath);
+                    fileInfo.CopyTo(downloadPath + "/" + hash + ".pdf", true);
+                    fileInfo.Delete();
+                    await _sdkCore.PutFileToStorageSystem(Path.Combine(downloadPath, $"{hash}.pdf"), $"{hash}.pdf");
+
+                    // TODO Remove from file storage?
+
+
+                }
+
+                return hash;
         }
     }
 }
