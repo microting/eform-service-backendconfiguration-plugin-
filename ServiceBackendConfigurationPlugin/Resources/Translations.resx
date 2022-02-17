@@ -125,4 +125,10 @@
   <data name="Status" xml:space="preserve">
     <value>Status</value>
   </data>
+	<data name="Ongoing" xml:space="preserve">
+		<value>Ongoing</value>
+	</data>
+	<data name="Completed" xml:space="preserve">
+		<value>Completed</value>
+	</data>
 </root>

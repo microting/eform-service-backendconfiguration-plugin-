@@ -23,6 +23,12 @@ SOFTWARE.
 */
 
 
+using System.IO;
+using System.Reflection;
+using System.Security.Policy;
+using ImageMagick;
+using Microting.eForm.Helpers;
+
 namespace ServiceBackendConfigurationPlugin.Handlers
 {
     using Infrastructure.Helpers;
@@ -90,7 +96,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             var workorderCase = await backendConfigurationPnDbContext.WorkorderCases
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-                .Where(x => x.CaseId == message.CaseId)
+                .Where(x => x.CaseId == message.MicrotingUId)
                 .Include(x => x.ParentWorkorderCase)
                 .Include(x => x.PropertyWorker)
                 .ThenInclude(x => x.Property)
@@ -98,20 +104,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 .ThenInclude(x => x.WorkorderCases)
                 .FirstOrDefaultAsync();
 
-            if (eformIdForNewTasks == message.CheckId && workorderCase != null)
+            var dbCase = await sdkDbContext.Cases.SingleOrDefaultAsync(x => x.Id == message.CaseId) ?? await sdkDbContext.Cases.SingleOrDefaultAsync(x => x.MicrotingCheckUid == message.CheckId);
+
+            if (eformIdForNewTasks == dbCase.CheckListId && workorderCase != null)
             {
                 var property = workorderCase.PropertyWorker.Property;
 
                 var propertyWorkers = property.PropertyWorkers
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                     .ToList();
-
-                var folderIdForOngoingTasks = await sdkDbContext.Folders
-                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-                    .Where(x => x.ParentId == property.FolderIdForTasks)
-                    .Where(x => x.FolderTranslations.Any(y => y.Name == "02. Ongoing tasks"))
-                    .Select(x => x.Id)
-                    .FirstAsync();
 
                 var cls = await sdkDbContext.Cases
                     .Where(x => x.MicrotingUid == message.MicrotingUId)
@@ -124,34 +125,156 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(language.LanguageCode);
 
-                var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
+                var areaField =
+                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 1);
+                var areaFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
 
-                var area = fieldValues.First().Value;
-                var descriptionFromCase = fieldValues[2].Value;
-                var createdBy = fieldValues[3].Value;
-                var assignedTo = fieldValues[4].Value;
+                var pictureField =
+                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 2);
+                var pictureFieldValues = await sdkDbContext.FieldValues.Where(x => x.FieldId == pictureField.Id && x.CaseId == dbCase.Id).ToListAsync();
 
-                var label = $"<strong>{Translations.Location}:</strong>{property.Name}<br>" +
-                                  $"<strong>{Translations.AssignedTo}:</strong> {assignedTo}<br>" +
-                                  (string.IsNullOrEmpty(area)
-                                      ? $"<strong>{Translations.Area}:</strong> {area}<br>"
+                var commentField =
+                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 3);
+                var commentFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
+
+                var assignToTexField =
+                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 4);
+                var assignedToFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == assignToTexField.Id && x.CaseId == dbCase.Id);
+
+                var assignToSelectField =
+                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 5);
+                var assignedToSelectFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
+
+                // var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
+
+                var areasGroup = await sdkDbContext.EntityGroups
+                    .SingleAsync(x => x.Id == property.EntitySelectListAreas);
+                var deviceUsersGroup = await sdkDbContext.EntityGroups
+                    .SingleAsync(x => x.Id == property.EntitySelectListDeviceUsers);
+
+                var assignedTo = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
+                var areaName = "";
+                if (!string.IsNullOrEmpty(areaFieldValue.Value) && areaFieldValue.Value != "null")
+                {
+                    var area = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaFieldValue.Value));
+                    areaName = area.Name;
+                    // workorderCase.EntityItemIdForArea = area.Id;
+                }
+
+                var newWorkorderCase = new WorkorderCase
+                {
+                    ParentWorkorderCaseId = workorderCase.Id,
+                    CaseId = dbCase.Id,
+                    PropertyWorkerId = workorderCase.PropertyWorkerId,
+                    SelectedAreaName = areaName,
+                    CreatedByName = cls.Site.Name,
+                    CreatedByText = assignedToFieldValue.Value,
+                    CaseStatusesEnum = CaseStatusesEnum.Ongoing,
+                    Description = commentFieldValue.Value,
+                    CaseInitiated = DateTime.UtcNow
+                };
+                await newWorkorderCase.Create(backendConfigurationPnDbContext);
+
+                var picturesOfTasks = new List<string>();
+                foreach (var pictureFieldValue in pictureFieldValues)
+                {
+                    var uploadedData = await sdkDbContext.UploadedDatas.SingleAsync(x => x.Id == pictureFieldValue.UploadedDataId);
+                    var workOrderCaseImage = new WorkorderCaseImage
+                    {
+                        WorkorderCaseId = newWorkorderCase.Id,
+                        UploadedDataId = (int)pictureFieldValue.UploadedDataId
+                    };
+
+                    picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
+                    await workOrderCaseImage.Create(backendConfigurationPnDbContext);
+                }
+
+                var resourceString = "ServiceBackendConfigurationPlugin.Resources.Templates.page.html";
+                var assembly = Assembly.GetExecutingAssembly();
+                string html;
+                await using (var resourceStream = assembly.GetManifestResourceStream(resourceString))
+                {
+                    using var reader = new StreamReader(resourceStream ?? throw new InvalidOperationException($"{nameof(resourceStream)} is null"));
+                    html = await reader.ReadToEndAsync();
+                }
+
+                // Read docx stream
+                resourceString = "ServiceBackendConfigurationPlugin.Resources.Templates.file.docx";
+                var docxFileResourceStream = assembly.GetManifestResourceStream(resourceString);
+                if (docxFileResourceStream == null)
+                {
+                    throw new InvalidOperationException($"{nameof(docxFileResourceStream)} is null");
+                }
+
+                var docxFileStream = new MemoryStream();
+                await docxFileResourceStream.CopyToAsync(docxFileStream);
+                await docxFileResourceStream.DisposeAsync();
+                string basePicturePath = Path.Combine(Path.GetTempPath(), "pictures", "workorders");
+                Directory.CreateDirectory(basePicturePath);
+                var word = new WordProcessor(docxFileStream);
+                string imagesHtml = "";
+
+                foreach (var imagesName in picturesOfTasks)
+                {
+                    Console.WriteLine($"Trying to insert image into document : {imagesName}");
+                    imagesHtml = await InsertImage(imagesName, imagesHtml, 700, 650, basePicturePath);
+                }
+
+                html = html.Replace("{%Content%}", imagesHtml);
+
+                word.AddHtml(html);
+                word.Dispose();
+                docxFileStream.Position = 0;
+
+                // Build docx
+                string downloadPath = Path.Combine(Path.GetTempPath(), "reports", "results");
+                Directory.CreateDirectory(downloadPath);
+                string timeStamp = DateTime.UtcNow.ToString("yyyyMMdd") + "_" + DateTime.UtcNow.ToString("hhmmss");
+                string docxFileName = $"{timeStamp}{cls.SiteId}_temp.docx";
+                string tempPDFFileName = $"{timeStamp}{cls.SiteId}_temp.pdf";
+                string tempPDFFilePath = Path.Combine(downloadPath, tempPDFFileName);
+                await using (var docxFile = new FileStream(Path.Combine(Path.GetTempPath(), "reports", "results", docxFileName), FileMode.Create, FileAccess.Write))
+                {
+                    docxFileStream.WriteTo(docxFile);
+                }
+
+                // Convert to PDF
+                ReportHelper.ConvertToPdf(Path.Combine(Path.GetTempPath(), "reports", "results", docxFileName), downloadPath);
+                File.Delete(docxFileName);
+
+                // Upload PDF
+                // string pdfFileName = null;
+                string hash = await _sdkCore.PdfUpload(tempPDFFilePath);
+                if (hash != null)
+                {
+                    //rename local file
+                    FileInfo fileInfo = new FileInfo(tempPDFFilePath);
+                    fileInfo.CopyTo(downloadPath + "/" + hash + ".pdf", true);
+                    fileInfo.Delete();
+                    await _sdkCore.PutFileToStorageSystem(Path.Combine(downloadPath, $"{hash}.pdf"), $"{hash}.pdf");
+
+                    // TODO Remove from file storage?
+
+
+                }
+
+                var label = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+                                  $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
+                                  (!string.IsNullOrEmpty(areaName)
+                                      ? $"<strong>{Translations.Area}:</strong> {areaName}<br>"
                                       : "") +
-                                  $"<strong>{Translations.Description}:</strong> {descriptionFromCase}<br><br>" +
-                                  $"<strong>{Translations.CreatedBy}:</strong> {assignedTo}<br>" +
-                                  (string.IsNullOrEmpty(createdBy)
-                                      ? $"<strong>{Translations.CreatedBy}:</strong> {createdBy}<br>"
+                                  $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
+                                  $"<strong>{Translations.CreatedBy}:</strong> {cls.Site.Name}<br>" +
+                                  (!string.IsNullOrEmpty(assignedToFieldValue.Value)
+                                      ? $"<strong>{Translations.CreatedBy}:</strong> {assignedToFieldValue.Value}<br>"
                                       : "") +
-                                  $"<strong>{Translations.CreatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                                  $"<strong>{Translations.Status}:</strong> Ongoing;";
+                                  $"<strong>{Translations.CreatedDate}:</strong> {workorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
+                                  $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}";
 
-                var deviceUsersGroupUid = await sdkDbContext.EntityGroups
-                    .Where(x => x.Id == property.EntitySelectListDeviceUsers)
-                    .Select(x => x.MicrotingUid)
-                    .FirstAsync();
                 // deploy eform to ongoing status
-                await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase.Id, int.Parse(deviceUsersGroupUid));
+                await DeployEform(propertyWorkers, eformIdForOngoingTasks, (int)property.FolderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, newWorkorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash);
             }
-            else if (eformIdForOngoingTasks == message.CheckId && workorderCase != null)
+            else if (eformIdForOngoingTasks == dbCase.CheckListId && workorderCase != null)
             {
                 var property = workorderCase.PropertyWorker.Property;
 
@@ -186,53 +309,49 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
 
-                var caseWithCreatedBy = await sdkDbContext.Cases
-                    .Where(x => x.Id == workorderCase.ParentWorkorderCase.CaseId)
-                    .OrderBy(x => x.DoneAt)
-                    .Include(x => x.Site)
-                    .FirstAsync();
-                
-                var fieldValuesWithCreatedBy = await _sdkCore.Advanced_FieldValueReadList(new() { caseWithCreatedBy.Id },
-                    await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.Id == caseWithCreatedBy.Site.LanguageId) ??
-                    await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.LanguageCode == LocaleNames.Danish));
+                var deviceUsersGroup = await sdkDbContext.EntityGroups
+                    .SingleAsync(x => x.Id == property.EntitySelectListDeviceUsers);
 
-                var area = fieldValues.First().Value;
+                // var areaId = fieldValues[1].Value;
                 var descriptionFromCase = fieldValues[2].Value;
-                var assignedTo = fieldValues[3].Value;
+                var assignedToId = fieldValues[3].Value;
                 var status = fieldValues[4].Value;
-                var createdBy = fieldValuesWithCreatedBy[4].Value;
+                // var createdBy = workorderCase.cr;
+                var assignedTo = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToId));
+                // var area = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaId));
+                var textStatus = status == "1" ? Translations.Ongoing : Translations.Completed;
 
-                var label = $"<strong>{Translations.Location}:</strong>{property.Name}<br>" +
-                                  $"<strong>{Translations.AssignedTo}:</strong> {assignedTo}<br>" +
-                                  (string.IsNullOrEmpty(area)
-                                      ? $"<strong>{Translations.Area}:</strong> {area}<br>"
+                var label = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+                                  $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
+                                  (!string.IsNullOrEmpty(workorderCase.SelectedAreaName)
+                                      ? $"<strong>{Translations.Area}:</strong> {workorderCase.SelectedAreaName}<br>"
                                       : "") +
                                   $"<strong>{Translations.Description}:</strong> {descriptionFromCase}<br><br>" +
-                                  $"<strong>{Translations.CreatedBy}:</strong> {assignedTo}<br>" +
-                                  (string.IsNullOrEmpty(createdBy)
-                                      ? $"<strong>{Translations.CreatedBy}:</strong> {createdBy}<br>"
+                                  $"<strong>{Translations.CreatedBy}:</strong> {workorderCase.CreatedByName}<br>" +
+                                  (!string.IsNullOrEmpty(workorderCase.CreatedByText)
+                                      ? $"<strong>{Translations.CreatedBy}:</strong> {workorderCase.CreatedByText}<br>"
                                       : "") +
-                                  $"<strong>{Translations.CreatedDate}:</strong> {caseWithCreatedBy.DoneAt: dd.MM.yyyy}<br><br>" +
-                                  $"<strong>{Translations.LastUpdatedBy}:</strong>{cls.Site.Name}<br>" +
-                                  $"<strong>{Translations.LastUpdatedDate}:</strong>{DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                                  $"<strong>{Translations.Status}:</strong> {status};";
+                                  $"<strong>{Translations.CreatedDate}:</strong> {workorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
+                                  $"<strong>{Translations.LastUpdatedBy}:</strong> {cls.Site.Name}<br>" +
+                                  $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
+                                  $"<strong>{Translations.Status}:</strong> {textStatus}";
                 var deviceUsersGroupUid = await sdkDbContext.EntityGroups
                     .Where(x => x.Id == property.EntitySelectListDeviceUsers)
                     .Select(x => x.MicrotingUid)
                     .FirstAsync();
-                if (status == "Ongoing")
+                if (status == "Ongoing" || status == "Igangværende" || status == "1")
                 {
                     // retract eform
-                    await RetractEform(propertyWorkers, eformIdForOngoingTasks, (int)message.CaseId);
+                    await RetractEform(workorderCase);
                     // deploy eform to ongoing status
-                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, (int)workorderCase.ParentWorkorderCaseId, int.Parse(deviceUsersGroupUid));
+                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, descriptionFromCase, int.Parse(deviceUsersGroupUid), "");
                 }
                 else
                 {
                     // retract eform
-                    await RetractEform(propertyWorkers, eformIdForOngoingTasks, (int)message.CaseId);
+                    await RetractEform(workorderCase);
                     // deploy eform to completed status
-                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, (int)workorderCase.ParentWorkorderCaseId, null);
+                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, descriptionFromCase, null, "");
                 }
             }
             else
@@ -353,7 +472,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
         }
 
-        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status, int parentCaseId, int? deviceUsersGroupId)
+        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status, WorkorderCase workorderCase, string newDescription, int? deviceUsersGroupId, string pdfHash)
         {
             await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
             await using var backendConfigurationPnDbContext =
@@ -363,16 +482,31 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == propertyWorker.WorkerId);
                 var siteLanguage = await sdkDbContext.Languages.SingleAsync(x => x.Id == site.LanguageId);
                 var mainElement = await _sdkCore.ReadeForm(eformId, siteLanguage);
-                mainElement.Repeated = 0;
                 mainElement.CheckListFolderName = sdkDbContext.Folders.Single(x => x.Id == folderId)
                     .MicrotingUid.ToString();
+                mainElement.Label = " ";
+                mainElement.ElementList[0].Label = " ";
+                mainElement.ElementList[0].Description.InderValue = description;
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description;
+                ((DataElement)mainElement.ElementList[0]).DataItemList[0].Label = " ";
+                ((DataElement)mainElement.ElementList[0]).DataItemList[0].Color = Constants.FieldColors.Yellow;
+                ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfHash;
                 if (deviceUsersGroupId != null)
                 {
                     ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[4]).Source = (int)deviceUsersGroupId;
+                    ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[4]).Mandatory = true;
+                    ((Comment)((DataElement)mainElement.ElementList[0]).DataItemList[3]).Value = newDescription;
+                    ((SingleSelect)((DataElement)mainElement.ElementList[0]).DataItemList[5]).Mandatory = true;
+                    mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
+                    mainElement.Repeated = 1;
+                }
+                else
+                {
+                    mainElement.EndDate = DateTime.Now.AddDays(30).ToUniversalTime();
+                    mainElement.ElementList[0].DoneButtonEnabled = false;
+                    mainElement.Repeated = 1;
                 }
 
-                mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
                 mainElement.StartDate = DateTime.Now.ToUniversalTime();
                 var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, folderId);
                 await new WorkorderCase
@@ -380,30 +514,56 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     CaseId = (int)caseId,
                     PropertyWorkerId = propertyWorker.Id,
                     CaseStatusesEnum = status,
-                    ParentWorkorderCaseId = parentCaseId,
+                    ParentWorkorderCaseId = workorderCase.Id,
+                    SelectedAreaName = workorderCase.SelectedAreaName,
+                    CreatedByName = workorderCase.CreatedByName,
+                    CreatedByText = workorderCase.CreatedByText,
+                    Description = workorderCase.Description,
+                    CaseInitiated = workorderCase.CaseInitiated
                 }.Create(backendConfigurationPnDbContext);
             }
         }
 
-        private async Task RetractEform(List<PropertyWorker> propertyWorkers, int eformId, int caseId)
+        private async Task RetractEform(WorkorderCase workOrderCase)
         {
             await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
             await using var backendConfigurationPnDbContext =
                 _backendConfigurationDbContextHelper.GetDbContext();
-            foreach (var propertyWorker in propertyWorkers)
+
+            var workOrdersToRetract = await backendConfigurationPnDbContext.WorkorderCases
+                .Where(x => x.ParentWorkorderCaseId == workOrderCase.ParentWorkorderCaseId).ToListAsync();
+
+            foreach (var theCase in workOrdersToRetract)
             {
-                var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == propertyWorker.WorkerId);
-                await _sdkCore.CaseDelete(eformId, (int)site.MicrotingUid);
-                var workorderCase = await backendConfigurationPnDbContext.WorkorderCases
-                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-                    .Where(x => x.PropertyWorkerId == propertyWorker.Id)
-                    .Where(x => x.CaseId != caseId)
-                    .FirstOrDefaultAsync();
-                if(workorderCase != null)
-                {
-                    await workorderCase.Delete(backendConfigurationPnDbContext);
-                }
+                await _sdkCore.CaseDelete(theCase.CaseId);
+                await theCase.Delete(backendConfigurationPnDbContext);
             }
+        }
+
+        private async Task<string> InsertImage(string imageName, string itemsHtml, int imageSize, int imageWidth, string basePicturePath)
+        {
+            var filePath = Path.Combine(basePicturePath, imageName);
+            Stream stream;
+            var storageResult = await _sdkCore.GetFileFromS3Storage(imageName);
+            stream = storageResult.ResponseStream;
+
+            using (var image = new MagickImage(stream))
+            {
+                var profile = image.GetExifProfile();
+                // Write all values to the console
+                foreach (var value in profile.Values)
+                {
+                    Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
+                }
+                image.Rotate(90);
+                var base64String = image.ToBase64();
+                itemsHtml +=
+                    $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
+            }
+
+            await stream.DisposeAsync();
+
+            return itemsHtml;
         }
     }
 }
