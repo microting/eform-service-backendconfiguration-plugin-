@@ -195,18 +195,18 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 var hash = await GeneratePdf(picturesOfTasks, (int)cls.SiteId);
 
-                var label = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
-                                  $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
-                                  (!string.IsNullOrEmpty(areaName)
-                                      ? $"<strong>{Translations.Area}:</strong> {areaName}<br>"
-                                      : "") +
-                                  $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
-                                  $"<strong>{Translations.CreatedBy}:</strong> {cls.Site.Name}<br>" +
-                                  (!string.IsNullOrEmpty(assignedToFieldValue.Value)
-                                      ? $"<strong>{Translations.CreatedBy}:</strong> {assignedToFieldValue.Value}<br>"
-                                      : "") +
-                                  $"<strong>{Translations.CreatedDate}:</strong> {workorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                                  $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}";
+                var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
+                            $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+                            (!string.IsNullOrEmpty(areaName)
+                                ? $"<strong>{Translations.Area}:</strong> {areaName}<br>"
+                                : "") +
+                            $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
+                            $"<strong>{Translations.CreatedBy}:</strong> {cls.Site.Name}<br>" +
+                            (!string.IsNullOrEmpty(assignedToFieldValue.Value)
+                                ? $"<strong>{Translations.CreatedBy}:</strong> {assignedToFieldValue.Value}<br>"
+                                : "") +
+                            $"<strong>{Translations.CreatedDate}:</strong> {newWorkorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
+                            $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}";
 
                 // deploy eform to ongoing status
                 await DeployEform(propertyWorkers, eformIdForOngoingTasks, (int)property.FolderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, newWorkorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash);
@@ -301,20 +301,20 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 var hash = await GeneratePdf(picturesOfTasks, (int)cls.SiteId);
 
-                var label = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
-                                  $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
-                                  (!string.IsNullOrEmpty(workorderCase.SelectedAreaName)
-                                      ? $"<strong>{Translations.Area}:</strong> {workorderCase.SelectedAreaName}<br>"
-                                      : "") +
-                                  $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
-                                  $"<strong>{Translations.CreatedBy}:</strong> {workorderCase.CreatedByName}<br>" +
-                                  (!string.IsNullOrEmpty(workorderCase.CreatedByText)
-                                      ? $"<strong>{Translations.CreatedBy}:</strong> {workorderCase.CreatedByText}<br>"
-                                      : "") +
-                                  $"<strong>{Translations.CreatedDate}:</strong> {workorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                                  $"<strong>{Translations.LastUpdatedBy}:</strong> {cls.Site.Name}<br>" +
-                                  $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                                  $"<strong>{Translations.Status}:</strong> {textStatus}";
+                var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
+                            $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+                            (!string.IsNullOrEmpty(workorderCase.SelectedAreaName)
+                                ? $"<strong>{Translations.Area}:</strong> {workorderCase.SelectedAreaName}<br>"
+                                : "") +
+                            $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
+                            $"<strong>{Translations.CreatedBy}:</strong> {workorderCase.CreatedByName}<br>" +
+                            (!string.IsNullOrEmpty(workorderCase.CreatedByText)
+                                ? $"<strong>{Translations.CreatedBy}:</strong> {workorderCase.CreatedByText}<br>"
+                                : "") +
+                            $"<strong>{Translations.CreatedDate}:</strong> {workorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
+                            $"<strong>{Translations.LastUpdatedBy}:</strong> {cls.Site.Name}<br>" +
+                            $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
+                            $"<strong>{Translations.Status}:</strong> {textStatus}";
                 var deviceUsersGroupUid = await sdkDbContext.EntityGroups
                     .Where(x => x.Id == property.EntitySelectListDeviceUsers)
                     .Select(x => x.MicrotingUid)
