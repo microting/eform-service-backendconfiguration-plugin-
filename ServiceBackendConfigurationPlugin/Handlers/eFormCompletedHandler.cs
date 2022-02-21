@@ -206,14 +206,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 ? $"<strong>{Translations.CreatedBy}:</strong> {assignedToFieldValue.Value}<br>"
                                 : "") +
                             $"<strong>{Translations.CreatedDate}:</strong> {newWorkorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                            $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}<br><br>";
+                            $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}<br><br><center><strong>******************</strong></center>";
 
                 var pushMessageTitle = $"{Translations.NewTask} : {property.Name}";
                 var pushMessageBody = $"{Translations.Description} {commentFieldValue.Value}";
 
                 // deploy eform to ongoing status
                 await DeployEform(propertyWorkers, eformIdForOngoingTasks, (int)property.FolderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, newWorkorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
-                    (int)cls.Site.MicrotingUid, pushMessageBody, pushMessageTitle);
+                    assignedTo.Name, pushMessageBody, pushMessageTitle);
             }
             else if (eformIdForOngoingTasks == dbCase.CheckListId && workorderCase != null)
             {
@@ -305,8 +305,37 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 var hash = await GeneratePdf(picturesOfTasks, (int)cls.SiteId);
 
-                var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
-                            $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+                var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>";
+
+                var pushMessageTitle = $"{Translations.NewTask} : {property.Name}";
+                var pushMessageBody = $"{Translations.Description} : {commentFieldValue.Value}";
+                var deviceUsersGroupUid = await sdkDbContext.EntityGroups
+                    .Where(x => x.Id == property.EntitySelectListDeviceUsers)
+                    .Select(x => x.MicrotingUid)
+                    .FirstAsync();
+                if (textStatus == "Ongoing" || textStatus == "Igangværende" || textStatus == "1")
+                {
+                    label += $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+                             (!string.IsNullOrEmpty(workorderCase.SelectedAreaName)
+                                 ? $"<strong>{Translations.Area}:</strong> {workorderCase.SelectedAreaName}<br>"
+                                 : "") +
+                             $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
+                             $"<strong>{Translations.CreatedBy}:</strong> {workorderCase.CreatedByName}<br>" +
+                             (!string.IsNullOrEmpty(workorderCase.CreatedByText)
+                                 ? $"<strong>{Translations.CreatedBy}:</strong> {workorderCase.CreatedByText}<br>"
+                                 : "") +
+                             $"<strong>{Translations.CreatedDate}:</strong> {workorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
+                             $"<strong>{Translations.LastUpdatedBy}:</strong> {cls.Site.Name}<br>" +
+                             $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
+                             $"<strong>{Translations.Status}:</strong> {textStatus}<br><br><center><strong>******************</strong></center>";
+                    // retract eform
+                    await RetractEform(workorderCase);
+                    // deploy eform to ongoing status
+                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle);
+                }
+                else
+                {
+                    label = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
                             (!string.IsNullOrEmpty(workorderCase.SelectedAreaName)
                                 ? $"<strong>{Translations.Area}:</strong> {workorderCase.SelectedAreaName}<br>"
                                 : "") +
@@ -318,27 +347,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             $"<strong>{Translations.CreatedDate}:</strong> {workorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
                             $"<strong>{Translations.LastUpdatedBy}:</strong> {cls.Site.Name}<br>" +
                             $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                            $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
-
-                var pushMessageTitle = $"{Translations.NewTask} : {property.Name}";
-                var pushMessageBody = $"{Translations.Description} {commentFieldValue.Value}";
-                var deviceUsersGroupUid = await sdkDbContext.EntityGroups
-                    .Where(x => x.Id == property.EntitySelectListDeviceUsers)
-                    .Select(x => x.MicrotingUid)
-                    .FirstAsync();
-                if (textStatus == "Ongoing" || textStatus == "Igangværende" || textStatus == "1")
-                {
-                    // retract eform
-                    await RetractEform(workorderCase);
-                    // deploy eform to ongoing status
-                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, (int)cls.Site.MicrotingUid, pushMessageTitle, pushMessageBody);
-                }
-                else
-                {
+                            $"<strong>{Translations.Status}:</strong> {textStatus}<br><br><center><strong>******************</strong></center>";
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to completed status
-                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, commentFieldValue.Value, null, hash, (int)cls.Site.MicrotingUid, pushMessageTitle, pushMessageBody);
+                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, commentFieldValue.Value, null, hash, assignedTo.Name, pushMessageBody, pushMessageTitle);
                 }
             }
             else
@@ -459,7 +472,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
         }
 
-        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status, WorkorderCase workorderCase, string newDescription, int? deviceUsersGroupId, string pdfHash, int createdBySiteId, string pushMessageBody, string pushMessageTitle)
+        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status, WorkorderCase workorderCase, string newDescription, int? deviceUsersGroupId, string pdfHash, string siteName, string pushMessageBody, string pushMessageTitle)
         {
             await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
             await using var backendConfigurationPnDbContext =
@@ -476,7 +489,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 mainElement.EnableQuickSync = true;
                 mainElement.ElementList[0].Label = " ";
                 mainElement.ElementList[0].Description.InderValue = description;
-                if (site.MicrotingUid == createdBySiteId)
+                if (site.Name == siteName)
                 {
                     mainElement.PushMessageTitle = pushMessageTitle;
                     mainElement.PushMessageBody = pushMessageBody;
