@@ -110,5 +110,11 @@ namespace ServiceBackendConfigurationPlugin.Resources {
                 return ResourceManager.GetString("Completed", resourceCulture);
             }
         }
+        
+        internal static string NewTask {
+            get {
+                return ResourceManager.GetString("NewTask", resourceCulture);
+            }
+        }
     }
 }

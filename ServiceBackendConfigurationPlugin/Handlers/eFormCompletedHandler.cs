@@ -206,10 +206,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 ? $"<strong>{Translations.CreatedBy}:</strong> {assignedToFieldValue.Value}<br>"
                                 : "") +
                             $"<strong>{Translations.CreatedDate}:</strong> {newWorkorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                            $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}";
+                            $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}<br><br>";
+
+                var pushMessageTitle = $"{Translations.NewTask} : {property.Name}";
+                var pushMessageBody = $"{Translations.Description} {commentFieldValue.Value}";
 
                 // deploy eform to ongoing status
-                await DeployEform(propertyWorkers, eformIdForOngoingTasks, (int)property.FolderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, newWorkorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash);
+                await DeployEform(propertyWorkers, eformIdForOngoingTasks, (int)property.FolderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, newWorkorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
+                    (int)cls.Site.MicrotingUid, pushMessageBody, pushMessageTitle);
             }
             else if (eformIdForOngoingTasks == dbCase.CheckListId && workorderCase != null)
             {
@@ -314,7 +318,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             $"<strong>{Translations.CreatedDate}:</strong> {workorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
                             $"<strong>{Translations.LastUpdatedBy}:</strong> {cls.Site.Name}<br>" +
                             $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                            $"<strong>{Translations.Status}:</strong> {textStatus}";
+                            $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
+
+                var pushMessageTitle = $"{Translations.NewTask} : {property.Name}";
+                var pushMessageBody = $"{Translations.Description} {commentFieldValue.Value}";
                 var deviceUsersGroupUid = await sdkDbContext.EntityGroups
                     .Where(x => x.Id == property.EntitySelectListDeviceUsers)
                     .Select(x => x.MicrotingUid)
@@ -324,14 +331,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to ongoing status
-                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash);
+                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, (int)cls.Site.MicrotingUid, pushMessageTitle, pushMessageBody);
                 }
                 else
                 {
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to completed status
-                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, commentFieldValue.Value, null, hash);
+                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, commentFieldValue.Value, null, hash, (int)cls.Site.MicrotingUid, pushMessageTitle, pushMessageBody);
                 }
             }
             else
@@ -452,7 +459,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
         }
 
-        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status, WorkorderCase workorderCase, string newDescription, int? deviceUsersGroupId, string pdfHash)
+        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status, WorkorderCase workorderCase, string newDescription, int? deviceUsersGroupId, string pdfHash, int createdBySiteId, string pushMessageBody, string pushMessageTitle)
         {
             await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
             await using var backendConfigurationPnDbContext =
@@ -465,8 +472,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 mainElement.CheckListFolderName = sdkDbContext.Folders.Single(x => x.Id == folderId)
                     .MicrotingUid.ToString();
                 mainElement.Label = " ";
+                mainElement.ElementList[0].QuickSyncEnabled = true;
+                mainElement.EnableQuickSync = true;
                 mainElement.ElementList[0].Label = " ";
                 mainElement.ElementList[0].Description.InderValue = description;
+                if (site.MicrotingUid == createdBySiteId)
+                {
+                    mainElement.PushMessageTitle = pushMessageTitle;
+                    mainElement.PushMessageBody = pushMessageBody;
+                }
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description;
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Label = " ";
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Color = Constants.FieldColors.Yellow;

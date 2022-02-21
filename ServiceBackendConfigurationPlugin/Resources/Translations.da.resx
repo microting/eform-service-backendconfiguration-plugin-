@@ -131,4 +131,7 @@
 	<data name="Completed" xml:space="preserve">
 		<value>Afsluttet</value>
 	</data>
+	<data name="NewTask" xml:space="preserve">
+		<value>Ny opgave for ejendom</value>
+	</data>
 </root>
