@@ -206,10 +206,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 ? $"<strong>{Translations.CreatedBy}:</strong> {assignedToFieldValue.Value}<br>"
                                 : "") +
                             $"<strong>{Translations.CreatedDate}:</strong> {newWorkorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                            $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}<br><br><center><strong>******************</strong></center>";
+                            $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}<br><br>";
 
-                var pushMessageTitle = $"{Translations.NewTask} : {property.Name}";
-                var pushMessageBody = $"{Translations.Description} {commentFieldValue.Value}";
+                var pushMessageTitle = !string.IsNullOrEmpty(areaName) ? $"{property.Name}; {areaName}" : $"{property.Name}";
+                var pushMessageBody = $"{commentFieldValue.Value}";
 
                 // deploy eform to ongoing status
                 await DeployEform(propertyWorkers, eformIdForOngoingTasks, (int)property.FolderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, newWorkorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
@@ -307,8 +307,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>";
 
-                var pushMessageTitle = $"{Translations.NewTask} : {property.Name}";
-                var pushMessageBody = $"{Translations.Description} : {commentFieldValue.Value}";
+                var pushMessageTitle = !string.IsNullOrEmpty(workorderCase.SelectedAreaName) ? $"{property.Name}; {workorderCase.SelectedAreaName}" : $"{property.Name}";
+                var pushMessageBody = $"{commentFieldValue.Value}";
                 var deviceUsersGroupUid = await sdkDbContext.EntityGroups
                     .Where(x => x.Id == property.EntitySelectListDeviceUsers)
                     .Select(x => x.MicrotingUid)
@@ -327,7 +327,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                              $"<strong>{Translations.CreatedDate}:</strong> {workorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
                              $"<strong>{Translations.LastUpdatedBy}:</strong> {cls.Site.Name}<br>" +
                              $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                             $"<strong>{Translations.Status}:</strong> {textStatus}<br><br><center><strong>******************</strong></center>";
+                             $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to ongoing status
@@ -347,7 +347,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             $"<strong>{Translations.CreatedDate}:</strong> {workorderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
                             $"<strong>{Translations.LastUpdatedBy}:</strong> {cls.Site.Name}<br>" +
                             $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                            $"<strong>{Translations.Status}:</strong> {textStatus}<br><br><center><strong>******************</strong></center>";
+                            $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to completed status
@@ -488,7 +488,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 mainElement.ElementList[0].QuickSyncEnabled = true;
                 mainElement.EnableQuickSync = true;
                 mainElement.ElementList[0].Label = " ";
-                mainElement.ElementList[0].Description.InderValue = description;
+                mainElement.ElementList[0].Description.InderValue = description + "<center><strong>******************</strong></center>";
                 if (site.Name == siteName)
                 {
                     mainElement.PushMessageTitle = pushMessageTitle;
