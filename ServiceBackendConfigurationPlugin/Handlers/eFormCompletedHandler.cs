@@ -489,6 +489,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 mainElement.EnableQuickSync = true;
                 mainElement.ElementList[0].Label = " ";
                 mainElement.ElementList[0].Description.InderValue = description + "<center><strong>******************</strong></center>";
+                if (status == CaseStatusesEnum.Completed)
+                {
+                    DateTime startDate = new DateTime(2020, 1, 1);
+                    mainElement.DisplayOrder = (int)(startDate - DateTime.UtcNow).TotalSeconds;
+                }
                 if (site.Name == siteName)
                 {
                     mainElement.PushMessageTitle = pushMessageTitle;
