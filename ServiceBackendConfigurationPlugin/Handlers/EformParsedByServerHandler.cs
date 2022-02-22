@@ -91,18 +91,18 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 if (planning.RepeatEvery == 0 && planning.RepeatType == RepeatType.Day) { }
                 else
                 {
-
                     if (!backendConfigurationPnDbContext.Compliances.Any(x =>
                             x.Deadline == (DateTime)planning.NextExecutionTime &&
                             x.PlanningId == planningCaseSite.PlanningId &&
                             x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
+                        var deadLine = (DateTime)planning.NextExecutionTime;
                         Compliance compliance = new Compliance()
                         {
                             PropertyId = property.Id,
                             PlanningId = planningCaseSite.PlanningId,
                             AreaId = backendPlannings.AreaId,
-                            Deadline = (DateTime)planning.NextExecutionTime,
+                            Deadline = new DateTime(deadLine.Year, deadLine.Month, deadLine.Day, 0, 0, 0),
                             StartDate = (DateTime)planning.LastExecutedTime,
                             MicrotingSdkeFormId = planning.RelatedEFormId,
                             PlanningCaseSiteId = planningCaseSite.Id
