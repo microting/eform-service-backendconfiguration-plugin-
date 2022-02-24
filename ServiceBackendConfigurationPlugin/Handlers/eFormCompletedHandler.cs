@@ -489,16 +489,17 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 mainElement.EnableQuickSync = true;
                 mainElement.ElementList[0].Label = " ";
                 mainElement.ElementList[0].Description.InderValue = description + "<center><strong>******************</strong></center>";
-                if (status == CaseStatusesEnum.Completed)
+                if (status == CaseStatusesEnum.Completed || site.Name == siteName)
                 {
                     DateTime startDate = new DateTime(2020, 1, 1);
                     mainElement.DisplayOrder = (int)(startDate - DateTime.UtcNow).TotalSeconds;
                 }
-                if (site.Name == siteName)
-                {
-                    mainElement.PushMessageTitle = pushMessageTitle;
-                    mainElement.PushMessageBody = pushMessageBody;
-                }
+                // if (site.Name == siteName)
+                // {
+                //     mainElement.PushMessageTitle = pushMessageTitle;
+                //     mainElement.PushMessageBody = pushMessageBody;
+                // }
+                // TODO uncomment when new app has been released.
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description;
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Label = " ";
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Color = Constants.FieldColors.Yellow;
