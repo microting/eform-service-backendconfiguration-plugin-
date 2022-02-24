@@ -94,6 +94,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     if (!backendConfigurationPnDbContext.Compliances.Any(x =>
                             x.Deadline == (DateTime)planning.NextExecutionTime &&
                             x.PlanningId == planningCaseSite.PlanningId &&
+                            x.PlanningCaseSiteId == planningCaseSite.Id &&
                             x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
                         var deadLine = (DateTime)planning.NextExecutionTime;
