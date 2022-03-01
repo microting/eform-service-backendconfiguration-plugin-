@@ -161,6 +161,20 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     // workorderCase.EntityItemIdForArea = area.Id;
                 }
 
+                if (backendConfigurationPnDbContext.WorkorderCases.Any(x =>
+                        x.ParentWorkorderCaseId == workorderCase.Id
+                        && x.WorkflowState != Constants.WorkflowStates.Removed
+                        && x.CaseId == dbCase.Id
+                        && x.PropertyWorkerId == workorderCase.PropertyWorkerId
+                        && x.SelectedAreaName == areaName
+                        && x.CreatedByName == cls.Site.Name
+                        && x.CreatedByText == assignedToFieldValue.Value
+                        && x.CaseStatusesEnum == CaseStatusesEnum.Ongoing
+                        && x.Description == commentFieldValue.Value))
+                {
+                    return;
+                }
+
                 var newWorkorderCase = new WorkorderCase
                 {
                     ParentWorkorderCaseId = workorderCase.Id,
@@ -494,11 +508,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     DateTime startDate = new DateTime(2020, 1, 1);
                     mainElement.DisplayOrder = (int)(startDate - DateTime.UtcNow).TotalSeconds;
                 }
-                // if (site.Name == siteName)
-                // {
-                //     mainElement.PushMessageTitle = pushMessageTitle;
-                //     mainElement.PushMessageBody = pushMessageBody;
-                // }
+                if (site.Name == siteName)
+                {
+                    mainElement.PushMessageTitle = pushMessageTitle;
+                    mainElement.PushMessageBody = pushMessageBody;
+                }
                 // TODO uncomment when new app has been released.
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description;
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Label = " ";
