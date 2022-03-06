@@ -59,16 +59,22 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             await using ItemsPlanningPnDbContext itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
             await using BackendConfigurationPnDbContext backendConfigurationPnDbContext = _backendConfigurationDbContextHelper.GetDbContext();
             var planningCaseSite =
-                await itemsPlanningPnDbContext.PlanningCaseSites.SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == message.CaseId);
+                await itemsPlanningPnDbContext.PlanningCaseSites
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == message.CaseId);
 
             if (planningCaseSite == null)
             {
                 // var site = await sdkDbContext.Sites.SingleOrDefaultAsync(x => x.MicrotingUid == caseDto.SiteUId);
-                var checkListSite = await sdkDbContext.CheckListSites.SingleOrDefaultAsync(x =>
+                var checkListSite = await sdkDbContext.CheckListSites
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(x =>
                     x.MicrotingUid == message.MicrotingUId);
                 if (checkListSite == null) return;
                 planningCaseSite =
-                    await itemsPlanningPnDbContext.PlanningCaseSites.SingleOrDefaultAsync(x =>
+                    await itemsPlanningPnDbContext.PlanningCaseSites
+                        .AsNoTracking()
+                        .SingleOrDefaultAsync(x =>
                         x.MicrotingCheckListSitId == checkListSite.Id);
             }
 
@@ -80,6 +86,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             var backendPlannings = await backendConfigurationPnDbContext.AreaRulePlannings
                 .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId)
                 .Where(x => x.ComplianceEnabled)
+                .AsNoTracking()
                 .FirstOrDefaultAsync();
 
             if (backendPlannings != null)
