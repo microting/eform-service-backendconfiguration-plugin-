@@ -173,7 +173,7 @@ namespace ServiceBackendConfigurationPlugin
                         .SingleOrDefault(x => x.Name == "BackendConfigurationBaseSettings:NumberOfWorkers")?.Value;
                     _numberOfWorkers = string.IsNullOrEmpty(temp) ? 1 : int.Parse(temp);
 
-                    CheckComplianceIntegrity(connectionString, itemsPlanningConnectionString);
+                    // CheckComplianceIntegrity(connectionString, itemsPlanningConnectionString);
 
                     _container = new WindsorContainer();
                     _container.Register(Component.For<IWindsorContainer>().Instance(_container));
