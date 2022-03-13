@@ -93,12 +93,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             {
                 var property = await backendConfigurationPnDbContext.Properties.SingleAsync(x => x.Id == backendPlannings.PropertyId);
 
-                var planning = await itemsPlanningPnDbContext.Plannings.SingleAsync(x => x.Id == planningCaseSite.PlanningId);
+                var planning = await itemsPlanningPnDbContext.Plannings.AsNoTracking().SingleAsync(x => x.Id == planningCaseSite.PlanningId);
 
                 if (planning.RepeatEvery == 0 && planning.RepeatType == RepeatType.Day) { }
                 else
                 {
-                    if (!backendConfigurationPnDbContext.Compliances.Any(x =>
+                    if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
                             x.Deadline == (DateTime)planning.NextExecutionTime &&
                             x.PlanningId == planningCaseSite.PlanningId &&
                             x.PlanningCaseSiteId == planningCaseSite.Id &&
@@ -134,11 +134,29 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     //     }
                     // }
 
-                    if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow.AddDays(1) && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    if (backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x => x.Deadline < DateTime.UtcNow.AddDays(1) && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
                         property.ComplianceStatus = 2;
                         property.ComplianceStatusThirty = 2;
                         await property.Update(backendConfigurationPnDbContext);
+                    }
+                    else
+                    {
+                        if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
+                                x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id &&
+                                x.WorkflowState != Constants.WorkflowStates.Removed))
+                        {
+                            property.ComplianceStatusThirty = 0;
+                            await property.Update(backendConfigurationPnDbContext);
+                        }
+
+                        if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
+                                x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id &&
+                                x.WorkflowState != Constants.WorkflowStates.Removed))
+                        {
+                            property.ComplianceStatus = 0;
+                            await property.Update(backendConfigurationPnDbContext);
+                        }
                     }
                 }
             }

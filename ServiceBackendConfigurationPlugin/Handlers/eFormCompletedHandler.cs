@@ -408,7 +408,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         if (planningCaseSite.Status == 100)
                         {
                             planningCaseSite =
-                                itemsPlanningPnDbContext.PlanningCaseSites.Single(x => x.Id == planningCaseSite.Id);
+                                itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking().Single(x => x.Id == planningCaseSite.Id);
                         }
                     }
 
@@ -426,7 +426,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         await dbCompliance.Delete(backendConfigurationPnDbContext);
                     }
 
-                    var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings
+                    var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.AsNoTracking()
                         .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
 
                     var property =
@@ -446,43 +446,55 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         property.ComplianceStatusThirty = 2;
                         await property.Update(backendConfigurationPnDbContext);
                     }
-
-                    if (backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
-                            x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
-                    {
-                        if (property is { ComplianceStatus: 0 })
-                        {
-                            // property.ComplianceStatus = 1;
-                            // await property.Update(backendConfigurationPnDbContext);
-                        }
-
-                        if (property is { ComplianceStatusThirty: 0 })
-                        {
-                            // if (backendConfigurationPnDbContext.Compliances.Any(x =>
-                            //         x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id &&
-                            //         x.WorkflowState != Constants.WorkflowStates.Removed))
-                            // {
-                            //     property.ComplianceStatusThirty = 1;
-                            //     await property.Update(backendConfigurationPnDbContext);
-                            // }
-                        }
-                        else
-                        {
-                            if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
-                                    x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id &&
-                                    x.WorkflowState != Constants.WorkflowStates.Removed))
-                            {
-                                property.ComplianceStatusThirty = 0;
-                                await property.Update(backendConfigurationPnDbContext);
-                            }
-                        }
-                    }
                     else
                     {
-                        property.ComplianceStatus = 0;
-                        property.ComplianceStatusThirty = 0;
-                        await property.Update(backendConfigurationPnDbContext);
+                        if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
+                                x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id &&
+                                x.WorkflowState != Constants.WorkflowStates.Removed))
+                        {
+                            property.ComplianceStatusThirty = 0;
+                            await property.Update(backendConfigurationPnDbContext);
+                        }
+
+                        if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
+                                x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id &&
+                                x.WorkflowState != Constants.WorkflowStates.Removed))
+                        {
+                            property.ComplianceStatus = 0;
+                            await property.Update(backendConfigurationPnDbContext);
+                        }
                     }
+
+                    // if (backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
+                    //         x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    // {
+                    //     // if (property is { ComplianceStatus: 0 })
+                    //     // {
+                    //     //     // property.ComplianceStatus = 1;
+                    //     //     // await property.Update(backendConfigurationPnDbContext);
+                    //     // }
+                    //     //
+                    //     // if (property is { ComplianceStatusThirty: 0 })
+                    //     // {
+                    //     //     // if (backendConfigurationPnDbContext.Compliances.Any(x =>
+                    //     //     //         x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id &&
+                    //     //     //         x.WorkflowState != Constants.WorkflowStates.Removed))
+                    //     //     // {
+                    //     //     //     property.ComplianceStatusThirty = 1;
+                    //     //     //     await property.Update(backendConfigurationPnDbContext);
+                    //     //     // }
+                    //     // }
+                    //     // else
+                    //     // {
+                    //
+                    //     // }
+                    // }
+                    // else
+                    // {
+                    //     property.ComplianceStatus = 0;
+                    //     property.ComplianceStatusThirty = 0;
+                    //     await property.Update(backendConfigurationPnDbContext);
+                    // }
                 }
             }
         }
