@@ -38,6 +38,15 @@ using ServiceBackendConfigurationPlugin.Messages;
 
 namespace ServiceBackendConfigurationPlugin.Handlers
 {
+    public static class DateTimeExtensions
+    {
+        public static DateTime StartOfWeek(this DateTime dt, DayOfWeek startOfWeek)
+        {
+            int diff = (7 + (dt.DayOfWeek - startOfWeek)) % 7;
+            return dt.AddDays(-1 * diff).Date;
+        }
+    }
+
     public class EformParsedByServerHandler : IHandleMessages<EformParsedByServer>
     {
         private readonly eFormCore.Core _sdkCore;
@@ -98,6 +107,47 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 if (planning.RepeatEvery == 0 && planning.RepeatType == RepeatType.Day) { }
                 else
                 {
+                    if (planning.NextExecutionTime == null)
+                    {
+                        var now = DateTime.UtcNow;
+                        if (planning.RepeatType == RepeatType.Day)
+                        {
+                            if (planning.RepeatEvery != 0)
+                            {
+                                var nextRun = now.AddDays(planning.RepeatEvery);
+                                planning.NextExecutionTime = nextRun;
+                                await planning.Update(itemsPlanningPnDbContext);
+                            }
+                        }
+                        if (planning.RepeatType == RepeatType.Week)
+                        {
+                            if (planning.DayOfWeek != null)
+                            {
+                                var startOfWeek =
+                                    new DateTime(now.Year, now.Month, now.Day, 0, 0, 0).StartOfWeek(
+                                        (DayOfWeek) planning.DayOfWeek);
+                                var nextRun = startOfWeek.AddDays(planning.RepeatEvery * 7);
+                                planning.NextExecutionTime = nextRun;
+                                await planning.Update(itemsPlanningPnDbContext);
+                            }
+                        }
+
+                        if (planning.RepeatType == RepeatType.Month)
+                        {
+                            if (planning.DayOfMonth != null)
+                            {
+                                if (planning.DayOfMonth == 0)
+                                {
+                                    planning.DayOfMonth = 1;
+                                }
+                                var startOfMonth = new DateTime(now.Year, now.Month, (int) planning.DayOfMonth, 0, 0, 0);
+                                var nextRun = startOfMonth.AddMonths(planning.RepeatEvery);
+                                planning.NextExecutionTime = nextRun;
+                                await planning.Update(itemsPlanningPnDbContext);
+                            }
+                        }
+                    }
+
                     if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
                             x.Deadline == (DateTime)planning.NextExecutionTime &&
                             x.PlanningId == planningCaseSite.PlanningId &&
