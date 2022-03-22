@@ -105,7 +105,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 .ThenInclude(x => x.WorkorderCases)
                 .FirstOrDefaultAsync();
 
-            var dbCase = await sdkDbContext.Cases.SingleOrDefaultAsync(x => x.Id == message.CaseId) ?? await sdkDbContext.Cases.SingleOrDefaultAsync(x => x.MicrotingCheckUid == message.CheckId);
+            var dbCase = await sdkDbContext.Cases.AsNoTracking().SingleOrDefaultAsync(x => x.Id == message.CaseId) ?? await sdkDbContext.Cases.SingleOrDefaultAsync(x => x.MicrotingCheckUid == message.CheckId);
 
             if (eformIdForNewTasks == dbCase.CheckListId && workorderCase != null)
             {
@@ -378,7 +378,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 if (planningCaseSite == null)
                 {
                     // var site = await sdkDbContext.Sites.SingleOrDefaultAsync(x => x.MicrotingUid == caseDto.SiteUId);
-                    var checkListSite = await sdkDbContext.CheckListSites.SingleOrDefaultAsync(x =>
+                    var checkListSite = await sdkDbContext.CheckListSites.AsNoTracking().SingleOrDefaultAsync(x =>
                         x.MicrotingUid == message.MicrotingUId).ConfigureAwait(false);
                     if (checkListSite == null)
                     {
