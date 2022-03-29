@@ -20,7 +20,7 @@
     <PackageReference Include="Microting.ItemsPlanningBase" Version="3.0.107" />
     <PackageReference Include="Microting.WindowsService.BasePn" Version="2.0.0" />
     <PackageReference Include="System.ComponentModel.Composition" Version="6.0.0" />
-    <PackageReference Include="Microting.eFormApi.BasePn" Version="3.1.44" />
+    <PackageReference Include="Microting.eFormApi.BasePn" Version="3.1.46" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Resources\Translations.Designer.cs">
