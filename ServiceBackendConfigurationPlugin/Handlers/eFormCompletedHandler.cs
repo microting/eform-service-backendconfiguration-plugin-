@@ -607,9 +607,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             {
                 var profile = image.GetExifProfile();
                 // Write all values to the console
-                foreach (var value in profile.Values)
+                try
                 {
-                    Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
+                    foreach (var value in profile.Values)
+                    {
+                        Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
+                    }
+                } catch (Exception e)
+                {
+                    Console.WriteLine(e);
                 }
                 image.Rotate(90);
                 var base64String = image.ToBase64();
