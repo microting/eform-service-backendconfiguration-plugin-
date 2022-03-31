@@ -183,8 +183,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     //         await property.Update(backendConfigurationPnDbContext);
                     //     }
                     // }
+                    var today = new DateTime(DateTime.Now.AddDays(1).Year, DateTime.Now.AddDays(1).Month, DateTime.Now.AddDays(1).Day, 0, 0, 0);
 
-                    if (backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x => x.Deadline < DateTime.UtcNow.AddDays(1) && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
+                    if (backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x => x.Deadline < today && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
                         property.ComplianceStatus = 2;
                         property.ComplianceStatusThirty = 2;
