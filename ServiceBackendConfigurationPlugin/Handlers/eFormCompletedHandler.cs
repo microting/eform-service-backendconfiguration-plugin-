@@ -81,19 +81,37 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                 .Where(x => x.Text == "01. New task")
                 .Select(x => x.CheckListId)
-                .FirstAsync();
+                .FirstOrDefaultAsync();
+
+            if (eformIdForNewTasks == 0)
+            {
+                Console.WriteLine("eformIdForNewTasks is 0");
+                return;
+            }
 
             var eformIdForOngoingTasks = await sdkDbContext.CheckListTranslations
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                 .Where(x => x.Text == "02. Ongoing task")
                 .Select(x => x.CheckListId)
-                .FirstAsync();
+                .FirstOrDefaultAsync();
+
+            if (eformIdForOngoingTasks == 0)
+            {
+                Console.WriteLine("eformIdForOngoingTasks is 0");
+                return;
+            }
 
             var eformIdForCompletedTasks = await sdkDbContext.CheckListTranslations
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                 .Where(x => x.Text == "03. Completed task")
                 .Select(x => x.CheckListId)
-                .FirstAsync();
+                .FirstOrDefaultAsync();
+
+            if (eformIdForCompletedTasks == 0)
+            {
+                Console.WriteLine("eformIdForCompletedTasks is 0");
+                return;
+            }
 
             var workorderCase = await backendConfigurationPnDbContext.WorkorderCases
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
