@@ -164,7 +164,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 5);
                 var assignedToSelectFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
 
-                var updatedByName = dbCase.Site.Name;
+                var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == dbCase.SiteId);
+                var updatedByName = site.Name;
                 // var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
 
                 var areasGroup = await sdkDbContext.EntityGroups
@@ -205,7 +206,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     CreatedByText = assignedToFieldValue.Value,
                     CaseStatusesEnum = CaseStatusesEnum.Ongoing,
                     Description = commentFieldValue.Value,
-                    CaseInitiated = DateTime.UtcNow
+                    CaseInitiated = DateTime.UtcNow,
+                    LeadingCase = false
                 };
                 await newWorkorderCase.Create(backendConfigurationPnDbContext);
 
@@ -307,7 +309,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 // var area = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaId));
                 var textStatus = statusFieldValue.Value == "1" ? Translations.Ongoing : Translations.Completed;
 
-                var updatedByName = dbCase.Site.Name;
+                var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == dbCase.SiteId);
+                var updatedByName = site.Name;
 
                 var picturesOfTasks = new List<string>();
                 foreach (var pictureFieldValue in pictureFieldValues)
@@ -609,7 +612,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     SelectedAreaName = workorderCase.SelectedAreaName,
                     CreatedByName = workorderCase.CreatedByName,
                     CreatedByText = workorderCase.CreatedByText,
-                    Description = workorderCase.Description,
+                    Description = newDescription,
                     CaseInitiated = workorderCase.CaseInitiated,
                     LastAssignedToName = siteName,
                     LastUpdatedByName = UpdatedByName,
