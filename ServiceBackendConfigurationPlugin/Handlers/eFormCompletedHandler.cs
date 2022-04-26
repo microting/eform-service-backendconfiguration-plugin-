@@ -164,6 +164,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 5);
                 var assignedToSelectFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
 
+                var updatedByName = dbCase.Site.Name;
                 // var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
 
                 var areasGroup = await sdkDbContext.EntityGroups
@@ -246,7 +247,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 // deploy eform to ongoing status
                 await DeployEform(propertyWorkers, eformIdForOngoingTasks, (int)property.FolderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, newWorkorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
-                    assignedTo.Name, pushMessageBody, pushMessageTitle);
+                    assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
             }
             else if (eformIdForOngoingTasks == dbCase.CheckListId && workorderCase != null)
             {
@@ -306,6 +307,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 // var area = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaId));
                 var textStatus = statusFieldValue.Value == "1" ? Translations.Ongoing : Translations.Completed;
 
+                var updatedByName = dbCase.Site.Name;
+
                 var picturesOfTasks = new List<string>();
                 foreach (var pictureFieldValue in pictureFieldValues)
                 {
@@ -364,7 +367,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to ongoing status
-                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle);
+                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
                 }
                 else
                 {
@@ -384,7 +387,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to completed status
-                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, commentFieldValue.Value, null, hash, assignedTo.Name, pushMessageBody, pushMessageTitle);
+                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, commentFieldValue.Value, null, hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
                 }
             }
             else
@@ -533,11 +536,25 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
         }
 
-        private async Task DeployEform(List<PropertyWorker> propertyWorkers, int eformId, int folderId, string description, CaseStatusesEnum status, WorkorderCase workorderCase, string newDescription, int? deviceUsersGroupId, string pdfHash, string siteName, string pushMessageBody, string pushMessageTitle)
+        private async Task DeployEform(
+            List<PropertyWorker> propertyWorkers,
+            int eformId,
+            int folderId,
+            string description,
+            CaseStatusesEnum status,
+            WorkorderCase workorderCase,
+            string newDescription,
+            int? deviceUsersGroupId,
+            string pdfHash,
+            string siteName,
+            string pushMessageBody,
+            string pushMessageTitle,
+            string UpdatedByName)
         {
             await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
             await using var backendConfigurationPnDbContext =
                 _backendConfigurationDbContextHelper.GetDbContext();
+            var i = 0;
             foreach (var propertyWorker in propertyWorkers)
             {
                 var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == propertyWorker.WorkerId);
@@ -593,8 +610,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     CreatedByName = workorderCase.CreatedByName,
                     CreatedByText = workorderCase.CreatedByText,
                     Description = workorderCase.Description,
-                    CaseInitiated = workorderCase.CaseInitiated
+                    CaseInitiated = workorderCase.CaseInitiated,
+                    LastAssignedToName = siteName,
+                    LastUpdatedByName = UpdatedByName,
+                    LeadingCase = i == 0
                 }.Create(backendConfigurationPnDbContext);
+                i++;
             }
         }
 
