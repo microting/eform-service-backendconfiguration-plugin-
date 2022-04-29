@@ -23,6 +23,8 @@ SOFTWARE.
 */
 
 
+using ServiceBackendConfigurationPlugin.Scheduler.Jobs;
+
 namespace ServiceBackendConfigurationPlugin
 {
     using Castle.MicroKernel.Registration;
@@ -59,6 +61,7 @@ namespace ServiceBackendConfigurationPlugin
         private static int _maxParallelism = 1;
         private static int _numberOfWorkers = 1;
         private BackendConfigurationPnDbContext _dbContext;
+        private Timer _scheduleTimer;
         private ItemsPlanningPnDbContext _itemsPlanningDbContext;
         private BackendConfigurationDbContextHelper _backendConfigurationBackendConfigurationDbContextHelper;
         private ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
@@ -173,7 +176,7 @@ namespace ServiceBackendConfigurationPlugin
                         .SingleOrDefault(x => x.Name == "BackendConfigurationBaseSettings:NumberOfWorkers")?.Value;
                     _numberOfWorkers = string.IsNullOrEmpty(temp) ? 1 : int.Parse(temp);
 
-                    CheckComplianceIntegrity(connectionString, itemsPlanningConnectionString);
+                    // CheckComplianceIntegrity(connectionString, itemsPlanningConnectionString);
 
                     _container = new WindsorContainer();
                     _container.Register(Component.For<IWindsorContainer>().Instance(_container));
@@ -186,11 +189,11 @@ namespace ServiceBackendConfigurationPlugin
                         new RebusHandlerInstaller()
                         , new RebusInstaller(connectionString, _maxParallelism, _numberOfWorkers, "admin", "password", rabbitmqHost)
                     );
-                    // _container.Register(Component.For<SearchListJob>());
+                    _container.Register(Component.For<SearchListJob>());
 
                     _bus = _container.Resolve<IBus>();
 
-                    // ConfigureScheduler();
+                    ConfigureScheduler();
                 }
 
                 Console.WriteLine("ServiceBackendConfigurationPlugin started");
@@ -314,9 +317,9 @@ namespace ServiceBackendConfigurationPlugin
 
                             compliance.Create(backendConfigurationPnDbContext).GetAwaiter().GetResult();
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
-                            Console.WriteLine(e);
+                            // Console.WriteLine(e);
                             // throw;
                         }
                     }
@@ -350,6 +353,16 @@ namespace ServiceBackendConfigurationPlugin
 
                 property.Update(backendConfigurationPnDbContext).GetAwaiter().GetResult();
             }
+        }
+
+        private void ConfigureScheduler()
+        {
+            var job = _container.Resolve<SearchListJob>();
+
+            _scheduleTimer = new Timer(async x =>
+            {
+                await job.Execute();
+            }, null, TimeSpan.Zero, TimeSpan.FromMinutes(60));
         }
     }
 }
