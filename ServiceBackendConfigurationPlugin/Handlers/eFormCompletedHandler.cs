@@ -638,6 +638,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     await _sdkCore.CaseDelete(theCase.CaseId);
                     await theCase.Delete(backendConfigurationPnDbContext);
                 }
+
+                var parentCase = await backendConfigurationPnDbContext.WorkorderCases
+                    .FirstAsync(x => x.Id == workOrderCase.ParentWorkorderCaseId);
+
+                if (parentCase.CaseId != 0)
+                {
+                    await _sdkCore.CaseDelete(parentCase.CaseId);
+                }
+                await parentCase.Delete(backendConfigurationPnDbContext);
             }
         }
 
