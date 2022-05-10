@@ -669,7 +669,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 mainElement.ElementList[0].QuickSyncEnabled = true;
                 mainElement.EnableQuickSync = true;
                 mainElement.ElementList[0].Label = " ";
-                mainElement.ElementList[0].Description.InderValue = description + "<center><strong>******************</strong></center>";
+                mainElement.ElementList[0].Description.InderValue = description.Replace("\n", "<br>") + "<center><strong>******************</strong></center>";
                 if (status == CaseStatusesEnum.Completed || site.Name == siteName)
                 {
                     DateTime startDate = new DateTime(2020, 1, 1);
@@ -681,7 +681,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     mainElement.PushMessageBody = pushMessageBody;
                 }
                 // TODO uncomment when new app has been released.
-                ((DataElement)mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description;
+                ((DataElement)mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description.Replace("\n", "<br>");
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Label = " ";
                 ((DataElement)mainElement.ElementList[0]).DataItemList[0].Color = Constants.FieldColors.Yellow;
                 ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfHash;
@@ -728,13 +728,25 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             await using var backendConfigurationPnDbContext =
                 _backendConfigurationDbContextHelper.GetDbContext();
 
-            var workOrdersToRetract = await backendConfigurationPnDbContext.WorkorderCases
-                .Where(x => x.ParentWorkorderCaseId == workOrderCase.ParentWorkorderCaseId).ToListAsync();
-
-            foreach (var theCase in workOrdersToRetract)
+            if (workOrderCase.ParentWorkorderCaseId != null)
             {
-                await _sdkCore.CaseDelete(theCase.CaseId);
-                await theCase.Delete(backendConfigurationPnDbContext);
+                var workOrdersToRetract = await backendConfigurationPnDbContext.WorkorderCases
+                    .Where(x => x.ParentWorkorderCaseId == workOrderCase.ParentWorkorderCaseId).ToListAsync();
+
+                foreach (var theCase in workOrdersToRetract)
+                {
+                    await _sdkCore.CaseDelete(theCase.CaseId);
+                    await theCase.Delete(backendConfigurationPnDbContext);
+                }
+
+                var parentCase = await backendConfigurationPnDbContext.WorkorderCases
+                    .FirstAsync(x => x.Id == workOrderCase.ParentWorkorderCaseId);
+
+                if (parentCase.CaseId != 0)
+                {
+                    await _sdkCore.CaseDelete(parentCase.CaseId);
+                }
+                await parentCase.Delete(backendConfigurationPnDbContext);
             }
         }
 
