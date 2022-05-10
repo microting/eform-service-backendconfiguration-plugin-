@@ -22,33 +22,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
-using System.Security.Policy;
-using ImageMagick;
-using Microting.eForm.Helpers;
-
 namespace ServiceBackendConfigurationPlugin.Handlers
 {
+    using ImageMagick;
     using Infrastructure.Helpers;
     using Messages;
     using Microsoft.EntityFrameworkCore;
+    using Microting.eForm.Helpers;
     using Microting.eForm.Infrastructure.Constants;
     using Microting.eForm.Infrastructure.Models;
     using Microting.eFormApi.BasePn.Infrastructure.Consts;
     using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
+    using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
     using Microting.ItemsPlanningBase.Infrastructure.Enums;
     using Rebus.Handlers;
+    using Resources;
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.IO;
     using System.Linq;
+    using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
-    using Resources;
 
     public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
     {
@@ -77,8 +73,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             await using var backendConfigurationPnDbContext =
                 _backendConfigurationDbContextHelper.GetDbContext();
 
-            var eformIdForNewTasks = await sdkDbContext.CheckListTranslations
+            var eformQuery = sdkDbContext.CheckListTranslations
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                .AsQueryable();
+
+            var eformIdForNewTasks = await eformQuery
                 .Where(x => x.Text == "01. New task")
                 .Select(x => x.CheckListId)
                 .FirstOrDefaultAsync();
@@ -89,8 +88,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 return;
             }
 
-            var eformIdForOngoingTasks = await sdkDbContext.CheckListTranslations
-                .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+            var eformIdForOngoingTasks = await eformQuery
                 .Where(x => x.Text == "02. Ongoing task")
                 .Select(x => x.CheckListId)
                 .FirstOrDefaultAsync();
@@ -101,8 +99,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 return;
             }
 
-            var eformIdForCompletedTasks = await sdkDbContext.CheckListTranslations
-                .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+            var eformIdForCompletedTasks = await eformQuery
                 .Where(x => x.Text == "03. Completed task")
                 .Select(x => x.CheckListId)
                 .FirstOrDefaultAsync();
@@ -111,6 +108,113 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             {
                 Console.WriteLine("eformIdForCompletedTasks is 0");
                 return;
+            }
+
+            var eformIdForControlFloatingLayer = await eformQuery
+                .Where(x => x.Text == "03. Control floating layer")
+                .Select(x => x.CheckListId)
+                .FirstOrDefaultAsync();
+
+            if (eformIdForControlFloatingLayer == 0)
+            {
+                Console.WriteLine("eformIdForControlFloatingLayer is 0");
+                return;
+            }
+
+            var dbCase = await sdkDbContext.Cases
+                .AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == message.CaseId) ??
+                         await sdkDbContext.Cases
+                             .SingleOrDefaultAsync(x => x.MicrotingCheckUid == message.CheckId);
+            if (dbCase == null)
+            {
+                Console.WriteLine("dbCase is null");
+                return;
+            }
+
+            if (eformIdForControlFloatingLayer == dbCase.CheckListId)
+            {
+                var fieldValues = await sdkDbContext.FieldValues
+                    .Where(x => x.CaseId == dbCase.Id)
+                    .Include(x => x.Field)
+                    .ThenInclude(x => x.FieldType)
+                    .ToListAsync();
+
+                var checkBoxFloatingLayerOk = fieldValues
+                    .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.CheckBox)
+                    .Select(x => !string.IsNullOrEmpty(x.Value) && x.Value == "checked") // string.IsNullOrEmpty(x.Value) ? false : x.Value == "checked" ? true : false
+                    .First();
+
+                var statusOrActivityFieldIdAndKey = fieldValues
+                    .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.SingleSelect)
+                    .Select(x => new { Key = x.Value, x.FieldId })
+                    .First();
+
+                var statusOrActivity = string.IsNullOrEmpty(statusOrActivityFieldIdAndKey.Key) ? "" : await sdkDbContext.FieldOptions
+                    .Where(x => x.Key == statusOrActivityFieldIdAndKey.Key)
+                    .Where(x => x.FieldId == (int)statusOrActivityFieldIdAndKey.FieldId)
+                    .Include(x => x.FieldOptionTranslations)
+                    .SelectMany(x => x.FieldOptionTranslations)
+                    .Where(x => x.LanguageId == 1) // get only danish
+                    .Select(x => x.Text)
+                    .FirstOrDefaultAsync();
+
+                var listWithStatuses = new List<string>
+                {
+                    "Beholder omrørt",// da
+                    // "Slurry tank stirred", // en
+                    "Gylle udbragt", // da
+                    // "Slurry delivered", // en
+                    "Halm tilført", // da
+                    // "Straw added", // en
+                    "Flyttet til anden beholder", // da
+                    // "Moved to another slurry tank", // en
+                    "Modtaget biogas-gylle", // da
+                    // "Biogas slurry received", // en
+                    "", // Blank
+                };
+                if (checkBoxFloatingLayerOk == false && listWithStatuses.Contains(statusOrActivity))
+                {
+                    // retract old eform
+                    await _sdkCore.CaseDelete(dbCase.Id);
+                    // deploy new eform with old data, reminder: Current data + 6 days
+                    var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == dbCase.SiteId);
+                    var siteLanguage = await sdkDbContext.Languages.SingleAsync(x => x.Id == site.LanguageId);
+
+                    var oldComment = fieldValues
+                        .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.Comment)
+                        .Select(x => x.Value)
+                        .First();
+
+                    // get name tank from linked planning
+                    var itemPlanningId = await _itemsPlanningDbContextHelper
+                        .GetDbContext().PlanningCaseSites
+                        .Where(x => x.MicrotingSdkCaseId == dbCase.Id)
+                        .Select(x => x.PlanningId)
+                        .FirstOrDefaultAsync();
+                    var nameTank = await _itemsPlanningDbContextHelper
+                        .GetDbContext().PlanningNameTranslation
+                        .Where(x => x.PlanningId == itemPlanningId)
+                        .Where(x => x.LanguageId == site.LanguageId)
+                        .Select(x => x.Name)
+                        .FirstOrDefaultAsync();
+
+                    var mainElement = await _sdkCore.ReadeForm(eformIdForControlFloatingLayer, siteLanguage);
+                    ((DataElement)mainElement.ElementList[0]).DataItemGroupList[0].DataItemList[0].Description.InderValue =
+                        $"<strong>{Translations.FollowUpFloatingLayerCheck}</strong><br>" +
+                        $"<strong>{Translations.SlurryTank}:</strong> {nameTank}<br>" +
+                        $"<strong>{Translations.LastUpdated}:</strong> {dbCase.DoneAt.Value:DD.MM.YYYY}<br>" +
+                        $"<strong>{Translations.StatusOrActivity}:</strong>{statusOrActivity}<br>" +
+                        $"<strong>{Translations.ControlLatest}:</strong> {dbCase.DoneAt.Value.AddDays(6):DD.MM.YYYY}";
+                    ((Comment)((DataElement)mainElement.ElementList[0]).DataItemList[3]).Value = oldComment;
+
+                    mainElement.StartDate = DateTime.Now.AddDays(6).ToUniversalTime();
+                    mainElement.CheckListFolderName = await sdkDbContext.Folders
+                        .Where(x => x.Id == dbCase.FolderId)
+                        .Select(x => x.MicrotingUid.ToString())
+                        .SingleAsync();
+                    var _ = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
+                }
             }
 
             var workorderCase = await backendConfigurationPnDbContext.WorkorderCases
@@ -123,7 +227,6 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 .ThenInclude(x => x.WorkorderCases)
                 .FirstOrDefaultAsync();
 
-            var dbCase = await sdkDbContext.Cases.AsNoTracking().SingleOrDefaultAsync(x => x.Id == message.CaseId) ?? await sdkDbContext.Cases.SingleOrDefaultAsync(x => x.MicrotingCheckUid == message.CheckId);
 
             if (eformIdForNewTasks == dbCase.CheckListId && workorderCase != null)
             {
@@ -212,21 +315,18 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 await newWorkorderCase.Create(backendConfigurationPnDbContext);
 
                 var picturesOfTasks = new List<string>();
-                foreach (var pictureFieldValue in pictureFieldValues)
+                foreach (var pictureFieldValue in pictureFieldValues.Where(pictureFieldValue => pictureFieldValue.UploadedDataId != null))
                 {
-                    if (pictureFieldValue.UploadedDataId != null)
+                    var uploadedData =
+                        await sdkDbContext.UploadedDatas.SingleAsync(x => x.Id == pictureFieldValue.UploadedDataId);
+                    var workOrderCaseImage = new WorkorderCaseImage
                     {
-                        var uploadedData =
-                            await sdkDbContext.UploadedDatas.SingleAsync(x => x.Id == pictureFieldValue.UploadedDataId);
-                        var workOrderCaseImage = new WorkorderCaseImage
-                        {
-                            WorkorderCaseId = newWorkorderCase.Id,
-                            UploadedDataId = (int) pictureFieldValue.UploadedDataId
-                        };
+                        WorkorderCaseId = newWorkorderCase.Id,
+                        UploadedDataId = (int) pictureFieldValue.UploadedDataId
+                    };
 
-                        picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
-                        await workOrderCaseImage.Create(backendConfigurationPnDbContext);
-                    }
+                    picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
+                    await workOrderCaseImage.Create(backendConfigurationPnDbContext);
                 }
 
                 var hash = await GeneratePdf(picturesOfTasks, (int)cls.SiteId);
@@ -552,7 +652,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             string siteName,
             string pushMessageBody,
             string pushMessageTitle,
-            string UpdatedByName)
+            string updatedByName)
         {
             await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
             await using var backendConfigurationPnDbContext =
@@ -615,7 +715,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     Description = newDescription,
                     CaseInitiated = workorderCase.CaseInitiated,
                     LastAssignedToName = siteName,
-                    LastUpdatedByName = UpdatedByName,
+                    LastUpdatedByName = updatedByName,
                     LeadingCase = i == 0
                 }.Create(backendConfigurationPnDbContext);
                 i++;
@@ -638,7 +738,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
         }
 
-        private async Task<string> InsertImage(string imageName, string itemsHtml, int imageSize, int imageWidth, string basePicturePath)
+        private async Task<string> InsertImageToPdf(string imageName, string itemsHtml, int imageSize, int imageWidth, string basePicturePath)
         {
             var filePath = Path.Combine(basePicturePath, imageName);
             Stream stream;
@@ -700,7 +800,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 foreach (var imagesName in picturesOfTasks)
                 {
                     Console.WriteLine($"Trying to insert image into document : {imagesName}");
-                    imagesHtml = await InsertImage(imagesName, imagesHtml, 700, 650, basePicturePath);
+                    imagesHtml = await InsertImageToPdf(imagesName, imagesHtml, 700, 650, basePicturePath);
                 }
 
                 html = html.Replace("{%Content%}", imagesHtml);
