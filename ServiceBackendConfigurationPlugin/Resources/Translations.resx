@@ -134,4 +134,19 @@
 	<data name="NewTask" xml:space="preserve">
 		<value>New task for property</value>
 	</data>
+  <data name="SlurryTank" xml:space="preserve">
+    <value>Slurry tank</value>
+  </data>
+  <data name="LastUpdated" xml:space="preserve">
+    <value>Last updated</value>
+  </data>
+  <data name="StatusOrActivity" xml:space="preserve">
+    <value>Status/Activity</value>
+  </data>
+  <data name="ControlLatest" xml:space="preserve">
+    <value>Control latest</value>
+  </data>
+  <data name="FollowUpFloatingLayerCheck" xml:space="preserve">
+    <value>Follow-up floating layer check</value>
+  </data>
 </root>
