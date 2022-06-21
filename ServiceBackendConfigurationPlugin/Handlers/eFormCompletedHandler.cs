@@ -522,139 +522,139 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 await property.Update(backendConfigurationPnDbContext);
                             }
                         }
+                    }
 
-                        if (eformIdForControlFloatingLayer == dbCase.CheckListId)
+                    if (eformIdForControlFloatingLayer == dbCase.CheckListId)
+                    {
+                        var fieldValues = await sdkDbContext.FieldValues
+                            .Where(x => x.CaseId == dbCase.Id)
+                            .Include(x => x.Field)
+                            .ThenInclude(x => x.FieldType)
+                            .ToListAsync();
+
+                        var checkBoxFloatingLayerOk = fieldValues
+                            .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.CheckBox)
+                            .Select(x => !string.IsNullOrEmpty(x.Value) && x.Value == "checked") // string.IsNullOrEmpty(x.Value) ? false : x.Value == "checked" ? true : false
+                            .First();
+
+                        var statusOrActivityFieldIdAndKey = fieldValues
+                            .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.SingleSelect)
+                            .Select(x => new { Key = x.Value, x.FieldId })
+                            .First();
+
+                        var statusOrActivity = string.IsNullOrEmpty(statusOrActivityFieldIdAndKey.Key) ? "" : await sdkDbContext.FieldOptions
+                            .Where(x => x.Key == statusOrActivityFieldIdAndKey.Key)
+                            .Where(x => x.FieldId == (int)statusOrActivityFieldIdAndKey.FieldId)
+                            .Include(x => x.FieldOptionTranslations)
+                            .SelectMany(x => x.FieldOptionTranslations)
+                            .Where(x => x.LanguageId == 1) // get only danish
+                            .Select(x => x.Text)
+                            .FirstOrDefaultAsync();
+
+                        var listWithStatuses = new List<string>
                         {
-                            var fieldValues = await sdkDbContext.FieldValues
-                                .Where(x => x.CaseId == dbCase.Id)
-                                .Include(x => x.Field)
-                                .ThenInclude(x => x.FieldType)
-                                .ToListAsync();
+                            "Beholder omrørt",// da
+                            // "Slurry tank stirred", // en
+                            "Gylle udbragt", // da
+                            // "Slurry delivered", // en
+                            "Halm tilført", // da
+                            // "Straw added", // en
+                            "Flyttet til anden beholder", // da
+                            // "Moved to another slurry tank", // en
+                            "Modtaget biogas-gylle", // da
+                            // "Biogas slurry received", // en
+                            "", // Blank
+                        };
+                        if (checkBoxFloatingLayerOk == false && listWithStatuses.Contains(statusOrActivity))
+                        {
+                            // retract old eform
+                            // await _sdkCore.CaseDelete(dbCase.Id);
+                            // deploy new eform with old data, reminder: Current data + 6 days
+                            // planningCaseSite.MicrotingSdkSiteId
 
-                            var checkBoxFloatingLayerOk = fieldValues
-                                .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.CheckBox)
-                                .Select(x => !string.IsNullOrEmpty(x.Value) && x.Value == "checked") // string.IsNullOrEmpty(x.Value) ? false : x.Value == "checked" ? true : false
+                            var oldComment = fieldValues
+                                .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.Comment)
+                                .Select(x => x.Value)
                                 .First();
 
-                            var statusOrActivityFieldIdAndKey = fieldValues
-                                .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.SingleSelect)
-                                .Select(x => new { Key = x.Value, x.FieldId })
-                                .First();
-
-                            var statusOrActivity = string.IsNullOrEmpty(statusOrActivityFieldIdAndKey.Key) ? "" : await sdkDbContext.FieldOptions
-                                .Where(x => x.Key == statusOrActivityFieldIdAndKey.Key)
-                                .Where(x => x.FieldId == (int)statusOrActivityFieldIdAndKey.FieldId)
-                                .Include(x => x.FieldOptionTranslations)
-                                .SelectMany(x => x.FieldOptionTranslations)
-                                .Where(x => x.LanguageId == 1) // get only danish
-                                .Select(x => x.Text)
+                            // get name tank from linked planning
+                            var itemPlanningId = await itemsPlanningPnDbContext.PlanningCaseSites
+                                .Where(x => x.MicrotingSdkCaseId == dbCase.Id)
+                                .Select(x => x.PlanningId)
                                 .FirstOrDefaultAsync();
 
-                            var listWithStatuses = new List<string>
+                            // var itemPlanning = await itemsPlanningPnDbContext.Plannings.SingleAsync(x => x.Id == itemPlanningId);
+                            var itemPlanningSites = await itemsPlanningPnDbContext.PlanningSites.Where(x => x.PlanningId == itemPlanningId).ToListAsync();
+                            PlanningCase planningCase = new PlanningCase()
                             {
-                                "Beholder omrørt",// da
-                                // "Slurry tank stirred", // en
-                                "Gylle udbragt", // da
-                                // "Slurry delivered", // en
-                                "Halm tilført", // da
-                                // "Straw added", // en
-                                "Flyttet til anden beholder", // da
-                                // "Moved to another slurry tank", // en
-                                "Modtaget biogas-gylle", // da
-                                // "Biogas slurry received", // en
-                                "", // Blank
+                                PlanningId = planning.Id,
+                                Status = 66,
+                                MicrotingSdkeFormId = (int)dbCase.CheckListId
                             };
-                            if (checkBoxFloatingLayerOk == false && listWithStatuses.Contains(statusOrActivity))
+                            foreach (var itemPlanningSite in itemPlanningSites)
                             {
-                                // retract old eform
-                                // await _sdkCore.CaseDelete(dbCase.Id);
-                                // deploy new eform with old data, reminder: Current data + 6 days
-                                // planningCaseSite.MicrotingSdkSiteId
-
-                                var oldComment = fieldValues
-                                    .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.Comment)
-                                    .Select(x => x.Value)
-                                    .First();
-
-                                // get name tank from linked planning
-                                var itemPlanningId = await itemsPlanningPnDbContext.PlanningCaseSites
-                                    .Where(x => x.MicrotingSdkCaseId == dbCase.Id)
-                                    .Select(x => x.PlanningId)
+                                var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == itemPlanningSite.SiteId);
+                                var siteLanguage = await sdkDbContext.Languages.SingleAsync(x => x.Id == site.LanguageId);
+                                var nameTank = await _itemsPlanningDbContextHelper
+                                    .GetDbContext().PlanningNameTranslation
+                                    .Where(x => x.PlanningId == itemPlanningId)
+                                    .Where(x => x.LanguageId == site.LanguageId)
+                                    .Select(x => x.Name)
                                     .FirstOrDefaultAsync();
 
-                                // var itemPlanning = await itemsPlanningPnDbContext.Plannings.SingleAsync(x => x.Id == itemPlanningId);
-                                var itemPlanningSites = await itemsPlanningPnDbContext.PlanningSites.Where(x => x.PlanningId == itemPlanningId).ToListAsync();
-                                PlanningCase planningCase = new PlanningCase()
+                                var mainElement = await _sdkCore.ReadeForm(eformIdForControlFloatingLayer, siteLanguage);
+                                ((DataElement)mainElement.ElementList[0]).DataItemGroupList[0].DataItemList[0].Description.InderValue =
+                                    $"<strong>{Translations.FollowUpFloatingLayerCheck}</strong><br>" +
+                                    $"<strong>{Translations.SlurryTank}:</strong> {nameTank}<br>" +
+                                    $"<strong>{Translations.LastUpdated}:</strong> {dbCase.DoneAt.Value:DD.MM.YYYY}<br>" +
+                                    $"<strong>{Translations.StatusOrActivity}:</strong>{statusOrActivity}<br>" +
+                                    $"<strong>{Translations.ControlLatest}:</strong> {dbCase.DoneAt.Value.AddDays(6):DD.MM.YYYY}";
+                                ((Comment)((DataElement)mainElement.ElementList[0]).DataItemList[3]).Value = oldComment;
+
+                                mainElement.StartDate = DateTime.Now.AddDays(6).ToUniversalTime();
+                                mainElement.CheckListFolderName = await sdkDbContext.Folders
+                                    .Where(x => x.Id == dbCase.FolderId)
+                                    .Select(x => x.MicrotingUid.ToString())
+                                    .SingleAsync();
+                                planningCaseSite = new PlanningCaseSite()
                                 {
-                                    PlanningId = planning.Id,
+                                    MicrotingSdkSiteId = site.Id,
+                                    MicrotingSdkeFormId = (int)dbCase.CheckListId,
                                     Status = 66,
-                                    MicrotingSdkeFormId = (int)dbCase.CheckListId
+                                    PlanningId = planning.Id,
+                                    PlanningCaseId = planningCase.Id
                                 };
-                                foreach (var itemPlanningSite in itemPlanningSites)
+
+                                await planningCaseSite.Create(itemsPlanningPnDbContext);
+                                var folder = await getTopFolderName((int) planning.SdkFolderId, sdkDbContext);
+                                string body = "";
+                                if (folder != null)
                                 {
-                                    var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == itemPlanningSite.SiteId);
-                                    var siteLanguage = await sdkDbContext.Languages.SingleAsync(x => x.Id == site.LanguageId);
-                                    var nameTank = await _itemsPlanningDbContextHelper
-                                        .GetDbContext().PlanningNameTranslation
-                                        .Where(x => x.PlanningId == itemPlanningId)
-                                        .Where(x => x.LanguageId == site.LanguageId)
-                                        .Select(x => x.Name)
-                                        .FirstOrDefaultAsync();
-
-                                    var mainElement = await _sdkCore.ReadeForm(eformIdForControlFloatingLayer, siteLanguage);
-                                    ((DataElement)mainElement.ElementList[0]).DataItemGroupList[0].DataItemList[0].Description.InderValue =
-                                        $"<strong>{Translations.FollowUpFloatingLayerCheck}</strong><br>" +
-                                        $"<strong>{Translations.SlurryTank}:</strong> {nameTank}<br>" +
-                                        $"<strong>{Translations.LastUpdated}:</strong> {dbCase.DoneAt.Value:DD.MM.YYYY}<br>" +
-                                        $"<strong>{Translations.StatusOrActivity}:</strong>{statusOrActivity}<br>" +
-                                        $"<strong>{Translations.ControlLatest}:</strong> {dbCase.DoneAt.Value.AddDays(6):DD.MM.YYYY}";
-                                    ((Comment)((DataElement)mainElement.ElementList[0]).DataItemList[3]).Value = oldComment;
-
-                                    mainElement.StartDate = DateTime.Now.AddDays(6).ToUniversalTime();
-                                    mainElement.CheckListFolderName = await sdkDbContext.Folders
-                                        .Where(x => x.Id == dbCase.FolderId)
-                                        .Select(x => x.MicrotingUid.ToString())
-                                        .SingleAsync();
-                                    planningCaseSite = new PlanningCaseSite()
-                                    {
-                                        MicrotingSdkSiteId = site.Id,
-                                        MicrotingSdkeFormId = (int)dbCase.CheckListId,
-                                        Status = 66,
-                                        PlanningId = planning.Id,
-                                        PlanningCaseId = planningCase.Id
-                                    };
-
-                                    await planningCaseSite.Create(itemsPlanningPnDbContext);
-                                    var folder = await getTopFolderName((int) planning.SdkFolderId, sdkDbContext);
-                                    string body = "";
-                                    if (folder != null)
-                                    {
-                                        planning.SdkFolderId = sdkDbContext.Folders
-                                            .FirstOrDefault(y => y.Id == planning.SdkFolderId).Id;
-                                        FolderTranslation folderTranslation =
-                                            await sdkDbContext.FolderTranslations.SingleOrDefaultAsync(x =>
-                                                x.FolderId == folder.Id && x.LanguageId == site.LanguageId);
-                                        body = $"{folderTranslation.Name} ({site.Name};{DateTime.Now:dd.MM.yyyy})";
-                                    }
-
-                                    PlanningNameTranslation planningNameTranslation =
-                                        await itemsPlanningPnDbContext.PlanningNameTranslation.SingleOrDefaultAsync(x =>
-                                            x.PlanningId == planning.Id
-                                            && x.LanguageId == site.LanguageId);
-
-                                    mainElement.PushMessageBody = body;
-                                    mainElement.PushMessageTitle = planningNameTranslation.Name;
-                                    // var _ = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
-                                    var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
-
-                                    if (caseId != null)
-                                    {
-                                        var caseDto = await _sdkCore.CaseLookupMUId((int) caseId);
-                                        if (caseDto?.CaseId != null) planningCaseSite.MicrotingSdkCaseId = (int) caseDto.CaseId;
-                                        await planningCaseSite.Update(itemsPlanningPnDbContext);
-                                    }
+                                    planning.SdkFolderId = sdkDbContext.Folders
+                                        .FirstOrDefault(y => y.Id == planning.SdkFolderId)
+                                        ?.Id;
+                                    FolderTranslation folderTranslation =
+                                        await sdkDbContext.FolderTranslations.SingleOrDefaultAsync(x =>
+                                            x.FolderId == folder.Id && x.LanguageId == site.LanguageId);
+                                    body = $"{folderTranslation.Name} ({site.Name};{DateTime.Now:dd.MM.yyyy})";
                                 }
 
+                                PlanningNameTranslation planningNameTranslation =
+                                    await itemsPlanningPnDbContext.PlanningNameTranslation.SingleOrDefaultAsync(x =>
+                                        x.PlanningId == planning.Id
+                                        && x.LanguageId == site.LanguageId);
+
+                                mainElement.PushMessageBody = body;
+                                mainElement.PushMessageTitle = planningNameTranslation.Name;
+                                // var _ = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
+                                var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
+
+                                if (caseId != null)
+                                {
+                                    var caseDto = await _sdkCore.CaseLookupMUId((int) caseId);
+                                    if (caseDto?.CaseId != null) planningCaseSite.MicrotingSdkCaseId = (int) caseDto.CaseId;
+                                    await planningCaseSite.Update(itemsPlanningPnDbContext);
+                                }
                             }
                         }
                     }
