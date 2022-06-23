@@ -22,6 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+using System.Text;
+using System.Text.RegularExpressions;
+using Microting.eForm.Dto;
 using Microting.eForm.Infrastructure;
 using Microting.eForm.Infrastructure.Data.Entities;
 using Microting.ItemsPlanningBase.Infrastructure.Data.Entities;
@@ -457,9 +460,20 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     x.MicrotingSdkCaseId == dbCase.Id);
                             var theDate = new DateTime(dbCase.CreatedAt.Value.Year, dbCase.CreatedAt.Value.Month,
                                 poolPlanningCaseSite.CreatedAt.Day, poolHour.Index, 0, 0);
+                            var historyDate = new DateTime(dbCase.CreatedAt.Value.Year, dbCase.CreatedAt.Value.Month,
+                                poolPlanningCaseSite.CreatedAt.Day, 0, 0, 0);
                             var poolHourResult =
                                 await backendConfigurationPnDbContext.PoolHourResults.SingleOrDefaultAsync(x =>
                                     x.PoolHourId == poolHour.Id && x.Date == theDate);
+
+                            var checkList = await sdkDbContext.CheckListTranslations.FirstOrDefaultAsync(x =>
+                                x.Text == "00. Info boks");
+
+                            var areaRule =
+                                await backendConfigurationPnDbContext.AreaRules.Where(x =>
+                                    x.Id == poolHour.AreaRuleId)
+                                    .Include(x => x.AreaRuleTranslations)
+                                    .SingleOrDefaultAsync();
 
                             if (poolHourResult == null)
                             {
@@ -552,18 +566,18 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     PlanningId = planning.Id,
                                     FolderId = (int) planning.SdkFolderId,
                                     Date = theDate,
-                                    PulseRateAtOpening = double.Parse(pulseFieldValue.Value),
-                                    ReadPhValue = double.Parse(phFieldValue.Value),
-                                    ReadFreeChlorine = double.Parse(freeClorideFieldValue.Value),
-                                    ReadTemperature = double.Parse(tempFieldValue.Value),
-                                    NumberOfGuestsAtClosing = double.Parse(numberOfGuestsFieldValue.Value),
+                                    PulseRateAtOpening = double.Parse(pulseFieldValue.Value ?? "0"),
+                                    ReadPhValue = double.Parse(phFieldValue.Value ?? "0"),
+                                    ReadFreeChlorine = double.Parse(freeClorideFieldValue.Value ?? "0"),
+                                    ReadTemperature = double.Parse(tempFieldValue.Value ?? "0"),
+                                    NumberOfGuestsAtClosing = double.Parse(numberOfGuestsFieldValue.Value ?? "0"),
                                     Clarity = clarityFieldValue.Value,
-                                    MeasuredFreeChlorine = double.Parse(measuredFreeClorideFieldValue.Value),
-                                    MeasuredTotalChlorine = double.Parse(totalClorideFieldValue.Value),
-                                    MeasuredBoundChlorine = double.Parse(boundClorideFieldValue.Value),
-                                    MeasuredPh = double.Parse(measuredPhFieldValue.Value),
+                                    MeasuredFreeChlorine = double.Parse(measuredFreeClorideFieldValue.Value ?? "0"),
+                                    MeasuredTotalChlorine = double.Parse(totalClorideFieldValue.Value ?? "0"),
+                                    MeasuredBoundChlorine = double.Parse(boundClorideFieldValue.Value ?? "0"),
+                                    MeasuredPh = double.Parse(measuredPhFieldValue.Value ?? "0"),
                                     AcknowledgmentOfPulseRateAtOpening = receiptFieldValue.Value,
-                                    MeasuredTempDuringTheDay = double.Parse(measuredTempFieldValue.Value),
+                                    MeasuredTempDuringTheDay = double.Parse(measuredTempFieldValue.Value ?? "0"),
                                     Comment = commentFieldValue.Value,
                                     DoneByUserId = doneByFieldValue.Value == "null" ? 0 : int.Parse(doneByFieldValue.Value),
                                     DoneByUserName = doneByFieldValue.Value,
@@ -571,6 +585,119 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     AreaRuleId = poolHour.AreaRuleId
                                 };
                                 await poolHourResult.Create(backendConfigurationPnDbContext);
+
+                                var planningSites = await itemsPlanningPnDbContext.PlanningSites
+                                    .Where(x => x.PlanningId == planning.Id).ToListAsync();
+                                
+                                var lookupName = areaRule.AreaRuleTranslations.First().Name;
+
+                                var subfolder = await sdkDbContext.Folders
+                                    .Include(x => x.FolderTranslations)
+                                    .Where(x=> x.ParentId == areaRule.FolderId)
+                                    .Where(x => x.FolderTranslations.Any(y => y.Name == lookupName))
+                                    .FirstOrDefaultAsync();
+                                var innerLookupName = $"{(int)poolHour.DayOfWeek}. {poolHour.DayOfWeek.ToString().Substring(0, 3)}";
+                                var poolDayFolder = await sdkDbContext.Folders
+                                    .Include(x => x.FolderTranslations)
+                                    .Where(x=> x.ParentId == subfolder.Id)
+                                    .Where(x => x.FolderTranslations.Any(y => y.Name == innerLookupName))
+                                    .FirstAsync();
+
+                                
+                                Regex regex = new Regex(@"(\d\.\s)");
+                                foreach (var planningSite in planningSites)
+                                {
+                                    var poolHistorySite = await backendConfigurationPnDbContext.PoolHistorySites
+                                        .Where(x => x.AreaRuleId == poolHour.AreaRuleId)
+                                        .Where(x => x.SiteId == planningSite.SiteId)
+                                        .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                                        .Where(x => x.Date == historyDate).SingleOrDefaultAsync();
+
+                                    var sdkSite = await sdkDbContext.Sites.SingleAsync(x => x.Id == planningSite.SiteId);
+                                    var language = await sdkDbContext.Languages.SingleAsync(x => x.Id == sdkSite.LanguageId);
+                                    var mainElement = await _sdkCore.ReadeForm(checkList.CheckListId, language);
+                                    mainElement.Repeated = 0;
+                                    mainElement.CheckListFolderName = poolDayFolder.MicrotingUid.ToString();
+                                    mainElement.StartDate = DateTime.Now.ToUniversalTime();
+                                    mainElement.EndDate = DateTime.Now.AddDays(2).ToUniversalTime();
+                                    mainElement.Label =
+                                        $"0. Tidligere indsendt data - {areaRule.AreaRuleTranslations.First().Name}";
+                                    mainElement.ElementList[0].Label = mainElement.Label;
+                                    mainElement.ElementList[0].Description = new CDataValue()
+                                    {
+                                        InderValue = 
+                                            $"Sidst opdateret: {DateTime.Now:H:mm}"
+                                    };
+                                    ((DataElement) mainElement.ElementList[0]).DataItemList[0].Color =
+                                        Constants.FieldColors.Yellow;
+                                    
+                                    // ((DataElement) mainElement.ElementList[0]).DataItemList[0].Label = $"{poolDayFolder.FolderTranslations.Where(x => x.LanguageId == language.Id).Select(x => x.Name).First()} - {areaRule.AreaRuleTranslations.First().Name}";
+                                    // ((DataElement) mainElement.ElementList[0]).DataItemList[0].Label =
+                                    //     regex.Replace(((DataElement) mainElement.ElementList[0]).DataItemList[0].Label,
+                                    //         "");
+                                    // ((DataElement) mainElement.ElementList[0]).DataItemList[0].Label = $"{((DataElement) mainElement.ElementList[0]).DataItemList[0].Label}";
+                                    ((DataElement) mainElement.ElementList[0]).DataItemList[0].Label = " ";
+                                    var allPoolHourResults = await backendConfigurationPnDbContext.PoolHourResults
+                                        .Where(x => x.Date >= historyDate)
+                                        .Where(x => x.Date < historyDate.AddDays(1))
+                                        .Where(x=> x.FolderId == planning.SdkFolderId)
+                                        .Where(x => x.AreaRuleId == poolHour.AreaRuleId)
+                                        .OrderBy(x => x.Date)
+                                        .ToListAsync();
+                                    StringBuilder header = new StringBuilder();
+
+                                    foreach (var hourResult in allPoolHourResults)
+                                    {
+                                        var selectedPoolHour =
+                                            await backendConfigurationPnDbContext.PoolHours.SingleAsync(x =>
+                                                x.Id == hourResult.PoolHourId);
+                                        header.Append($"<strong>{selectedPoolHour.Name}:00 {regex.Replace($"{poolDayFolder.FolderTranslations.Where(x => x.LanguageId == language.Id).Select(x => x.Name).First()} - {areaRule.AreaRuleTranslations.First().Name}", "")}</strong>");
+                                        header.Append($"<br>Dato: {hourResult.Date:dd-m-yyyy}<br>");
+                                        header.Append($"Tid: {hourResult.Date:HH:mm:ss}<br>");
+                                        header.Append($"Pulsslag ved åbning: {hourResult.PulseRateAtOpening}<br>");
+                                        header.Append($"Aflæst PH: {hourResult.ReadPhValue}<br>");
+                                        header.Append($"Aflæst frit klor: {hourResult.ReadFreeChlorine}<br>");
+                                        header.Append($"Aflæst temp: {hourResult.ReadTemperature}<br>");
+                                        header.Append($"Antal gæster ved lukning: {hourResult.NumberOfGuestsAtClosing}<br>");
+                                        header.Append($"Klarhed: {(hourResult.Clarity == "1" ? "OK" : hourResult.Clarity == null ? "" : "Grumset")}<br>");
+                                        header.Append($"Målt Frit klor: {hourResult.MeasuredFreeChlorine}<br>");
+                                        header.Append($"Målt Total klor: {hourResult.MeasuredTotalChlorine}<br>");
+                                        header.Append($"Målt bundet klor: {hourResult.MeasuredBoundChlorine}<br>");
+                                        header.Append($"Målt PH: {hourResult.MeasuredPh}<br>");
+                                        header.Append($"Kvittering af pulsslag v. åbning: {(hourResult.AcknowledgmentOfPulseRateAtOpening == "1" ? "Ja" : hourResult.AcknowledgmentOfPulseRateAtOpening == null ? "" : "Nej")}<br>");
+                                        header.Append($"Målt temp. i løbet af dagen: {hourResult.MeasuredTempDuringTheDay}<br>");
+                                        header.Append($"Kommentar: {hourResult.Comment}<br><br>");
+                                    }
+                                        
+                                        // header = ;
+                                    ((DataElement) mainElement.ElementList[0]).DataItemList[0].Description = new CDataValue
+                                    {
+                                        InderValue = 
+                                            header.ToString()
+                                    };
+
+                                    if (poolHistorySite == null)
+                                    {
+                                        var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid, poolDayFolder.Id);
+                                        poolHistorySite = new PoolHistorySite()
+                                        {
+                                            AreaRuleId = poolHour.AreaRuleId,
+                                            Date = historyDate,
+                                            SiteId = planningSite.SiteId,
+                                            SdkCaseId = (int)caseId
+                                        };
+                                        
+                                        await poolHistorySite.Create(backendConfigurationPnDbContext);
+                                    }
+                                    else
+                                    {
+                                        await _sdkCore.CaseDelete(poolHistorySite.SdkCaseId);
+                                        var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid, poolDayFolder.Id);
+                                        poolHistorySite.SdkCaseId = (int)caseId;
+                                        await poolHistorySite.Update(backendConfigurationPnDbContext);
+                                    }
+
+                                }
                             }
                         }
                     }
