@@ -442,343 +442,368 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     await itemsPlanningPnDbContext.Plannings.AsNoTracking()
                         .SingleAsync(x => x.Id == planningCaseSite.PlanningId);
 
-                if (planning.RepeatType == RepeatType.Day && planning.RepeatEvery == 0)
-                {
-                    var poolHour = await
-                        backendConfigurationPnDbContext.PoolHours.SingleOrDefaultAsync(x =>
-                            x.ItemsPlanningId == planning.Id);
-                    if (poolHour != null)
-                    {
-                        var poolPlanningCaseSite = await itemsPlanningPnDbContext.PlanningCaseSites.SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == dbCase.Id);
-                        var theDate = new DateTime(dbCase.CreatedAt.Value.Year, dbCase.CreatedAt.Value.Month, poolPlanningCaseSite.CreatedAt.Day, poolHour.Index, 0, 0);
-                        var poolHourResult = await backendConfigurationPnDbContext.PoolHourResults.SingleOrDefaultAsync(x => x.PoolHourId == poolHour.Id && x.Date == theDate);
-
-                        if (poolHourResult == null)
-                        {
-
-                            var areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 1);
-                            var pulseFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
-                                x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 2);
-                            var phFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
-                                x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 3);
-                            var freeClorideFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 4);
-                            var tempFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
-                                x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 5);
-                            var numberOfGuestsFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 6);
-                            var clarityFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 7);
-                            var measuredFreeClorideFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 8);
-                            var totalClorideFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 9);
-                            var boundClorideFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 10);
-                            var measuredPhFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 11);
-                            var receiptFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 12);
-                            var measuredTempFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 13);
-                            var commentFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-                            areaField =
-                                await sdkDbContext.Fields.SingleAsync(x =>
-                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 14);
-                            var doneByFieldValue =
-                                await sdkDbContext.FieldValues.SingleAsync(x =>
-                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
-
-                            poolHourResult = new PoolHourResult()
-                            {
-                                PoolHourId = poolHour.Id,
-                                PlanningId = planning.Id,
-                                FolderId = (int)planning.SdkFolderId,
-                                Date = theDate,
-                                PulseRateAtOpening = double.Parse(pulseFieldValue.Value),
-                                ReadPhValue = double.Parse(phFieldValue.Value),
-                                ReadFreeChlorine = double.Parse(freeClorideFieldValue.Value),
-                                ReadTemperature = double.Parse(tempFieldValue.Value),
-                                NumberOfGuestsAtClosing = double.Parse(numberOfGuestsFieldValue.Value),
-                                Clarity = clarityFieldValue.Value,
-                                MeasuredFreeChlorine = double.Parse(measuredFreeClorideFieldValue.Value),
-                                MeasuredTotalChlorine = double.Parse(totalClorideFieldValue.Value),
-                                MeasuredBoundChlorine = double.Parse(boundClorideFieldValue.Value),
-                                MeasuredPh = double.Parse(measuredPhFieldValue.Value),
-                                AcknowledgmentOfPulseRateAtOpening = receiptFieldValue.Value,
-                                MeasuredTempDuringTheDay = double.Parse(measuredTempFieldValue.Value),
-                                Comment = commentFieldValue.Value,
-                                DoneByUserId = int.Parse(doneByFieldValue.Value),
-                                DoneByUserName = doneByFieldValue.Value
-                            };
-                            await poolHourResult.Create(backendConfigurationPnDbContext);
-                        }
-                    }
-                }
+                if (planning.RepeatType == RepeatType.Day && planning.RepeatEvery == 0) {}
                 else
                 {
-                    while (planningCaseSite.Status != 100)
+                    if (planning.RepeatType == RepeatType.Week && planning.RepeatEvery == 1)
                     {
-                        Thread.Sleep(1000);
-                        Console.WriteLine($"Waiting for case {planningCaseSite.Id} to be completed");
-                        planningCaseSite = itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking()
-                            .Single(x => x.Id == planningCaseSite.Id);
-                        if (planningCaseSite.Status == 100)
+                        var poolHour = await
+                            backendConfigurationPnDbContext.PoolHours.SingleOrDefaultAsync(x =>
+                                x.ItemsPlanningId == planning.Id);
+                        if (poolHour != null)
                         {
-                            planningCaseSite =
-                                itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking().Single(x => x.Id == planningCaseSite.Id);
+                            var poolPlanningCaseSite =
+                                await itemsPlanningPnDbContext.PlanningCaseSites.SingleOrDefaultAsync(x =>
+                                    x.MicrotingSdkCaseId == dbCase.Id);
+                            var theDate = new DateTime(dbCase.CreatedAt.Value.Year, dbCase.CreatedAt.Value.Month,
+                                poolPlanningCaseSite.CreatedAt.Day, poolHour.Index, 0, 0);
+                            var poolHourResult =
+                                await backendConfigurationPnDbContext.PoolHourResults.SingleOrDefaultAsync(x =>
+                                    x.PoolHourId == poolHour.Id && x.Date == theDate);
+
+                            if (poolHourResult == null)
+                            {
+
+                                var areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 0);
+                                var pulseFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 1);
+                                var phFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 2);
+                                var freeClorideFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 3);
+                                var tempFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 4);
+                                var numberOfGuestsFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 5);
+                                var clarityFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 6);
+                                var measuredFreeClorideFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 7);
+                                var totalClorideFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 8);
+                                var boundClorideFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 9);
+                                var measuredPhFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 10);
+                                var receiptFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 11);
+                                var measuredTempFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 12);
+                                var commentFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                                areaField =
+                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                        x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 13);
+                                var doneByFieldValue =
+                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                        x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+
+                                poolHourResult = new PoolHourResult()
+                                {
+                                    PoolHourId = poolHour.Id,
+                                    PlanningId = planning.Id,
+                                    FolderId = (int) planning.SdkFolderId,
+                                    Date = theDate,
+                                    PulseRateAtOpening = double.Parse(pulseFieldValue.Value),
+                                    ReadPhValue = double.Parse(phFieldValue.Value),
+                                    ReadFreeChlorine = double.Parse(freeClorideFieldValue.Value),
+                                    ReadTemperature = double.Parse(tempFieldValue.Value),
+                                    NumberOfGuestsAtClosing = double.Parse(numberOfGuestsFieldValue.Value),
+                                    Clarity = clarityFieldValue.Value,
+                                    MeasuredFreeChlorine = double.Parse(measuredFreeClorideFieldValue.Value),
+                                    MeasuredTotalChlorine = double.Parse(totalClorideFieldValue.Value),
+                                    MeasuredBoundChlorine = double.Parse(boundClorideFieldValue.Value),
+                                    MeasuredPh = double.Parse(measuredPhFieldValue.Value),
+                                    AcknowledgmentOfPulseRateAtOpening = receiptFieldValue.Value,
+                                    MeasuredTempDuringTheDay = double.Parse(measuredTempFieldValue.Value),
+                                    Comment = commentFieldValue.Value,
+                                    DoneByUserId = doneByFieldValue.Value == "null" ? 0 : int.Parse(doneByFieldValue.Value),
+                                    DoneByUserName = doneByFieldValue.Value,
+                                    SdkCaseId = dbCase.Id,
+                                    AreaRuleId = poolHour.AreaRuleId
+                                };
+                                await poolHourResult.Create(backendConfigurationPnDbContext);
+                            }
                         }
                     }
-
-                    Console.WriteLine($"planningCaseSite {planningCaseSite.Id} is completed");
-                    Thread.Sleep(10000);
-
-
-                    var bla = ((DateTime) planning.NextExecutionTime).ToUniversalTime().AddDays(1);
-                    // backendConfigurationPnDbContext.Database.Log = Console.Write;
-
-                    var complianceList = await backendConfigurationPnDbContext.Compliances
-                        .Where(x => x.Deadline == new DateTime(bla.Year, bla.Month, bla.Day, 0, 0, 0))
-                        .AsNoTracking()
-                        .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-                        .Where(x => x.PlanningId == planningCaseSite.PlanningId).ToListAsync();
-
-                    foreach (var compliance in complianceList)
+                    else
                     {
-
-                        if (compliance != null)
+                        while (planningCaseSite.Status != 100)
                         {
-                            var dbCompliance =
-                                await backendConfigurationPnDbContext.Compliances.SingleAsync(
-                                    x => x.Id == compliance.Id);
-                            await dbCompliance.Delete(backendConfigurationPnDbContext);
-                        }
-
-                        var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.AsNoTracking()
-                            .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
-
-                        var property =
-                            await backendConfigurationPnDbContext.Properties.SingleOrDefaultAsync(x =>
-                                x.Id == backendPlanning.PropertyId);
-
-                        if (property == null)
-                        {
-                            return;
-                        }
-
-                        if (backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
-                                x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id &&
-                                x.WorkflowState != Constants.WorkflowStates.Removed))
-                        {
-                            property.ComplianceStatus = 2;
-                            property.ComplianceStatusThirty = 2;
-                            await property.Update(backendConfigurationPnDbContext);
-                        }
-                        else
-                        {
-                            if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
-                                    x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id &&
-                                    x.WorkflowState != Constants.WorkflowStates.Removed))
+                            Thread.Sleep(1000);
+                            Console.WriteLine($"Waiting for case {planningCaseSite.Id} to be completed");
+                            planningCaseSite = itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking()
+                                .Single(x => x.Id == planningCaseSite.Id);
+                            if (planningCaseSite.Status == 100)
                             {
-                                property.ComplianceStatusThirty = 0;
-                                await property.Update(backendConfigurationPnDbContext);
+                                planningCaseSite =
+                                    itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking()
+                                        .Single(x => x.Id == planningCaseSite.Id);
+                            }
+                        }
+
+                        Console.WriteLine($"planningCaseSite {planningCaseSite.Id} is completed");
+                        Thread.Sleep(10000);
+
+
+                        var bla = ((DateTime) planning.NextExecutionTime).ToUniversalTime().AddDays(1);
+                        // backendConfigurationPnDbContext.Database.Log = Console.Write;
+
+                        var complianceList = await backendConfigurationPnDbContext.Compliances
+                            .Where(x => x.Deadline == new DateTime(bla.Year, bla.Month, bla.Day, 0, 0, 0))
+                            .AsNoTracking()
+                            .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                            .Where(x => x.PlanningId == planningCaseSite.PlanningId).ToListAsync();
+
+                        foreach (var compliance in complianceList)
+                        {
+
+                            if (compliance != null)
+                            {
+                                var dbCompliance =
+                                    await backendConfigurationPnDbContext.Compliances.SingleAsync(
+                                        x => x.Id == compliance.Id);
+                                await dbCompliance.Delete(backendConfigurationPnDbContext);
                             }
 
-                            if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
+                            var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.AsNoTracking()
+                                .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
+
+                            var property =
+                                await backendConfigurationPnDbContext.Properties.SingleOrDefaultAsync(x =>
+                                    x.Id == backendPlanning.PropertyId);
+
+                            if (property == null)
+                            {
+                                return;
+                            }
+
+                            if (backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
                                     x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id &&
                                     x.WorkflowState != Constants.WorkflowStates.Removed))
                             {
-                                property.ComplianceStatus = 0;
+                                property.ComplianceStatus = 2;
+                                property.ComplianceStatusThirty = 2;
                                 await property.Update(backendConfigurationPnDbContext);
                             }
-                        }
-                    }
-
-                    if (eformIdForControlFloatingLayer == dbCase.CheckListId)
-                    {
-                        var fieldValues = await sdkDbContext.FieldValues
-                            .Where(x => x.CaseId == dbCase.Id)
-                            .Include(x => x.Field)
-                            .ThenInclude(x => x.FieldType)
-                            .ToListAsync();
-
-                        var checkBoxFloatingLayerOk = fieldValues
-                            .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.CheckBox)
-                            .Select(x => !string.IsNullOrEmpty(x.Value) && x.Value == "checked") // string.IsNullOrEmpty(x.Value) ? false : x.Value == "checked" ? true : false
-                            .First();
-
-                        var statusOrActivityFieldIdAndKey = fieldValues
-                            .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.SingleSelect)
-                            .Select(x => new { Key = x.Value, x.FieldId })
-                            .First();
-
-                        var statusOrActivity = string.IsNullOrEmpty(statusOrActivityFieldIdAndKey.Key) ? "" : await sdkDbContext.FieldOptions
-                            .Where(x => x.Key == statusOrActivityFieldIdAndKey.Key)
-                            .Where(x => x.FieldId == (int)statusOrActivityFieldIdAndKey.FieldId)
-                            .Include(x => x.FieldOptionTranslations)
-                            .SelectMany(x => x.FieldOptionTranslations)
-                            .Where(x => x.LanguageId == 1) // get only danish
-                            .Select(x => x.Text)
-                            .FirstOrDefaultAsync();
-
-                        var listWithStatuses = new List<string>
-                        {
-                            "Beholder omrørt",// da
-                            // "Slurry tank stirred", // en
-                            "Gylle udbragt", // da
-                            // "Slurry delivered", // en
-                            "Halm tilført", // da
-                            // "Straw added", // en
-                            "Flyttet til anden beholder", // da
-                            // "Moved to another slurry tank", // en
-                            "Modtaget biogas-gylle", // da
-                            // "Biogas slurry received", // en
-                            "", // Blank
-                        };
-                        if (checkBoxFloatingLayerOk == false && listWithStatuses.Contains(statusOrActivity))
-                        {
-                            // retract old eform
-                            // await _sdkCore.CaseDelete(dbCase.Id);
-                            // deploy new eform with old data, reminder: Current data + 6 days
-                            // planningCaseSite.MicrotingSdkSiteId
-
-                            var oldComment = fieldValues
-                                .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.Comment)
-                                .Select(x => x.Value)
-                                .First();
-
-                            // get name tank from linked planning
-                            var itemPlanningId = await itemsPlanningPnDbContext.PlanningCaseSites
-                                .Where(x => x.MicrotingSdkCaseId == dbCase.Id)
-                                .Select(x => x.PlanningId)
-                                .FirstOrDefaultAsync();
-
-                            // var itemPlanning = await itemsPlanningPnDbContext.Plannings.SingleAsync(x => x.Id == itemPlanningId);
-                            var itemPlanningSites = await itemsPlanningPnDbContext.PlanningSites.Where(x => x.PlanningId == itemPlanningId).ToListAsync();
-                            PlanningCase planningCase = new PlanningCase()
+                            else
                             {
-                                PlanningId = planning.Id,
-                                Status = 66,
-                                MicrotingSdkeFormId = (int)dbCase.CheckListId
-                            };
-                            foreach (var itemPlanningSite in itemPlanningSites)
-                            {
-                                var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == itemPlanningSite.SiteId);
-                                var siteLanguage = await sdkDbContext.Languages.SingleAsync(x => x.Id == site.LanguageId);
-                                var nameTank = await _itemsPlanningDbContextHelper
-                                    .GetDbContext().PlanningNameTranslation
-                                    .Where(x => x.PlanningId == itemPlanningId)
-                                    .Where(x => x.LanguageId == site.LanguageId)
-                                    .Select(x => x.Name)
-                                    .FirstOrDefaultAsync();
-
-                                var mainElement = await _sdkCore.ReadeForm(eformIdForControlFloatingLayer, siteLanguage);
-                                ((DataElement)mainElement.ElementList[0]).DataItemGroupList[0].DataItemList[0].Description.InderValue =
-                                    $"<strong>{Translations.FollowUpFloatingLayerCheck}</strong><br>" +
-                                    $"<strong>{Translations.SlurryTank}:</strong> {nameTank}<br>" +
-                                    $"<strong>{Translations.LastUpdated}:</strong> {dbCase.DoneAt.Value:DD.MM.YYYY}<br>" +
-                                    $"<strong>{Translations.StatusOrActivity}:</strong>{statusOrActivity}<br>" +
-                                    $"<strong>{Translations.ControlLatest}:</strong> {dbCase.DoneAt.Value.AddDays(6):DD.MM.YYYY}";
-                                ((Comment)((DataElement)mainElement.ElementList[0]).DataItemList[3]).Value = oldComment;
-
-                                mainElement.StartDate = DateTime.Now.AddDays(6).ToUniversalTime();
-                                mainElement.CheckListFolderName = await sdkDbContext.Folders
-                                    .Where(x => x.Id == dbCase.FolderId)
-                                    .Select(x => x.MicrotingUid.ToString())
-                                    .SingleAsync();
-                                planningCaseSite = new PlanningCaseSite()
+                                if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
+                                        x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id &&
+                                        x.WorkflowState != Constants.WorkflowStates.Removed))
                                 {
-                                    MicrotingSdkSiteId = site.Id,
-                                    MicrotingSdkeFormId = (int)dbCase.CheckListId,
-                                    Status = 66,
-                                    PlanningId = planning.Id,
-                                    PlanningCaseId = planningCase.Id
-                                };
-
-                                await planningCaseSite.Create(itemsPlanningPnDbContext);
-                                var folder = await getTopFolderName((int) planning.SdkFolderId, sdkDbContext);
-                                string body = "";
-                                if (folder != null)
-                                {
-                                    planning.SdkFolderId = sdkDbContext.Folders
-                                        .FirstOrDefault(y => y.Id == planning.SdkFolderId)
-                                        ?.Id;
-                                    FolderTranslation folderTranslation =
-                                        await sdkDbContext.FolderTranslations.SingleOrDefaultAsync(x =>
-                                            x.FolderId == folder.Id && x.LanguageId == site.LanguageId);
-                                    body = $"{folderTranslation.Name} ({site.Name};{DateTime.Now:dd.MM.yyyy})";
+                                    property.ComplianceStatusThirty = 0;
+                                    await property.Update(backendConfigurationPnDbContext);
                                 }
 
-                                PlanningNameTranslation planningNameTranslation =
-                                    await itemsPlanningPnDbContext.PlanningNameTranslation.SingleOrDefaultAsync(x =>
-                                        x.PlanningId == planning.Id
-                                        && x.LanguageId == site.LanguageId);
-
-                                mainElement.PushMessageBody = body;
-                                mainElement.PushMessageTitle = planningNameTranslation.Name;
-                                // var _ = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
-                                var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
-
-                                if (caseId != null)
+                                if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
+                                        x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id &&
+                                        x.WorkflowState != Constants.WorkflowStates.Removed))
                                 {
-                                    var caseDto = await _sdkCore.CaseLookupMUId((int) caseId);
-                                    if (caseDto?.CaseId != null) planningCaseSite.MicrotingSdkCaseId = (int) caseDto.CaseId;
-                                    await planningCaseSite.Update(itemsPlanningPnDbContext);
+                                    property.ComplianceStatus = 0;
+                                    await property.Update(backendConfigurationPnDbContext);
                                 }
                             }
                         }
+
+                        if (eformIdForControlFloatingLayer == dbCase.CheckListId)
+                        {
+                            var fieldValues = await sdkDbContext.FieldValues
+                                .Where(x => x.CaseId == dbCase.Id)
+                                .Include(x => x.Field)
+                                .ThenInclude(x => x.FieldType)
+                                .ToListAsync();
+
+                            var checkBoxFloatingLayerOk = fieldValues
+                                .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.CheckBox)
+                                .Select(x =>
+                                    !string.IsNullOrEmpty(x.Value) &&
+                                    x.Value ==
+                                    "checked") // string.IsNullOrEmpty(x.Value) ? false : x.Value == "checked" ? true : false
+                                .First();
+
+                            var statusOrActivityFieldIdAndKey = fieldValues
+                                .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.SingleSelect)
+                                .Select(x => new {Key = x.Value, x.FieldId})
+                                .First();
+
+                            var statusOrActivity = string.IsNullOrEmpty(statusOrActivityFieldIdAndKey.Key)
+                                ? ""
+                                : await sdkDbContext.FieldOptions
+                                    .Where(x => x.Key == statusOrActivityFieldIdAndKey.Key)
+                                    .Where(x => x.FieldId == (int) statusOrActivityFieldIdAndKey.FieldId)
+                                    .Include(x => x.FieldOptionTranslations)
+                                    .SelectMany(x => x.FieldOptionTranslations)
+                                    .Where(x => x.LanguageId == 1) // get only danish
+                                    .Select(x => x.Text)
+                                    .FirstOrDefaultAsync();
+
+                            var listWithStatuses = new List<string>
+                            {
+                                "Beholder omrørt", // da
+                                // "Slurry tank stirred", // en
+                                "Gylle udbragt", // da
+                                // "Slurry delivered", // en
+                                "Halm tilført", // da
+                                // "Straw added", // en
+                                "Flyttet til anden beholder", // da
+                                // "Moved to another slurry tank", // en
+                                "Modtaget biogas-gylle", // da
+                                // "Biogas slurry received", // en
+                                "", // Blank
+                            };
+                            if (checkBoxFloatingLayerOk == false && listWithStatuses.Contains(statusOrActivity))
+                            {
+                                // retract old eform
+                                // await _sdkCore.CaseDelete(dbCase.Id);
+                                // deploy new eform with old data, reminder: Current data + 6 days
+                                // planningCaseSite.MicrotingSdkSiteId
+
+                                var oldComment = fieldValues
+                                    .Where(x => x.Field.FieldType.Type == Constants.FieldTypes.Comment)
+                                    .Select(x => x.Value)
+                                    .First();
+
+                                // get name tank from linked planning
+                                var itemPlanningId = await itemsPlanningPnDbContext.PlanningCaseSites
+                                    .Where(x => x.MicrotingSdkCaseId == dbCase.Id)
+                                    .Select(x => x.PlanningId)
+                                    .FirstOrDefaultAsync();
+
+                                // var itemPlanning = await itemsPlanningPnDbContext.Plannings.SingleAsync(x => x.Id == itemPlanningId);
+                                var itemPlanningSites = await itemsPlanningPnDbContext.PlanningSites
+                                    .Where(x => x.PlanningId == itemPlanningId).ToListAsync();
+                                PlanningCase planningCase = new PlanningCase()
+                                {
+                                    PlanningId = planning.Id,
+                                    Status = 66,
+                                    MicrotingSdkeFormId = (int) dbCase.CheckListId
+                                };
+                                foreach (var itemPlanningSite in itemPlanningSites)
+                                {
+                                    var site = await sdkDbContext.Sites.SingleAsync(
+                                        x => x.Id == itemPlanningSite.SiteId);
+                                    var siteLanguage =
+                                        await sdkDbContext.Languages.SingleAsync(x => x.Id == site.LanguageId);
+                                    var nameTank = await _itemsPlanningDbContextHelper
+                                        .GetDbContext().PlanningNameTranslation
+                                        .Where(x => x.PlanningId == itemPlanningId)
+                                        .Where(x => x.LanguageId == site.LanguageId)
+                                        .Select(x => x.Name)
+                                        .FirstOrDefaultAsync();
+
+                                    var mainElement =
+                                        await _sdkCore.ReadeForm(eformIdForControlFloatingLayer, siteLanguage);
+                                    ((DataElement) mainElement.ElementList[0]).DataItemGroupList[0].DataItemList[0]
+                                        .Description.InderValue =
+                                        $"<strong>{Translations.FollowUpFloatingLayerCheck}</strong><br>" +
+                                        $"<strong>{Translations.SlurryTank}:</strong> {nameTank}<br>" +
+                                        $"<strong>{Translations.LastUpdated}:</strong> {dbCase.DoneAt.Value:DD.MM.YYYY}<br>" +
+                                        $"<strong>{Translations.StatusOrActivity}:</strong>{statusOrActivity}<br>" +
+                                        $"<strong>{Translations.ControlLatest}:</strong> {dbCase.DoneAt.Value.AddDays(6):DD.MM.YYYY}";
+                                    ((Comment) ((DataElement) mainElement.ElementList[0]).DataItemList[3]).Value =
+                                        oldComment;
+
+                                    mainElement.StartDate = DateTime.Now.AddDays(6).ToUniversalTime();
+                                    mainElement.CheckListFolderName = await sdkDbContext.Folders
+                                        .Where(x => x.Id == dbCase.FolderId)
+                                        .Select(x => x.MicrotingUid.ToString())
+                                        .SingleAsync();
+                                    planningCaseSite = new PlanningCaseSite()
+                                    {
+                                        MicrotingSdkSiteId = site.Id,
+                                        MicrotingSdkeFormId = (int) dbCase.CheckListId,
+                                        Status = 66,
+                                        PlanningId = planning.Id,
+                                        PlanningCaseId = planningCase.Id
+                                    };
+
+                                    await planningCaseSite.Create(itemsPlanningPnDbContext);
+                                    var folder = await getTopFolderName((int) planning.SdkFolderId, sdkDbContext);
+                                    string body = "";
+                                    if (folder != null)
+                                    {
+                                        planning.SdkFolderId = sdkDbContext.Folders
+                                            .FirstOrDefault(y => y.Id == planning.SdkFolderId)
+                                            ?.Id;
+                                        FolderTranslation folderTranslation =
+                                            await sdkDbContext.FolderTranslations.SingleOrDefaultAsync(x =>
+                                                x.FolderId == folder.Id && x.LanguageId == site.LanguageId);
+                                        body = $"{folderTranslation.Name} ({site.Name};{DateTime.Now:dd.MM.yyyy})";
+                                    }
+
+                                    PlanningNameTranslation planningNameTranslation =
+                                        await itemsPlanningPnDbContext.PlanningNameTranslation.SingleOrDefaultAsync(x =>
+                                            x.PlanningId == planning.Id
+                                            && x.LanguageId == site.LanguageId);
+
+                                    mainElement.PushMessageBody = body;
+                                    mainElement.PushMessageTitle = planningNameTranslation.Name;
+                                    // var _ = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
+                                    var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) site.MicrotingUid,
+                                        dbCase.FolderId);
+
+                                    if (caseId != null)
+                                    {
+                                        var caseDto = await _sdkCore.CaseLookupMUId((int) caseId);
+                                        if (caseDto?.CaseId != null)
+                                            planningCaseSite.MicrotingSdkCaseId = (int) caseDto.CaseId;
+                                        await planningCaseSite.Update(itemsPlanningPnDbContext);
+                                    }
+                                }
+                            }
+                        }
+
+
                     }
-
-
                 }
             }
         }
