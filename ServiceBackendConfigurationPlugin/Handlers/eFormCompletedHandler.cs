@@ -444,6 +444,125 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 if (planning.RepeatType == RepeatType.Day && planning.RepeatEvery == 0)
                 {
+                    var poolHour = await
+                        backendConfigurationPnDbContext.PoolHours.SingleOrDefaultAsync(x =>
+                            x.ItemsPlanningId == planning.Id);
+                    if (poolHour != null)
+                    {
+                        var poolPlanningCaseSite = await itemsPlanningPnDbContext.PlanningCaseSites.SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == dbCase.Id);
+                        var theDate = new DateTime(dbCase.CreatedAt.Value.Year, dbCase.CreatedAt.Value.Month, poolPlanningCaseSite.CreatedAt.Day, poolHour.Index, 0, 0);
+                        var poolHourResult = await backendConfigurationPnDbContext.PoolHourResults.SingleOrDefaultAsync(x => x.PoolHourId == poolHour.Id && x.Date == theDate);
+
+                        if (poolHourResult == null)
+                        {
+
+                            var areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 1);
+                            var pulseFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
+                                x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 2);
+                            var phFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
+                                x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 3);
+                            var freeClorideFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 4);
+                            var tempFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
+                                x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 5);
+                            var numberOfGuestsFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 6);
+                            var clarityFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 7);
+                            var measuredFreeClorideFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 8);
+                            var totalClorideFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 9);
+                            var boundClorideFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 10);
+                            var measuredPhFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 11);
+                            var receiptFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 12);
+                            var measuredTempFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 13);
+                            var commentFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                            areaField =
+                                await sdkDbContext.Fields.SingleAsync(x =>
+                                    x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 14);
+                            var doneByFieldValue =
+                                await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+
+                            poolHourResult = new PoolHourResult()
+                            {
+                                PoolHourId = poolHour.Id,
+                                PlanningId = planning.Id,
+                                FolderId = (int)planning.SdkFolderId,
+                                Date = theDate,
+                                PulseRateAtOpening = double.Parse(pulseFieldValue.Value),
+                                ReadPhValue = double.Parse(phFieldValue.Value),
+                                ReadFreeChlorine = double.Parse(freeClorideFieldValue.Value),
+                                ReadTemperature = double.Parse(tempFieldValue.Value),
+                                NumberOfGuestsAtClosing = double.Parse(numberOfGuestsFieldValue.Value),
+                                Clarity = clarityFieldValue.Value,
+                                MeasuredFreeChlorine = double.Parse(measuredFreeClorideFieldValue.Value),
+                                MeasuredTotalChlorine = double.Parse(totalClorideFieldValue.Value),
+                                MeasuredBoundChlorine = double.Parse(boundClorideFieldValue.Value),
+                                MeasuredPh = double.Parse(measuredPhFieldValue.Value),
+                                AcknowledgmentOfPulseRateAtOpening = receiptFieldValue.Value,
+                                MeasuredTempDuringTheDay = double.Parse(measuredTempFieldValue.Value),
+                                Comment = commentFieldValue.Value,
+                                DoneByUserId = int.Parse(doneByFieldValue.Value),
+                                DoneByUserName = doneByFieldValue.Value
+                            };
+                            await poolHourResult.Create(backendConfigurationPnDbContext);
+                        }
+                    }
                 }
                 else
                 {
@@ -658,6 +777,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             }
                         }
                     }
+
+
                 }
             }
         }
