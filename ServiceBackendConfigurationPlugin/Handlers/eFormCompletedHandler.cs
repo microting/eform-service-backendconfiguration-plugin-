@@ -566,23 +566,24 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     PlanningId = planning.Id,
                                     FolderId = (int) planning.SdkFolderId,
                                     Date = theDate,
-                                    PulseRateAtOpening = double.Parse(pulseFieldValue.Value ?? "0"),
-                                    ReadPhValue = double.Parse(phFieldValue.Value ?? "0"),
-                                    ReadFreeChlorine = double.Parse(freeClorideFieldValue.Value ?? "0"),
-                                    ReadTemperature = double.Parse(tempFieldValue.Value ?? "0"),
-                                    NumberOfGuestsAtClosing = double.Parse(numberOfGuestsFieldValue.Value ?? "0"),
+                                    PulseRateAtOpening = double.Parse((pulseFieldValue.Value ?? "0").Replace(",",".")),
+                                    ReadPhValue = double.Parse((phFieldValue.Value ?? "0").Replace(",",".")),
+                                    ReadFreeChlorine = double.Parse((freeClorideFieldValue.Value ?? "0").Replace(",",".")),
+                                    ReadTemperature = double.Parse((tempFieldValue.Value ?? "0").Replace(",",".")),
+                                    NumberOfGuestsAtClosing = double.Parse((numberOfGuestsFieldValue.Value ?? "0").Replace(",",".")),
                                     Clarity = clarityFieldValue.Value,
-                                    MeasuredFreeChlorine = double.Parse(measuredFreeClorideFieldValue.Value ?? "0"),
-                                    MeasuredTotalChlorine = double.Parse(totalClorideFieldValue.Value ?? "0"),
-                                    MeasuredBoundChlorine = double.Parse(boundClorideFieldValue.Value ?? "0"),
-                                    MeasuredPh = double.Parse(measuredPhFieldValue.Value ?? "0"),
+                                    MeasuredFreeChlorine = double.Parse((measuredFreeClorideFieldValue.Value ?? "0").Replace(",",".")),
+                                    MeasuredTotalChlorine = double.Parse((totalClorideFieldValue.Value ?? "0").Replace(",",".")),
+                                    MeasuredBoundChlorine = double.Parse((boundClorideFieldValue.Value ?? "0").Replace(",",".")),
+                                    MeasuredPh = double.Parse((measuredPhFieldValue.Value ?? "0").Replace(",",".")),
                                     AcknowledgmentOfPulseRateAtOpening = receiptFieldValue.Value,
-                                    MeasuredTempDuringTheDay = double.Parse(measuredTempFieldValue.Value ?? "0"),
+                                    MeasuredTempDuringTheDay = double.Parse((measuredTempFieldValue.Value ?? "0").Replace(",",".")),
                                     Comment = commentFieldValue.Value,
                                     DoneByUserId = doneByFieldValue.Value == "null" ? 0 : int.Parse(doneByFieldValue.Value),
                                     DoneByUserName = doneByFieldValue.Value,
                                     SdkCaseId = dbCase.Id,
-                                    AreaRuleId = poolHour.AreaRuleId
+                                    AreaRuleId = poolHour.AreaRuleId,
+                                    DoneAt = (DateTime)dbCase.DoneAt
                                 };
                                 await poolHourResult.Create(backendConfigurationPnDbContext);
 
@@ -605,6 +606,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                                 
                                 Regex regex = new Regex(@"(\d\.\s)");
+                                TimeZoneInfo timeZoneInfo;
+                                try
+                                {
+                                    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
+                                }
+                                catch
+                                {
+                                    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("E. Europe Standard Time");
+                                }
                                 foreach (var planningSite in planningSites)
                                 {
                                     var poolHistorySite = await backendConfigurationPnDbContext.PoolHistorySites
@@ -623,10 +633,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     mainElement.Label =
                                         $"0. Tidligere indsendt data - {areaRule.AreaRuleTranslations.First().Name}";
                                     mainElement.ElementList[0].Label = mainElement.Label;
+                                    var localTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
                                     mainElement.ElementList[0].Description = new CDataValue()
                                     {
                                         InderValue = 
-                                            $"Sidst opdateret: {DateTime.Now:H:mm}"
+                                            $"Sidst opdateret: {localTime:H:mm}"
                                     };
                                     ((DataElement) mainElement.ElementList[0]).DataItemList[0].Color =
                                         Constants.FieldColors.Yellow;
@@ -648,12 +659,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                                     foreach (var hourResult in allPoolHourResults)
                                     {
+                                        
+                                        localTime = TimeZoneInfo.ConvertTimeFromUtc(hourResult.DoneAt, timeZoneInfo);
                                         var selectedPoolHour =
                                             await backendConfigurationPnDbContext.PoolHours.SingleAsync(x =>
                                                 x.Id == hourResult.PoolHourId);
                                         header.Append($"<strong>{selectedPoolHour.Name}:00 {regex.Replace($"{poolDayFolder.FolderTranslations.Where(x => x.LanguageId == language.Id).Select(x => x.Name).First()} - {areaRule.AreaRuleTranslations.First().Name}", "")}</strong>");
-                                        header.Append($"<br>Dato: {hourResult.Date:dd-m-yyyy}<br>");
-                                        header.Append($"Tid: {hourResult.Date:HH:mm:ss}<br>");
+                                        header.Append($"<br>Dato: {localTime:dd-MM-yyyy}<br>");
+                                        header.Append($"Tid: {localTime:HH:mm:ss}<br>");
                                         header.Append($"Pulsslag ved åbning: {hourResult.PulseRateAtOpening}<br>");
                                         header.Append($"Aflæst PH: {hourResult.ReadPhValue}<br>");
                                         header.Append($"Aflæst frit klor: {hourResult.ReadFreeChlorine}<br>");
