@@ -35,6 +35,33 @@
       <LastGenOutput>Translations.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Remove="Resources\Templates\file.docx" />
+    <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS01ExplodingBomb.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS02Flame.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS03FlameOverCircle.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS04GasCylinder.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS05Corrosion.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS06SkullAndCrossbones.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS07ExclamationMark.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS08HealthHazard.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS09AquaticHazard.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\Templates\file.docx" />
     <None Remove="Resources\Templates\page.html" />
     <EmbeddedResource Include="Resources\Templates\page.html" />
