@@ -23,6 +23,8 @@ SOFTWARE.
 */
 
 
+using ChemicalsBase.Infrastructure;
+using ChemicalsBase.Infrastructure.Data.Factories;
 using ServiceBackendConfigurationPlugin.Scheduler.Jobs;
 
 namespace ServiceBackendConfigurationPlugin
@@ -65,6 +67,8 @@ namespace ServiceBackendConfigurationPlugin
         private ItemsPlanningPnDbContext _itemsPlanningDbContext;
         private BackendConfigurationDbContextHelper _backendConfigurationBackendConfigurationDbContextHelper;
         private ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
+        private ChemicalsDbContext _chemicalsDbContext;
+        private ChemicalDbContextHelper _chemicalDbContextHelper;
 
         public void CoreEventException(object sender, EventArgs args)
         {
@@ -163,6 +167,15 @@ namespace ServiceBackendConfigurationPlugin
                         itemContextFactory.CreateDbContext(new[] { itemsPlanningConnectionString });
                     _itemsPlanningDbContextHelper = new ItemsPlanningDbContextHelper(itemsPlanningConnectionString);
 
+                    
+                    pluginDbName = $"Database={dbPrefix}_chemical-base-plugin;";
+                    var chemicalConnectionString = sdkConnectionString.Replace(dbNameSection, pluginDbName);
+                    var chemicalContextFactory = new ChemicalsContextFactory();
+
+                    _chemicalsDbContext =
+                        chemicalContextFactory.CreateDbContext(new[] { chemicalConnectionString });
+                    _chemicalDbContextHelper = new ChemicalDbContextHelper(chemicalConnectionString);
+
                     _coreAvailable = true;
                     _coreStatChanging = false;
 
@@ -184,6 +197,8 @@ namespace ServiceBackendConfigurationPlugin
                         .Instance(_backendConfigurationBackendConfigurationDbContextHelper));
                     _container.Register(Component.For<ItemsPlanningDbContextHelper>()
                         .Instance(_itemsPlanningDbContextHelper));
+                    _container.Register(Component.For<ChemicalDbContextHelper>()
+                        .Instance(_chemicalDbContextHelper));
                     _container.Register(Component.For<eFormCore.Core>().Instance(_sdkCore));
                     _container.Install(
                         new RebusHandlerInstaller()
