@@ -424,7 +424,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             {
                 var planningCaseSite =
                     await itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking()
-                        .SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == dbCase.MicrotingUid);
+                        .SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == dbCase.Id);
 
                 if (planningCaseSite == null)
                 {
@@ -464,7 +464,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             .Include(x => x.Property)
                             .Include(x => x.AreaRuleTranslations)
                             .SingleAsync();
-                    if (areaRule.EformId == checkListTranslation.CheckListId)
+                    if (planningCaseSite.MicrotingSdkeFormId == checkListTranslation.CheckListId)
                     {
                         var planningSites = await itemsPlanningPnDbContext.PlanningSites
                             .Where(x => x.PlanningId == planning.Id).ToListAsync();
@@ -520,9 +520,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     .SingleAsync(x => x.Id == product.ChemicalId);
                                 // chemicals.Add(chemical);
                             }
-                            // if (!backendConfigurationPnDbContext.ChemicalProductProperties.Any(x =>
-                            //         x.ChemicalId == chemical.Id))
-                            
+                            if (!backendConfigurationPnDbContext.ChemicalProductProperties.Any(x =>
+                            x.ChemicalId == chemical.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
                             {
                                 var productName = chemical.Name;
                                 if (product != null)
@@ -609,10 +608,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfId;
                                     if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
                                     {
+                                        var picturesOfTasks = new List<string>();
+
                                         foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
                                         {
-                                        
+                                            picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.GHSHazardPictogram.First(x=> x.Key ==hazardPictogram).Value);
                                         }
+
+                                        var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
+                                        ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[2]).Value = ids;
                                     }
                                     else
                                     {
@@ -624,10 +628,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
                                     if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
                                     {
+                                        var picturesOfTasks = new List<string>();
+
                                         foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
                                         {
-                                        
+                                            picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.GHSHazardPictogram.First(x=> x.Key ==hazardPictogram).Value);
                                         }
+
+                                        var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
+                                        ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = ids;
                                     }
                                     else
                                     {
@@ -635,10 +644,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     }
                                 }
 
-                                // ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Label = "";
-                                // ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[2]).Label = "";
                                 var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
                                     folder.Id);
+                                var thisDbCase = await sdkDbContext.Cases.SingleAsync(x => x.MicrotingUid == caseId);
 
                                 var propertySites = await backendConfigurationPnDbContext.PropertyWorkers
                                     .Where(x => x.PropertyId == areaRule.PropertyId).ToListAsync();
@@ -654,13 +662,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         list.RemoveAt(0);
                                         ((DataElement) mainElement.ElementList[0]).DataItemGroupList
                                             .RemoveAt(1);
-                                        var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site.MicrotingUid,
+                                        var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
                                             folder.Id);
+                                        // var siteDbCaseId =
+                                        //     await sdkDbContext.Cases.SingleAsync(x => x.MicrotingUid == siteCaseId);
                                         var chemicalProductPropertySite = new ChemicalProductPropertySite()
                                         {
                                             ChemicalId = chemical.Id,
-                                            SdkCaseId = (int)siteCaseId,
-                                            SdkSiteId = site.Id,
+                                            SdkCaseId = (int)siteCaseId!,
+                                            SdkSiteId = site!.Id,
                                             PropertyId = areaRule.PropertyId
                                         };
                                         await chemicalProductPropertySite.Create(backendConfigurationPnDbContext);
@@ -686,7 +696,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     RuleId = areaRule.Id
                                 };
 
-                                var newPlanning = await CreateItemPlanningObject((int) areaRule.EformId,
+                                var newPlanning = await CreateItemPlanningObject((int) checkListTranslation.CheckListId,
                                     areaRule.EformName,
                                     areaRule.FolderId, areaRulePlanningModel, areaRule);
                                 newPlanning.RepeatEvery = 0;
@@ -699,17 +709,17 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 {
                                     PlanningId = newPlanning.Id,
                                     Status = 66,
-                                    MicrotingSdkeFormId = (int) areaRule.EformId
+                                    MicrotingSdkeFormId = checkListTranslation.CheckListId
                                 };
                                 await newPlanningCase.Create(itemsPlanningPnDbContext);
                                 var newPlanningCaseSite = new PlanningCaseSite
                                 {
                                     MicrotingSdkSiteId = sdkSite.Id,
-                                    MicrotingSdkeFormId = (int) areaRule.EformId,
+                                    MicrotingSdkeFormId = checkListTranslation.CheckListId,
                                     Status = 66,
                                     PlanningId = newPlanning.Id,
                                     PlanningCaseId = newPlanningCase.Id,
-                                    MicrotingSdkCaseId = (int) caseId
+                                    MicrotingSdkCaseId = thisDbCase.Id
                                 };
                                 
                                 await newPlanningCaseSite.Create(itemsPlanningPnDbContext);
@@ -724,7 +734,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 {
                                     ChemicalId = chemical.Id,
                                     PropertyId = areaRule.PropertyId,
-                                    SdkCaseId = (int) caseId
+                                    SdkCaseId = thisDbCase.Id
                                 };
                                 
                                 await chemicalProductProperty.Create(backendConfigurationPnDbContext);
@@ -737,6 +747,32 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         // {
                             
                         // }
+                    }
+                    else
+                    {
+                        checkListTranslation = await sdkDbContext.CheckListTranslations.FirstAsync(x =>
+                            x.Text == "25.02 Vis kemisk produkt");
+                        if (planningCaseSite.MicrotingSdkeFormId == checkListTranslation.CheckListId)
+                        {
+                            if (backendConfigurationPnDbContext.ChemicalProductProperties.Any(x => x.SdkCaseId == dbCase.MicrotingUid))
+                            // foreach (ChemicalProductProperty chemicalProductProperty in backendConfigurationPnDbContext.ChemicalProductProperties.Where(x => x.SdkCaseId == dbCase.Id))
+                            {
+                                await _sdkCore.CaseDelete((int) dbCase.MicrotingUid!);
+                                var cpp = await backendConfigurationPnDbContext.ChemicalProductProperties.SingleAsync(x =>
+                                    x.SdkCaseId == dbCase.MicrotingUid);
+                                await cpp.Delete(backendConfigurationPnDbContext);
+                                
+                                foreach (var chemicalProductPropertySite in backendConfigurationPnDbContext.ChemicalProductPropertieSites
+                                             .Where(x => x.PropertyId == areaRule.PropertyId)
+                                             .Where(x => x.ChemicalId == cpp.ChemicalId).ToList())
+                                {
+                                    // var theCase = await sdkDbContext.Cases.SingleAsync(x =>
+                                        // x.Id == chemicalProductPropertySite.SdkCaseId);
+                                    await _sdkCore.CaseDelete((int) chemicalProductPropertySite.SdkCaseId);
+                                    await chemicalProductPropertySite.Delete(backendConfigurationPnDbContext);
+                                }
+                            }
+                        }
                     }
                 }
                 else
@@ -1354,32 +1390,69 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
         private async Task<string> InsertImageToPdf(string imageName, string itemsHtml, int imageSize, int imageWidth, string basePicturePath)
         {
-            var filePath = Path.Combine(basePicturePath, imageName);
-            Stream stream;
-            var storageResult = await _sdkCore.GetFileFromS3Storage(imageName);
-            stream = storageResult.ResponseStream;
-
-            using (var image = new MagickImage(stream))
+            if (imageName.Contains("GH"))
             {
-                var profile = image.GetExifProfile();
-                // Write all values to the console
-                try
+                var assembly = Assembly.GetExecutingAssembly();
+                var resourceString = $"ServiceBackendConfigurationPlugin.Resources.GHSHazardPictogram.{imageName}.jpg";
+                // using var FileStream FileStream = new FileStream()
+                await using (var resourceStream = assembly.GetManifestResourceStream(resourceString))
                 {
-                    foreach (var value in profile.Values)
+                    // using var reader = new StreamReader(resourceStream ?? throw new InvalidOperationException($"{nameof(resourceStream)} is null"));
+                    // html = await reader.ReadToEndAsync();
+                    // MemoryStream memoryStream = new MemoryStream();
+                    // await resourceStream.CopyToAsync(memoryStream);
+                    using (var image = new MagickImage(resourceStream))
                     {
-                        Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
+                        var profile = image.GetExifProfile();
+                        // Write all values to the console
+                        try
+                        {
+                            foreach (var value in profile.Values)
+                            {
+                                Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
+                            }
+                        } catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                        }
+                        // image.Rotate(90);
+                        var base64String = image.ToBase64();
+                        itemsHtml +=
+                            $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
                     }
-                } catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-                image.Rotate(90);
-                var base64String = image.ToBase64();
-                itemsHtml +=
-                    $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
-            }
 
-            await stream.DisposeAsync();
+                    // await stream.DisposeAsync();
+                }
+            }
+            else
+            {
+                Stream stream;
+                var storageResult = await _sdkCore.GetFileFromS3Storage(imageName);
+                stream = storageResult.ResponseStream;
+
+                using (var image = new MagickImage(stream))
+                {
+                    var profile = image.GetExifProfile();
+                    // Write all values to the console
+                    try
+                    {
+                        foreach (var value in profile.Values)
+                        {
+                            Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
+                        }
+                    } catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
+                    image.Rotate(90);
+                    var base64String = image.ToBase64();
+                    itemsHtml +=
+                        $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
+                }
+
+                await stream.DisposeAsync();
+            }
+            
 
             return itemsHtml;
         }
