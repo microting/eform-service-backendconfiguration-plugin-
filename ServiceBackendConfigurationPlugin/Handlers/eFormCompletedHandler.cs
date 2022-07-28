@@ -275,7 +275,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var pushMessageBody = $"{commentFieldValue.Value}";
 
                 // deploy eform to ongoing status
-                await DeployEform(propertyWorkers, eformIdForOngoingTasks, (int)property.FolderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, newWorkorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
+                await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, (int)property.FolderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, newWorkorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
                     assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
             }
             else if (eformIdForOngoingTasks == dbCase.CheckListId && workorderCase != null)
@@ -397,7 +397,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to ongoing status
-                    await DeployEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
+                    await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workorderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
                 }
                 else
                 {
@@ -417,7 +417,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     // retract eform
                     await RetractEform(workorderCase);
                     // deploy eform to completed status
-                    await DeployEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, commentFieldValue.Value, null, hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
+                    await DeployWorkOrderEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workorderCase, commentFieldValue.Value, null, hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
                 }
             }
             else
@@ -471,6 +471,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     var language = await sdkDbContext.Languages.SingleAsync(x => x.Id == sdkSite.LanguageId);
                     var caseIds = new List<int>() {dbCase.Id};
                     var fieldValues = await _sdkCore.Advanced_FieldValueReadList(caseIds, language);
+                    var chemicalDbContext = _chemicalDbContextHelper.GetDbContext();
+                    var folder = await sdkDbContext.Folders.SingleAsync(x => x.Id == areaRule.FolderId);
+                    var folderMicrotingId = folder.MicrotingUid.ToString();
                     if (planningCaseSite.MicrotingSdkeFormId == checkListTranslation.CheckListId)
                     {
                         List<string> entityIds = fieldValues.Where(x=> x.Value != "null" && x.Value != null && x.FieldType == Constants.FieldTypes.EntitySearch).Select(x => x.Value).ToList();
@@ -483,13 +486,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         // List<string> regNos = new List<string>();
                         
                         List<Chemical> chemicals = new List<Chemical>();
-                        var chemicalDbContext = _chemicalDbContextHelper.GetDbContext();
 
                         checkListTranslation = await sdkDbContext.CheckListTranslations.FirstAsync(x =>
                             x.Text == "25.02 Vis kemisk produkt");
-                        var folder = await sdkDbContext.Folders.SingleAsync(x => x.Id == areaRule.FolderId);
-                        var folderMicrotingId = folder.MicrotingUid.ToString();
-                        
+
                         foreach (string entityId in entityIds)
                         {
                             var entityItem = await sdkDbContext.EntityItems.SingleAsync(x => x.Id == int.Parse(entityId));
@@ -562,125 +562,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         productName += " - " + product.Name;
                                     }
                                 }
-                                var mainElement = await _sdkCore.ReadeForm(checkListTranslation.CheckListId, language);
-                                mainElement.Repeated = 0;
-                                mainElement.CheckListFolderName = folderMicrotingId;
-                                mainElement.StartDate = DateTime.Now.ToUniversalTime();
-                                mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
-                                mainElement.DisplayOrder = 10000000;
-                                mainElement.ElementList[0].DoneButtonEnabled = false;
-                                mainElement.Label = productName;
-                                mainElement.ElementList[0].Label = productName;
-                                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Label = areaRule.Property.Name;
-                                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                                    .InderValue =
-                                    $"<strong>{productName}</strong><br>" +
-                                    "<u>Bekæmpelsesmiddelstype</u><br>";
-
-                                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                                    .InderValue += chemical.PestControlType != null
-                                        ? $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.PestControlType.FirstOrDefault(x => x.Key == chemical.PestControlType)!.Value}<br><br>"
-                                        : "";
-                                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                                    .InderValue +=
-                                    "<u>Productstatus</u><br>" +
-                                    $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductStatusType.FirstOrDefault(x => x.Key == chemical.Status).Value}<br><br>" +
-                                    $"<u>Pesticid produktgruppe</u><br>";
-                                foreach (var i in chemical.PesticideProductGroup)
-                                {
-                                    ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                                        .InderValue +=
-                                        $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupPesticide.FirstOrDefault(x => x.Key == i).Value}<br>";
-                                }
-
-                                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                                    .InderValue +=
-                                    // $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupPesticide.FirstOrDefault(x => x.Key == chemical.PesticideProductGroup)!.Value}<br><br>" +
-                                    "<br><strong>Generelle oplysninger</strong><br>" +
-                                    "<u>Godkendelsesdato</u><br>" +
-                                    $"{chemical.AuthorisationDate:dd-MM-yyyy}<br><br>" +
-                                    $"<u>Udløbsdato</u><br>" +
-                                    $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>" +
-                                    $"<br><strong>Klassificering og mærkening</strong><br>";
-
-                                List<string> HStatements = new List<string>();
-                                foreach (var hazardStatement in chemical.ClassificationAndLabeling.CLP.HazardStatements)
-                                {
-                                    ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                                    .InderValue +=
-                                    $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.HazardStatement.First(x=> x.Key == hazardStatement.Statement).Value}<br><br>";
-                                    Regex regex = new Regex(@"\((H\d\d\d)\)");
-                                    var res = regex.Match(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
-                                        .HazardStatement.First(x => x.Key == hazardStatement.Statement).Value);
-                                    HStatements.Add(res.Value);
-                                    // $"{chemical.Use}<br>";
-                                }
                                 
-                                // "{chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
-                                ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[0])
-                                    .DataItemList[0].Label = " ";
-                                // foreach (var i in chemical.PesticidePossibleUse)
-                                // {
-                                    ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[0])
-                                        .DataItemList[0].Description
-                                        .InderValue = 
-                                        // $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.PossibleUsePesticide.First(x=> x.Key == i).Value}<br>";
-                                        $"{chemical.Use}<br>";
-                                // }
-                                if (product != null)
-                                {
-                                    using var webClient = new HttpClient();
-                                    
-                                    var streamFile =
-                                        await webClient.GetStreamAsync(
-                                            $"https://chemicalbase.microting.com/get-pdf-file?fileName={product.FileName}");
-                                    
-                                    await using var stream = new FileStream(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"), FileMode.Create);
-                                    await streamFile.CopyToAsync(stream);
-
-                                    var pdfId = await _sdkCore.PdfUpload(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
-                                    // fileStream.Close();
-                                    
-                                    
-                                    ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfId;
-                                    if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
-                                    {
-                                        var picturesOfTasks = new List<string>();
-
-                                        foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
-                                        {
-                                            picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.GHSHazardPictogram.First(x=> x.Key ==hazardPictogram).Value);
-                                        }
-
-                                        var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
-                                        ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[2]).Value = ids;
-                                    }
-                                    else
-                                    {
-                                        ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(2);
-                                    }
-                                }
-                                else
-                                {
-                                    ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
-                                    if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
-                                    {
-                                        var picturesOfTasks = new List<string>();
-
-                                        foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
-                                        {
-                                            picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.GHSHazardPictogram.First(x=> x.Key ==hazardPictogram).Value);
-                                        }
-
-                                        var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
-                                        ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = ids;
-                                    }
-                                    else
-                                    {
-                                        ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
-                                    }
-                                }
-
                                 List<Microting.eForm.Dto.KeyValuePair> options =
                                     new List<Microting.eForm.Dto.KeyValuePair>();
                                 int j = 0;
@@ -705,8 +587,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     }
                                 }
 
-                                // currentDeployment.Locations += "|"+location;
-                                
+                                var mainElement = await _sdkCore.ReadeForm(checkListTranslation.CheckListId, language);
+                                mainElement = await ModifyChemicalMainElement(mainElement, chemical, product,
+                                    productName, folderMicrotingId, areaRule, sdkSite, totalLocations.Replace("|", ", "));
+
                                 MultiSelect multiSelect = new MultiSelect(0, false, false,
                                     "Vælg lokationer produktet skal fjernes fra", " ", Constants.FieldColors.Yellow, 0,
                                     false, options);
@@ -764,7 +648,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     RuleId = areaRule.Id
                                 };
 
-                                var newPlanning = await CreateItemPlanningObject((int) checkListTranslation.CheckListId,
+                                var newPlanning = await CreateItemPlanningObject(checkListTranslation.CheckListId,
                                     areaRule.EformName,
                                     areaRule.FolderId, areaRulePlanningModel, areaRule);
                                 newPlanning.RepeatEvery = 0;
@@ -824,23 +708,193 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             x.Text == "25.02 Vis kemisk produkt");
                         if (planningCaseSite.MicrotingSdkeFormId == checkListTranslation.CheckListId)
                         {
-                            if (backendConfigurationPnDbContext.ChemicalProductPropertieSites.Any(x => x.SdkCaseId == dbCase.MicrotingUid))
-                            // foreach (ChemicalProductProperty chemicalProductProperty in backendConfigurationPnDbContext.ChemicalProductProperties.Where(x => x.SdkCaseId == dbCase.Id))
+                            if (fieldValues.Any(x =>
+                                    x.FieldType == Constants.FieldTypes.CheckBox && x.Value == "checked"))
                             {
-                                await _sdkCore.CaseDelete((int) dbCase.MicrotingUid!);
-                                var cpp = await backendConfigurationPnDbContext.ChemicalProductPropertieSites.SingleAsync(x =>
-                                    x.SdkCaseId == dbCase.MicrotingUid);
-                                await cpp.Delete(backendConfigurationPnDbContext);
+                                var indexesToRemove = fieldValues.Single(x => x.FieldId == 0).Value.Split("|").ToList();
+                                var cpp = await backendConfigurationPnDbContext.ChemicalProductProperties
+                                    .SingleAsync(x =>
+                                        x.SdkCaseId == dbCase.MicrotingUid);
+                                var currentLocations = cpp.Locations.Split("|").ToList();
+                                var locationsToBeRemoved = new List<string>();
+
+                                if (currentLocations.Count == indexesToRemove.Count)
+                                {
+                                    cpp.Locations = "";
+                                }
+                                else
+                                {
+
+                                    foreach (var index in indexesToRemove)
+                                    {
+                                        var location = currentLocations[int.Parse(index)];
+                                        locationsToBeRemoved.Add(location);
+                                    }
+
+                                    foreach (var s in locationsToBeRemoved)
+                                    {
+                                        cpp.Locations = cpp.Locations.Replace(s, "").Replace("||", "|");
+                                    }
+                                    
+                                    if (cpp.Locations.StartsWith("|"))
+                                    {
+                                        cpp.Locations = cpp.Locations.Substring(1, cpp.Locations.Length - 1);
+                                    }
+
+                                    if (cpp.Locations.EndsWith("|"))
+                                    {
+                                        cpp.Locations = cpp.Locations.Substring(0, cpp.Locations.Length - 1);
+                                    }
+
+                                }
+
+                                if (cpp.Locations == "")
+                                {
+                                    await _sdkCore.CaseDelete(cpp.SdkCaseId);
+                                    await cpp.Delete(backendConfigurationPnDbContext);
+                                }
+                                else
+                                {
+                                    await _sdkCore.CaseDelete(cpp.SdkCaseId);
+                                    await cpp.Delete(backendConfigurationPnDbContext);
+                                    var chemical = await chemicalDbContext.Chemicals
+                                        .Include(x=> x.ClassificationAndLabeling)
+                                        .Include(x=> x.ClassificationAndLabeling.CLP)
+                                        .Include(x=> x.ClassificationAndLabeling.CLP.HazardStatements)
+                                        .Include(x=> x.ClassificationAndLabeling.DPD)
+                                        // .Include(x=> x.ClassificationAndLabeling.DPD.RiskPhrases)
+                                        .SingleAsync(x => x.Id == cpp.ChemicalId);
+                                    var product = await chemicalDbContext.Products.FirstOrDefaultAsync(x =>
+                                        x.ChemicalId == chemical.Id);
+                                    var productName = chemical.Name;
+                                    if (product != null)
+                                    {
+                                        if (product.Name != "Emballagestørrelse ikke angivet")
+                                        {
+                                            productName += " - " + product.Name;
+                                        }
+                                    }
+                                    var mainElement = await _sdkCore.ReadeForm(checkListTranslation.CheckListId, language);
+                                    mainElement = await ModifyChemicalMainElement(mainElement, chemical, product,
+                                        productName, folderMicrotingId, areaRule, sdkSite, cpp.Locations);
+                                    List<Microting.eForm.Dto.KeyValuePair> options =
+                                        new List<Microting.eForm.Dto.KeyValuePair>();
+                                    int j = 0;
+                                    // var totalLocations = string.Empty;
+                                    foreach (var s in cpp.Locations.Split("|"))
+                                    {
+                                        Microting.eForm.Dto.KeyValuePair keyValuePair =
+                                            new Microting.eForm.Dto.KeyValuePair(j.ToString(), s, false, j.ToString());
+                                        options.Add(keyValuePair);
+                                        // totalLocations = s;
+                                        j++;
+                                    }
+
+                                    MultiSelect multiSelect = new MultiSelect(0, false, false,
+                                        "Vælg lokationer produktet skal fjernes fra", " ", Constants.FieldColors.Yellow, 0,
+                                        false, options);
+                                    ((DataElement)mainElement.ElementList[0]).DataItemList.Add(multiSelect);
+                                    var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
+                                    folder.Id);
+                                var thisDbCase = await sdkDbContext.CheckListSites.AsNoTracking().FirstAsync(x => x.MicrotingUid == caseId);
+
+                                var propertySites = await backendConfigurationPnDbContext.PropertyWorkers
+                                    .Where(x => x.PropertyId == areaRule.PropertyId).ToListAsync();
+
+                                foreach (PropertyWorker propertyWorker in propertySites)
+                                {
+                                    if (propertyWorker.WorkerId != sdkSite.Id)
+                                    {
+                                        var site = await
+                                            sdkDbContext.Sites.SingleOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
+                                        var list = ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1].DataItemList;
+                                        list.RemoveAt(0);
+                                        list.RemoveAt(0);
+                                        ((DataElement) mainElement.ElementList[0]).DataItemGroupList
+                                            .RemoveAt(1);
+                                        var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
+                                            folder.Id);
+                                        // var siteDbCaseId =
+                                        //     await sdkDbContext.Cases.SingleAsync(x => x.MicrotingUid == siteCaseId);
+                                        var chemicalProductPropertySite = new ChemicalProductPropertySite()
+                                        {
+                                            ChemicalId = chemical.Id,
+                                            SdkCaseId = (int)siteCaseId!,
+                                            SdkSiteId = site!.Id,
+                                            PropertyId = areaRule.PropertyId
+                                        };
+                                        await chemicalProductPropertySite.Create(backendConfigurationPnDbContext);
+                                    }
+                                }
+
+                                AreaRulePlanningModel areaRulePlanningModel = new AreaRulePlanningModel
+                                {
+                                    Status = true,
+                                    AssignedSites = new List<AreaRuleAssignedSitesModel>
+                                    {
+                                        new()
+                                        {
+                                            Checked = true,
+                                            SiteId = sdkSite.Id
+                                        }
+                                    },
+                                    SendNotifications = false,
+                                    StartDate = DateTime.UtcNow,
+                                    PropertyId = areaRule.PropertyId,
+                                    ComplianceEnabled = false,
+                                    TypeSpecificFields = null,
+                                    RuleId = areaRule.Id
+                                };
+
+                                var newPlanning = await CreateItemPlanningObject(checkListTranslation.CheckListId,
+                                    areaRule.EformName,
+                                    areaRule.FolderId, areaRulePlanningModel, areaRule);
+                                newPlanning.RepeatEvery = 0;
+                                newPlanning.RepeatType = RepeatType.Day;
+                                newPlanning.StartDate = DateTime.Now.ToUniversalTime();
+                                var now = DateTime.UtcNow;
+                                newPlanning.LastExecutedTime = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0);
+                                await newPlanning.Create(itemsPlanningPnDbContext);
+                                var newPlanningCase = new PlanningCase
+                                {
+                                    PlanningId = newPlanning.Id,
+                                    Status = 66,
+                                    MicrotingSdkeFormId = checkListTranslation.CheckListId
+                                };
+                                await newPlanningCase.Create(itemsPlanningPnDbContext);
+                                var newPlanningCaseSite = new PlanningCaseSite
+                                {
+                                    MicrotingSdkSiteId = sdkSite.Id,
+                                    MicrotingSdkeFormId = checkListTranslation.CheckListId,
+                                    Status = 66,
+                                    PlanningId = newPlanning.Id,
+                                    PlanningCaseId = newPlanningCase.Id,
+                                    MicrotingSdkCaseId = (int) caseId,
+                                    MicrotingCheckListSitId = thisDbCase.Id
+                                };
                                 
-                                // foreach (var chemicalProductPropertySite in backendConfigurationPnDbContext.ChemicalProductPropertieSites
-                                //              .Where(x => x.PropertyId == areaRule.PropertyId)
-                                //              .Where(x => x.ChemicalId == cpp.ChemicalId).ToList())
-                                // {
-                                //     // var theCase = await sdkDbContext.Cases.SingleAsync(x =>
-                                //         // x.Id == chemicalProductPropertySite.SdkCaseId);
-                                //     await _sdkCore.CaseDelete((int) chemicalProductPropertySite.SdkCaseId);
-                                //     await chemicalProductPropertySite.Delete(backendConfigurationPnDbContext);
-                                // }
+                                await newPlanningCaseSite.Create(itemsPlanningPnDbContext);
+                                
+                                var newAreaRulePlanning = CreateAreaRulePlanningObject(areaRulePlanningModel, areaRule,
+                                    newPlanning.Id,
+                                    areaRule.FolderId);
+                                
+                                
+                                await newAreaRulePlanning.Create(backendConfigurationPnDbContext);
+                                ChemicalProductProperty chemicalProductProperty = new ChemicalProductProperty()
+                                {
+                                    ChemicalId = chemical.Id,
+                                    PropertyId = areaRule.PropertyId,
+                                    SdkCaseId = (int) caseId,
+                                    Locations = cpp.Locations
+                                };
+                                
+                                await chemicalProductProperty.Create(backendConfigurationPnDbContext);
+                                    // var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
+                                    //     folder.Id);
+                                    // var thisDbCase = await sdkDbContext.CheckListSites.AsNoTracking().FirstAsync(x => x.MicrotingUid == caseId);
+
+                                }
                             }
                         }
                     }
@@ -1347,7 +1401,135 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
         }
 
-        private async Task DeployEform(
+        private async Task<MainElement> ModifyChemicalMainElement(MainElement mainElement, Chemical chemical,
+            Product product, string productName, string folderMicrotingId, AreaRule areaRule, Site sdkSite, string locations)
+        {
+            mainElement.Repeated = 0;
+            mainElement.CheckListFolderName = folderMicrotingId;
+            mainElement.StartDate = DateTime.Now.ToUniversalTime();
+            mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
+            mainElement.DisplayOrder = 10000000;
+            mainElement.ElementList[0].DoneButtonEnabled = false;
+            mainElement.Label = productName;
+            mainElement.ElementList[0].Label = productName;
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Label = areaRule.Property.Name;
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                .InderValue =
+                $"<strong>Lokationer:</strong><br>{locations}<br>" +
+                $"<br><strong>{productName}</strong><br>" +
+                "<u>Bekæmpelsesmiddelstype</u><br>";
+
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                .InderValue += chemical.PestControlType != null
+                    ? $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.PestControlType.FirstOrDefault(x => x.Key == chemical.PestControlType)!.Value}<br><br>"
+                    : "";
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                .InderValue +=
+                "<u>Productstatus</u><br>" +
+                $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductStatusType.FirstOrDefault(x => x.Key == chemical.Status).Value}<br><br>" +
+                $"<u>Pesticid produktgruppe</u><br>";
+            foreach (var i in chemical.PesticideProductGroup)
+            {
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue +=
+                    $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupPesticide.FirstOrDefault(x => x.Key == i).Value}<br>";
+            }
+
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                .InderValue +=
+                // $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupPesticide.FirstOrDefault(x => x.Key == chemical.PesticideProductGroup)!.Value}<br><br>" +
+                "<br><strong>Generelle oplysninger</strong><br>" +
+                "<u>Godkendelsesdato</u><br>" +
+                $"{chemical.AuthorisationDate:dd-MM-yyyy}<br><br>" +
+                $"<u>Udløbsdato</u><br>" +
+                $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>" +
+                $"<br><strong>Klassificering og mærkening</strong><br>";
+
+            List<string> HStatements = new List<string>();
+            foreach (var hazardStatement in chemical.ClassificationAndLabeling.CLP.HazardStatements)
+            {
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue +=
+                    $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.HazardStatement.First(x => x.Key == hazardStatement.Statement).Value}<br><br>";
+                Regex regex = new Regex(@"\((H\d\d\d)\)");
+                var res = regex.Match(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
+                    .HazardStatement.First(x => x.Key == hazardStatement.Statement).Value);
+                HStatements.Add(res.Value);
+                // $"{chemical.Use}<br>";
+            }
+
+            // "{chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
+            ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[0])
+                .DataItemList[0].Label = " ";
+            // foreach (var i in chemical.PesticidePossibleUse)
+            // {
+            ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[0])
+                .DataItemList[0].Description
+                .InderValue =
+                // $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.PossibleUsePesticide.First(x=> x.Key == i).Value}<br>";
+                $"{chemical.Use}<br>";
+            // }
+            if (product != null)
+            {
+                using var webClient = new HttpClient();
+
+                var streamFile =
+                    await webClient.GetStreamAsync(
+                        $"https://chemicalbase.microting.com/get-pdf-file?fileName={product.FileName}");
+
+                await using var stream = new FileStream(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
+                    FileMode.Create);
+                await streamFile.CopyToAsync(stream);
+
+                var pdfId = await _sdkCore.PdfUpload(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
+                // fileStream.Close();
+
+
+                ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfId;
+                if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
+                {
+                    var picturesOfTasks = new List<string>();
+
+                    foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
+                    {
+                        picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
+                            .GHSHazardPictogram.First(x => x.Key == hazardPictogram).Value);
+                    }
+
+                    var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
+                    ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[2]).Value = ids;
+                }
+                else
+                {
+                    ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(2);
+                }
+            }
+            else
+            {
+                ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
+                if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
+                {
+                    var picturesOfTasks = new List<string>();
+
+                    foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
+                    {
+                        picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
+                            .GHSHazardPictogram.First(x => x.Key == hazardPictogram).Value);
+                    }
+
+                    var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
+                    ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = ids;
+                }
+                else
+                {
+                    ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
+                }
+            }
+
+            return mainElement;
+        }
+
+        private async Task DeployWorkOrderEform(
             List<PropertyWorker> propertyWorkers,
             int eformId,
             int folderId,
