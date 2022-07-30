@@ -1473,15 +1473,20 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             {
                 using var webClient = new HttpClient();
 
-                var streamFile =
-                    await webClient.GetStreamAsync(
-                        $"https://chemicalbase.microting.com/get-pdf-file?fileName={product.FileName}");
-
-                await using var stream = new FileStream(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
-                    FileMode.Create);
-                await streamFile.CopyToAsync(stream);
+                await using (var s = await webClient.GetStreamAsync($"https://chemicalbase.microting.com/api/chemicals-pn/get-pdf-file?fileName={product.FileName}"))
+                {
+                    File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
+                    await using (var fs = new FileStream(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"), FileMode.CreateNew))
+                    {
+                        await s.CopyToAsync(fs);
+                    }
+                }
 
                 var pdfId = await _sdkCore.PdfUpload(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
+
+                await _sdkCore.PutFileToStorageSystem(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
+                    $"{product.FileName}.pdf");
+                File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
                 // fileStream.Close();
 
 
