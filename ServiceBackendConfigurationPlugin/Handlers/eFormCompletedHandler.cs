@@ -473,7 +473,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     var fieldValues = await _sdkCore.Advanced_FieldValueReadList(caseIds, language);
                     var chemicalDbContext = _chemicalDbContextHelper.GetDbContext();
                     var folder = await sdkDbContext.Folders.SingleAsync(x => x.Id == areaRule.FolderId);
-                    var folderMicrotingId = folder.MicrotingUid.ToString();
+                    var folderTranslation = await sdkDbContext.Folders.Join(sdkDbContext.FolderTranslations,
+                        f => f.Id, translation => translation.FolderId, (f, translation) => new
+                        {
+                            f.Id,
+                            f.ParentId,
+                            translation.Name,
+                            f.MicrotingUid
+                        }).FirstAsync(x => x.Name == "25.02 Mine kemiprodukter" && x.ParentId == folder.Id);
+                    var folderMicrotingId = folderTranslation.MicrotingUid.ToString();
                     if (planningCaseSite.MicrotingSdkeFormId == checkListTranslation.CheckListId)
                     {
                         List<string> entityIds = fieldValues.Where(x=> x.Value != "null" && x.Value != null && x.FieldType == Constants.FieldTypes.EntitySearch).Select(x => x.Value).ToList();
@@ -596,6 +604,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     false, options);
                                 ((DataElement)mainElement.ElementList[0]).DataItemList.Add(multiSelect);
 
+                                if (string.IsNullOrEmpty(chemical.Use))
+                                {
+                                    ((DataElement) mainElement.ElementList[0]).DataItemGroupList
+                                        .RemoveAt(0);
+                                }
+
                                 var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
                                     folder.Id);
                                 var thisDbCase = await sdkDbContext.CheckListSites.AsNoTracking().FirstAsync(x => x.MicrotingUid == caseId);
@@ -603,6 +617,18 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 var propertySites = await backendConfigurationPnDbContext.PropertyWorkers
                                     .Where(x => x.PropertyId == areaRule.PropertyId).ToListAsync();
 
+                                // This is repeated since now we are deploying the eForm to consumers and they should not see the remove product part.
+                                if (string.IsNullOrEmpty(chemical.Use))
+                                {
+                                    ((DataElement) mainElement.ElementList[0]).DataItemGroupList
+                                        .RemoveAt(0);
+                                }
+                                else
+                                {
+                                    ((DataElement) mainElement.ElementList[0]).DataItemGroupList
+                                        .RemoveAt(1);
+                                }
+                                
                                 foreach (PropertyWorker propertyWorker in propertySites)
                                 {
                                     if (propertyWorker.WorkerId != sdkSite.Id)
@@ -612,8 +638,6 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         var list = ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1].DataItemList;
                                         list.RemoveAt(0);
                                         list.RemoveAt(0);
-                                        ((DataElement) mainElement.ElementList[0]).DataItemGroupList
-                                            .RemoveAt(1);
                                         var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
                                             folder.Id);
                                         // var siteDbCaseId =
@@ -1412,6 +1436,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             mainElement.ElementList[0].DoneButtonEnabled = false;
             mainElement.Label = productName;
             mainElement.ElementList[0].Label = productName;
+            mainElement.ElementList.First().Description.InderValue = $"{areaRule.Property.Name}<br>Udløbsdato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br>Lokationer: {locations}";
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Label = areaRule.Property.Name;
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue =
@@ -1491,44 +1516,44 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
 
                 ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfId;
-                if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
-                {
-                    var picturesOfTasks = new List<string>();
-
-                    foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
-                    {
-                        picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
-                            .GHSHazardPictogram.First(x => x.Key == hazardPictogram).Value);
-                    }
-
-                    var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
-                    ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[2]).Value = ids;
-                }
-                else
-                {
+                // if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
+                // {
+                //     var picturesOfTasks = new List<string>();
+                //
+                //     foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
+                //     {
+                //         picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
+                //             .GHSHazardPictogram.First(x => x.Key == hazardPictogram).Value);
+                //     }
+                //
+                //     var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
+                //     ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[2]).Value = ids;
+                // }
+                // else
+                // {
                     ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(2);
-                }
+                // }
             }
             else
             {
                 ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
-                if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
-                {
-                    var picturesOfTasks = new List<string>();
-
-                    foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
-                    {
-                        picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
-                            .GHSHazardPictogram.First(x => x.Key == hazardPictogram).Value);
-                    }
-
-                    var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
-                    ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = ids;
-                }
-                else
-                {
+                // if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
+                // {
+                //     var picturesOfTasks = new List<string>();
+                //
+                //     foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
+                //     {
+                //         picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
+                //             .GHSHazardPictogram.First(x => x.Key == hazardPictogram).Value);
+                //     }
+                //
+                //     var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
+                //     ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = ids;
+                // }
+                // else
+                // {
                     ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
-                }
+                // }
             }
 
             return mainElement;
