@@ -600,9 +600,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     productName, folderMicrotingId, areaRule, sdkSite, totalLocations.Replace("|", ", "));
 
                                 MultiSelect multiSelect = new MultiSelect(0, false, false,
-                                    "Vælg lokationer produktet skal fjernes fra", " ", Constants.FieldColors.Yellow, 0,
+                                    "Vælg rum som kemiproduktet skal fjernes fra", " ", Constants.FieldColors.Red, -1,
                                     false, options);
-                                ((DataElement)mainElement.ElementList[0]).DataItemList.Add(multiSelect);
+                                ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]).DataItemList.Add(multiSelect);
 
                                 if (string.IsNullOrEmpty(chemical.Use))
                                 {
@@ -804,20 +804,25 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     List<Microting.eForm.Dto.KeyValuePair> options =
                                         new List<Microting.eForm.Dto.KeyValuePair>();
                                     int j = 0;
-                                    // var totalLocations = string.Empty;
                                     foreach (var s in cpp.Locations.Split("|"))
                                     {
                                         Microting.eForm.Dto.KeyValuePair keyValuePair =
                                             new Microting.eForm.Dto.KeyValuePair(j.ToString(), s, false, j.ToString());
                                         options.Add(keyValuePair);
-                                        // totalLocations = s;
                                         j++;
                                     }
 
                                     MultiSelect multiSelect = new MultiSelect(0, false, false,
-                                        "Vælg lokationer produktet skal fjernes fra", " ", Constants.FieldColors.Yellow, 0,
+                                        "Vælg rum som kemiproduktet skal fjernes fra", " ", Constants.FieldColors.Yellow, -1,
                                         false, options);
-                                    ((DataElement)mainElement.ElementList[0]).DataItemList.Add(multiSelect);
+                                    ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]).DataItemList.Add(multiSelect);
+
+                                    if (string.IsNullOrEmpty(chemical.Use))
+                                    {
+                                        ((DataElement) mainElement.ElementList[0]).DataItemGroupList
+                                            .RemoveAt(0);
+                                    }
+
                                     var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
                                     folder.Id);
                                 var thisDbCase = await sdkDbContext.CheckListSites.AsNoTracking().FirstAsync(x => x.MicrotingUid == caseId);
@@ -1436,21 +1441,41 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             mainElement.ElementList[0].DoneButtonEnabled = false;
             mainElement.Label = productName;
             mainElement.ElementList[0].Label = productName;
-            mainElement.ElementList.First().Description.InderValue = $"{areaRule.Property.Name}<br>Udløbsdato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br>Lokationer: {locations}";
-            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Label = areaRule.Property.Name;
+            mainElement.ElementList.First().Description.InderValue = $"<br><strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}</strong>";
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Label = " ";
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue =
-                $"<strong>Lokationer:</strong><br>{locations}<br>" +
-                $"<br><strong>{productName}</strong><br>" +
-                "<u>Bekæmpelsesmiddelstype</u><br>";
+                $"<strong>Udløbsdato<br>" +
+                $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}</strong><br><br>" +
+                $"<strong>Placering:</strong><br>" +
+                $"Ejendom: {areaRule.Property.Name}<br>" +
+                $"Rum: {locations}<br><br>" +
+                $"<br><strong>Klassificering og mærkening</strong><br>";
+                List<string> HStatements = new List<string>();
+                foreach (var hazardStatement in chemical.ClassificationAndLabeling.CLP.HazardStatements)
+                {
+                    ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                        .InderValue +=
+                        $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.HazardStatement.First(x => x.Key == hazardStatement.Statement).Value}<br><br>";
+                    Regex regex = new Regex(@"\((H\d\d\d)\)");
+                    var res = regex.Match(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
+                        .HazardStatement.First(x => x.Key == hazardStatement.Statement).Value);
+                    HStatements.Add(res.Value);
+                }
 
-            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                .InderValue += chemical.PestControlType != null
-                    ? $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.PestControlType.FirstOrDefault(x => x.Key == chemical.PestControlType)!.Value}<br><br>"
-                    : "";
-            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                .InderValue +=
-                "<u>Productstatus</u><br>" +
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue +=
+                    "<br><strong>Generelle oplysninger</strong><br>" +
+                    "<u>Bekæmpelsesmiddelstype</u><br>";
+
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue += chemical.PestControlType != null
+                        ? $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.PestControlType.FirstOrDefault(x => x.Key == chemical.PestControlType)!.Value}<br><br>"
+                        : "";
+
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue +=
+                "<br><u>Productstatus</u><br>" +
                 $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductStatusType.FirstOrDefault(x => x.Key == chemical.Status).Value}<br><br>" +
                 $"<u>Pesticid produktgruppe</u><br>";
             foreach (var i in chemical.PesticideProductGroup)
@@ -1462,38 +1487,31 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue +=
-                // $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupPesticide.FirstOrDefault(x => x.Key == chemical.PesticideProductGroup)!.Value}<br><br>" +
-                "<br><strong>Generelle oplysninger</strong><br>" +
-                "<u>Godkendelsesdato</u><br>" +
-                $"{chemical.AuthorisationDate:dd-MM-yyyy}<br><br>" +
-                $"<u>Udløbsdato</u><br>" +
-                $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>" +
-                $"<br><strong>Klassificering og mærkening</strong><br>";
+                "<br><u>Godkendelsesdato</u><br>" +
+                $"{chemical.AuthorisationDate:dd-MM-yyyy}<br><br>";
 
-            List<string> HStatements = new List<string>();
-            foreach (var hazardStatement in chemical.ClassificationAndLabeling.CLP.HazardStatements)
-            {
-                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                    .InderValue +=
-                    $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.HazardStatement.First(x => x.Key == hazardStatement.Statement).Value}<br><br>";
-                Regex regex = new Regex(@"\((H\d\d\d)\)");
-                var res = regex.Match(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
-                    .HazardStatement.First(x => x.Key == hazardStatement.Statement).Value);
-                HStatements.Add(res.Value);
-                // $"{chemical.Use}<br>";
-            }
-
-            // "{chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
             ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[0])
                 .DataItemList[0].Label = " ";
-            // foreach (var i in chemical.PesticidePossibleUse)
-            // {
             ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[0])
                 .DataItemList[0].Description
                 .InderValue =
-                // $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.PossibleUsePesticide.First(x=> x.Key == i).Value}<br>";
                 $"{chemical.Use}<br>";
-            // }
+
+            ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1])
+                .DataItemList[0].Label = "Kemiprodukt fjernet";
+            ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1].Label = "Hvordan fjerner jeg et kemiprodukt?";
+            string description = $"Produkt: {productName}<br>" +
+                                 $"Ejendom: {areaRule.Property.Name}<br>" +
+                                 $"Rum: {locations}<br><br>" +
+                                 "<strong>Gør følgende for at fjerne et kemiprodukt:</strong><br>" +
+                                 "1. Vælg hvilke rum kemiproduktet skal fjernes fra og tryk Gem.<br>" +
+                                 "2. Sæt flueben i <strong>Kemiprodukt fjernet</strong><br>" +
+                                 "3. Tryk på Bekræft<br><br>" +
+                                 "Nu fjernes kemiproduktet fra dine valgte rum.";
+            None none = new None(1, false, false, " ", description, Constants.FieldColors.Red, -2, false);
+            ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]).DataItemList.Add(none);
+            ((SaveButton) ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]).DataItemList[1]).Label =
+                "Bekræft kemiprodukt fjernet";
             if (product != null)
             {
                 using var webClient = new HttpClient();
@@ -1512,48 +1530,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 await _sdkCore.PutFileToStorageSystem(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
                     $"{product.FileName}.pdf");
                 File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
-                // fileStream.Close();
-
 
                 ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfId;
-                // if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
-                // {
-                //     var picturesOfTasks = new List<string>();
-                //
-                //     foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
-                //     {
-                //         picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
-                //             .GHSHazardPictogram.First(x => x.Key == hazardPictogram).Value);
-                //     }
-                //
-                //     var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
-                //     ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[2]).Value = ids;
-                // }
-                // else
-                // {
-                    ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(2);
-                // }
+                ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(2);
             }
             else
             {
                 ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
-                // if (chemical.ClassificationAndLabeling.CLP.HazardPictograms!.Count > 0)
-                // {
-                //     var picturesOfTasks = new List<string>();
-                //
-                //     foreach (int hazardPictogram in chemical.ClassificationAndLabeling.CLP.HazardPictograms!)
-                //     {
-                //         picturesOfTasks.Add(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
-                //             .GHSHazardPictogram.First(x => x.Key == hazardPictogram).Value);
-                //     }
-                //
-                //     var ids = await GeneratePdf(picturesOfTasks, sdkSite.Id);
-                //     ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = ids;
-                // }
-                // else
-                // {
-                    ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
-                // }
+                ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
             }
 
             return mainElement;
