@@ -466,7 +466,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             .SingleAsync();
                     var planningSites = await itemsPlanningPnDbContext.PlanningSites
                         .Where(x => x.PlanningId == planning.Id).ToListAsync();
-                        
+
                     var sdkSite = await sdkDbContext.Sites.SingleAsync(x => x.Id == planningSites.First().SiteId);
                     var language = await sdkDbContext.Languages.SingleAsync(x => x.Id == sdkSite.LanguageId);
                     var caseIds = new List<int>() {dbCase.Id};
@@ -488,11 +488,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         var location =
                             fieldValues.FirstOrDefault(x => x.ValueReadable != "null" && x.ValueReadable != null && x.FieldType == Constants.FieldTypes.EntitySelect);
                             // .Select(x => x.ValueReadable).ToList();
-                        
-                        
+
+
                         // List<string> barcodes = new List<string>();
                         // List<string> regNos = new List<string>();
-                        
+
                         List<Chemical> chemicals = new List<Chemical>();
 
                         checkListTranslation = await sdkDbContext.CheckListTranslations.FirstAsync(x =>
@@ -532,15 +532,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 // chemicals.Add(chemical);
                             }
                             if (!backendConfigurationPnDbContext.ChemicalProductProperties.Any(x =>
-                            x.ChemicalId == chemical.Id 
-                            && x.WorkflowState != Constants.WorkflowStates.Removed 
-                            && x.Locations.Contains(location.ValueReadable) 
+                            x.ChemicalId == chemical.Id
+                            && x.WorkflowState != Constants.WorkflowStates.Removed
+                            && x.Locations.Contains(location.ValueReadable)
                             && x.PropertyId == areaRule.PropertyId))
                             {
                                 var currentDeployment = await backendConfigurationPnDbContext.ChemicalProductProperties
                                     .FirstOrDefaultAsync(x =>
                                         x.ChemicalId == chemical.Id &&
-                                        x.WorkflowState != Constants.WorkflowStates.Removed 
+                                        x.WorkflowState != Constants.WorkflowStates.Removed
                                         && x.PropertyId == areaRule.PropertyId);
                                 if (currentDeployment != null)
                                 {
@@ -548,7 +548,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     await _sdkCore.CaseDelete(currentDeployment.SdkCaseId);
                                     await currentDeployment!.Delete(backendConfigurationPnDbContext);
                                 }
-                                
+
                                 var chemicalProductPropertySites =
                                     await backendConfigurationPnDbContext.ChemicalProductPropertieSites
                                         .Where(x => x.PropertyId == areaRule.PropertyId)
@@ -560,8 +560,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     await _sdkCore.CaseDelete(chemicalProductPropertySite.SdkCaseId);
                                     await chemicalProductPropertySite.Delete(backendConfigurationPnDbContext);
                                 }
-                                
-                                
+
+
                                 var productName = chemical.Name;
                                 if (product != null)
                                 {
@@ -570,7 +570,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         productName += " - " + product.Name;
                                     }
                                 }
-                                
+
                                 List<Microting.eForm.Dto.KeyValuePair> options =
                                     new List<Microting.eForm.Dto.KeyValuePair>();
                                 int j = 0;
@@ -628,7 +628,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     ((DataElement) mainElement.ElementList[0]).DataItemGroupList
                                         .RemoveAt(1);
                                 }
-                                
+
                                 foreach (PropertyWorker propertyWorker in propertySites)
                                 {
                                     if (propertyWorker.WorkerId != sdkSite.Id)
@@ -698,14 +698,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     MicrotingSdkCaseId = (int) caseId,
                                     MicrotingCheckListSitId = thisDbCase.Id
                                 };
-                                
+
                                 await newPlanningCaseSite.Create(itemsPlanningPnDbContext);
-                                
+
                                 var newAreaRulePlanning = CreateAreaRulePlanningObject(areaRulePlanningModel, areaRule,
                                     newPlanning.Id,
                                     areaRule.FolderId);
-                                
-                                
+
+
                                 await newAreaRulePlanning.Create(backendConfigurationPnDbContext);
                                 ChemicalProductProperty chemicalProductProperty = new ChemicalProductProperty()
                                 {
@@ -714,16 +714,16 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     SdkCaseId = (int) caseId,
                                     Locations = totalLocations
                                 };
-                                
+
                                 await chemicalProductProperty.Create(backendConfigurationPnDbContext);
                             }
                         }
 
-                        
+
 
                         // foreach (Chemical chemical in chemicals)
                         // {
-                            
+
                         // }
                     }
                     else
@@ -759,7 +759,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     {
                                         cpp.Locations = cpp.Locations.Replace(s, "").Replace("||", "|");
                                     }
-                                    
+
                                     if (cpp.Locations.StartsWith("|"))
                                     {
                                         cpp.Locations = cpp.Locations.Substring(1, cpp.Locations.Length - 1);
@@ -901,14 +901,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     MicrotingSdkCaseId = (int) caseId,
                                     MicrotingCheckListSitId = thisDbCase.Id
                                 };
-                                
+
                                 await newPlanningCaseSite.Create(itemsPlanningPnDbContext);
-                                
+
                                 var newAreaRulePlanning = CreateAreaRulePlanningObject(areaRulePlanningModel, areaRule,
                                     newPlanning.Id,
                                     areaRule.FolderId);
-                                
-                                
+
+
                                 await newAreaRulePlanning.Create(backendConfigurationPnDbContext);
                                 ChemicalProductProperty chemicalProductProperty = new ChemicalProductProperty()
                                 {
@@ -917,7 +917,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     SdkCaseId = (int) caseId,
                                     Locations = cpp.Locations
                                 };
-                                
+
                                 await chemicalProductProperty.Create(backendConfigurationPnDbContext);
                                     // var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
                                     //     folder.Id);
@@ -1071,7 +1071,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                                 var planningSites = await itemsPlanningPnDbContext.PlanningSites
                                     .Where(x => x.PlanningId == planning.Id).ToListAsync();
-                                
+
                                 var lookupName = areaRule.AreaRuleTranslations.First().Name;
 
                                 var subfolder = await sdkDbContext.Folders
@@ -1086,7 +1086,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     .Where(x => x.FolderTranslations.Any(y => y.Name == innerLookupName))
                                     .FirstAsync();
 
-                                
+
                                 Regex regex = new Regex(@"(\d\.\s)");
                                 TimeZoneInfo timeZoneInfo;
                                 try
@@ -1118,12 +1118,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     var localTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
                                     mainElement.ElementList[0].Description = new CDataValue()
                                     {
-                                        InderValue = 
+                                        InderValue =
                                             $"Sidst opdateret: {localTime:H:mm}"
                                     };
                                     ((DataElement) mainElement.ElementList[0]).DataItemList[0].Color =
                                         Constants.FieldColors.Yellow;
-                                    
+
                                     // ((DataElement) mainElement.ElementList[0]).DataItemList[0].Label = $"{poolDayFolder.FolderTranslations.Where(x => x.LanguageId == language.Id).Select(x => x.Name).First()} - {areaRule.AreaRuleTranslations.First().Name}";
                                     // ((DataElement) mainElement.ElementList[0]).DataItemList[0].Label =
                                     //     regex.Replace(((DataElement) mainElement.ElementList[0]).DataItemList[0].Label,
@@ -1141,7 +1141,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                                     foreach (var hourResult in allPoolHourResults)
                                     {
-                                        
+
                                         localTime = TimeZoneInfo.ConvertTimeFromUtc(hourResult.DoneAt, timeZoneInfo);
                                         var selectedPoolHour =
                                             await backendConfigurationPnDbContext.PoolHours.SingleAsync(x =>
@@ -1163,11 +1163,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         header.Append($"Målt temp. i løbet af dagen: {hourResult.MeasuredTempDuringTheDay}<br>");
                                         header.Append($"Kommentar: {hourResult.Comment}<br><br>");
                                     }
-                                        
+
                                         // header = ;
                                     ((DataElement) mainElement.ElementList[0]).DataItemList[0].Description = new CDataValue
                                     {
-                                        InderValue = 
+                                        InderValue =
                                             header.ToString()
                                     };
 
@@ -1181,7 +1181,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                             SiteId = planningSite.SiteId,
                                             SdkCaseId = (int)caseId
                                         };
-                                        
+
                                         await poolHistorySite.Create(backendConfigurationPnDbContext);
                                     }
                                     else
@@ -1441,10 +1441,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             mainElement.ElementList[0].DoneButtonEnabled = false;
             mainElement.Label = productName;
             mainElement.ElementList[0].Label = productName;
-            mainElement.ElementList.First().Description.InderValue = $"<br><strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}</strong>";
+            mainElement.ElementList.First().Description.InderValue =
+                $"Reg nr.: {chemical.RegistrationNo}<br><br>"+
+                $"<strong>Udløbsdato<br>"+
+                $"<br><strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}</strong>";
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Label = " ";
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue =
+                $"<strong>Produkt</strong><br>{productName}<br>Reg nr.: {chemical.RegistrationNo}<br><br>"+
                 $"<strong>Udløbsdato<br>" +
                 $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}</strong><br><br>" +
                 $"<strong>Placering:</strong><br>" +
@@ -1501,6 +1505,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 .DataItemList[0].Label = "Kemiprodukt fjernet";
             ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1].Label = "Hvordan fjerner jeg et kemiprodukt?";
             string description = $"Produkt: {productName}<br>" +
+                                 $"Reg nr.: {chemical.RegistrationNo}<br>" +
                                  $"Ejendom: {areaRule.Property.Name}<br>" +
                                  $"Rum: {locations}<br><br>" +
                                  "<strong>Gør følgende for at fjerne et kemiprodukt:</strong><br>" +
@@ -1718,7 +1723,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 await stream.DisposeAsync();
             }
-            
+
 
             return itemsHtml;
         }
@@ -1806,7 +1811,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
             return result;
         }
-        
+
         private async Task<Planning> CreateItemPlanningObject(int eformId, string eformName, int folderId,
             AreaRulePlanningModel areaRulePlanningModel, AreaRule areaRule)
         {
@@ -1843,7 +1848,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 }
             };
         }
-        
+
                 private AreaRulePlanning CreateAreaRulePlanningObject(AreaRulePlanningModel areaRulePlanningModel,
             AreaRule areaRule, int planningId, int folderId)
         {
@@ -1895,6 +1900,6 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             return areaRulePlanning;
         }
-        
+
     }
 }
