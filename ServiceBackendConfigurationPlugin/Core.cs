@@ -167,7 +167,7 @@ namespace ServiceBackendConfigurationPlugin
                         itemContextFactory.CreateDbContext(new[] { itemsPlanningConnectionString });
                     _itemsPlanningDbContextHelper = new ItemsPlanningDbContextHelper(itemsPlanningConnectionString);
 
-                    
+
                     pluginDbName = $"Database={dbPrefix}_chemical-base-plugin;";
                     var chemicalConnectionString = sdkConnectionString.Replace(dbNameSection, pluginDbName);
                     var chemicalContextFactory = new ChemicalsContextFactory();
