@@ -1515,10 +1515,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             mainElement.ElementList[0].DoneButtonEnabled = false;
             mainElement.Label = productName;
             mainElement.ElementList[0].Label = productName;
-            mainElement.ElementList.First().Description.InderValue = $"<br><strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}</strong>";
+            mainElement.ElementList.First().Description.InderValue =
+                $"Reg nr.: {chemical.RegistrationNo}<br><br>"+
+                $"<strong>Udløbsdato<br>"+
+                $"<br><strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}</strong>";
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Label = " ";
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue =
+                $"<strong>Produkt</strong><br>{productName}<br>Reg nr.: {chemical.RegistrationNo}<br><br>"+
                 $"<strong>Udløbsdato<br>" +
                 $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}</strong><br><br>" +
                 $"<strong>Placering:</strong><br>" +
@@ -1575,6 +1579,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 .DataItemList[0].Label = "Kemiprodukt fjernet";
             ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1].Label = "Hvordan fjerner jeg et kemiprodukt?";
             string description = $"Produkt: {productName}<br>" +
+                                 $"Reg nr.: {chemical.RegistrationNo}<br>" +
                                  $"Ejendom: {areaRule.Property.Name}<br>" +
                                  $"Rum: {locations}<br><br>" +
                                  "<strong>Gør følgende for at fjerne et kemiprodukt:</strong><br>" +
