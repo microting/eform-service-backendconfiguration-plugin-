@@ -27,6 +27,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -38,6 +40,7 @@ using Microting.eForm.Infrastructure;
 using Microting.eForm.Infrastructure.Constants;
 using Microting.eForm.Infrastructure.Data.Entities;
 using Microting.eForm.Infrastructure.Models;
+using Microting.EformAngularFrontendBase.Infrastructure.Data;
 using Microting.eFormApi.BasePn.Infrastructure.Helpers;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
@@ -46,6 +49,8 @@ using Microting.ItemsPlanningBase.Infrastructure.Data;
 using Microting.ItemsPlanningBase.Infrastructure.Data.Entities;
 using Microting.ItemsPlanningBase.Infrastructure.Enums;
 using Rebus.Bus;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 using ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules;
 using PlanningSite = Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities.PlanningSite;
@@ -59,11 +64,13 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
         private readonly eFormCore.Core _core;
         private readonly MicrotingDbContext _sdkDbContext;
         private readonly ItemsPlanningPnDbContext _itemsPlanningPnDbContext;
+        private readonly BaseDbContext _baseDbContext;
 
         public SearchListJob(
-            BackendConfigurationDbContextHelper dbContextHelper, ChemicalDbContextHelper chemicalDbContextHelper, eFormCore.Core core, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper)
+            BackendConfigurationDbContextHelper dbContextHelper, ChemicalDbContextHelper chemicalDbContextHelper, eFormCore.Core core, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper, BaseDbContext baseDbContext)
         {
             _core = core;
+            _baseDbContext = baseDbContext;
             _chemicalsDbContext = chemicalDbContextHelper.GetDbContext();
             _backendConfigurationPnDbContext = dbContextHelper.GetDbContext();
             _sdkDbContext = core.DbContextHelper.GetDbContext();
@@ -91,6 +98,8 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
             //         $"SearchListJob.Task: ExecutePush The current hour is smaller than the start time of 3, so ending processing");
             //     return;
             // }
+            var sendGridKey =
+                _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
             if (DateTime.UtcNow.Hour is > 19 and < 22)
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
@@ -105,6 +114,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
                 };
                 List<Chemical> chemicals = JsonSerializer.Deserialize<List<Chemical>>(result, options);
+
                 if (chemicals != null)
                     foreach (Chemical chemical in chemicals)
                     {
@@ -233,7 +243,50 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 // Chemical should be moved
                                 if (moveChemical)
                                 {
-                                    Console.WriteLine($"We should move chemical {chemical.Name}");
+                                    var sendGridClient = new SendGridClient(sendGridKey.Value);
+                                    var fromEmailAddress = new EmailAddress("no-reply@microting.com", $"Kemidatabase : {property.Name}");
+                                    var siteWorker =
+                                        await _sdkDbContext.SiteWorkers.Include(x => x.Worker).FirstAsync(x =>
+                                            x.SiteId == propertyChemical.SdkSiteId);
+                                    var toEmailAddress = await _baseDbContext.Users.Where(x => x.FirstName == siteWorker.Worker.FirstName && x.LastName == siteWorker.Worker.LastName).Select(x => new EmailAddress(x.Email, $"{x.FirstName} {x.LastName}")).FirstOrDefaultAsync();
+                                    if (toEmailAddress != null)
+                                    {
+                                        var assembly = Assembly.GetExecutingAssembly();
+                                        var assemblyName = assembly.GetName().Name;
+
+                                        var stream = assembly.GetManifestResourceStream($"{assemblyName}.Resources.Email.html");
+                                        string html;
+                                        if (stream == null)
+                                        {
+                                            throw new InvalidOperationException("Resource not found");
+                                        }
+                                        using (var reader = new StreamReader(stream, Encoding.UTF8))
+                                        {
+                                            html = await reader.ReadToEndAsync();
+                                        }
+                                        Console.WriteLine($"We should move chemical {chemical.Name}");
+                                        var newHtml = html;
+                                        newHtml = newHtml.Replace("chemical", chemical.Name);
+                                        newHtml = newHtml.Replace("property", property.Name);
+                                        newHtml = newHtml.Replace("locations", propertyChemical.Locations.Replace("|", ", "));
+                                        newHtml = newHtml.Replace("regno", chemical.RegistrationNo);
+                                        if (chemical.UseAndPossesionDeadline != null)
+                                        {
+                                            var date = (DateTime)chemical.UseAndPossesionDeadline;
+                                            newHtml = newHtml.Replace("expiredate", date.ToString("dd.MM.yyyy"));
+                                        }
+                                        else
+                                        {
+                                            var date = (DateTime)chemical.AuthorisationExpirationDate;
+                                            newHtml = newHtml.Replace("expiredate", date.ToString("dd.MM.yyyy"));
+                                        }
+                                        var msg = MailHelper.CreateSingleEmail(fromEmailAddress, toEmailAddress, $"Kemiprodukt tilføjet: {chemical.Name}", null, newHtml);
+                                        var responseMessage = await sendGridClient.SendEmailAsync(msg);
+                                        if ((int)responseMessage.StatusCode < 200 || (int)responseMessage.StatusCode >= 300)
+                                        {
+                                            throw new Exception($"Status: {responseMessage.StatusCode}");
+                                        }
+                                    }
                                     var planningCaseSite =
                                         await _itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking()
                                             .SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == propertyChemical.SdkCaseId);

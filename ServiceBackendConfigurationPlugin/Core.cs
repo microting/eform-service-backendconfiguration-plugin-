@@ -25,6 +25,8 @@ SOFTWARE.
 
 using ChemicalsBase.Infrastructure;
 using ChemicalsBase.Infrastructure.Data.Factories;
+using Microting.EformAngularFrontendBase.Infrastructure.Data;
+using Microting.EformAngularFrontendBase.Infrastructure.Data.Factories;
 using ServiceBackendConfigurationPlugin.Scheduler.Jobs;
 
 namespace ServiceBackendConfigurationPlugin
@@ -69,6 +71,7 @@ namespace ServiceBackendConfigurationPlugin
         private ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
         private ChemicalsDbContext _chemicalsDbContext;
         private ChemicalDbContextHelper _chemicalDbContextHelper;
+        private BaseDbContext _baseDbContext;
 
         public void CoreEventException(object sender, EventArgs args)
         {
@@ -169,8 +172,12 @@ namespace ServiceBackendConfigurationPlugin
 
 
                     pluginDbName = $"Database={dbPrefix}_chemical-base-plugin;";
+                    var angularDbName = $"Database={dbPrefix}_angular;";
                     var chemicalConnectionString = sdkConnectionString.Replace(dbNameSection, pluginDbName);
                     var chemicalContextFactory = new ChemicalsContextFactory();
+                    var angularConnectionString = sdkConnectionString.Replace(dbNameSection, angularDbName);
+                    _baseDbContext = new BaseDbContextFactory().CreateDbContext(new []{angularConnectionString});
+
 
                     _chemicalsDbContext =
                         chemicalContextFactory.CreateDbContext(new[] { chemicalConnectionString });
@@ -200,6 +207,7 @@ namespace ServiceBackendConfigurationPlugin
                     _container.Register(Component.For<ChemicalDbContextHelper>()
                         .Instance(_chemicalDbContextHelper));
                     _container.Register(Component.For<eFormCore.Core>().Instance(_sdkCore));
+                    _container.Register(Component.For<BaseDbContext>().Instance(_baseDbContext));
                     _container.Install(
                         new RebusHandlerInstaller()
                         , new RebusInstaller(connectionString, _maxParallelism, _numberOfWorkers, "admin", "password", rabbitmqHost)
