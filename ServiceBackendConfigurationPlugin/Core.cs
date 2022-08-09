@@ -172,7 +172,7 @@ namespace ServiceBackendConfigurationPlugin
 
 
                     pluginDbName = $"Database={dbPrefix}_chemical-base-plugin;";
-                    var angularDbName = $"Database={dbPrefix}_angular;";
+                    var angularDbName = $"Database={dbPrefix}_Angular;";
                     var chemicalConnectionString = sdkConnectionString.Replace(dbNameSection, pluginDbName);
                     var chemicalContextFactory = new ChemicalsContextFactory();
                     var angularConnectionString = sdkConnectionString.Replace(dbNameSection, angularDbName);
