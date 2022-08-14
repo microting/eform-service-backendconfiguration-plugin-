@@ -11,13 +11,13 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ChemicalsBase" Version="1.0.2" />
+    <PackageReference Include="ChemicalsBase" Version="1.0.7" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="2.17.1" />
     <PackageReference Include="Magick.NET-Q16-x64" Version="12.0.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="6.0.0" />
     <PackageReference Include="Microting.eForm" Version="5.5.49" />
-    <PackageReference Include="Microting.EformAngularFrontendBase" Version="1.2.20" />
-    <PackageReference Include="Microting.EformBackendConfigurationBase" Version="1.1.56" />
+    <PackageReference Include="Microting.EformAngularFrontendBase" Version="1.2.21" />
+    <PackageReference Include="Microting.EformBackendConfigurationBase" Version="1.1.58" />
     <PackageReference Include="Microting.HtmlToOpenXml.dll" Version="2.3.1" />
     <PackageReference Include="Microting.ItemsPlanningBase" Version="3.0.142" />
     <PackageReference Include="Microting.WindowsService.BasePn" Version="2.0.0" />
@@ -72,6 +72,23 @@
     <EmbeddedResource Include="Resources\Email.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Resources\KemiKontrol_rapport_1.0_Libre.html" />
+    <EmbeddedResource Include="Resources\KemiKontrol_rapport_1.0_Libre.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Resources\KemiKontrol_rapport_1.0_Libre_html_29bc21319b8001d7.png" />
+    <EmbeddedResource Include="Resources\KemiKontrol_rapport_1.0_Libre_html_29bc21319b8001d7.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Resources\KemiKontrol_rapport_1.0_Libre_html_36e139cc671b4deb.png" />
+    <EmbeddedResource Include="Resources\KemiKontrol_rapport_1.0_Libre_html_36e139cc671b4deb.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Resources\KemiKontrol_rapport_1.0_Libre_html_5d7c0d01f9da8102.png" />
+    <EmbeddedResource Include="Resources\KemiKontrol_rapport_1.0_Libre_html_5d7c0d01f9da8102.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Resources\Fjern-produkt.pdf" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Infrastructure\Constants" />

@@ -502,6 +502,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         .Include(x=> x.ClassificationAndLabeling.CLP)
                                         .Include(x=> x.ClassificationAndLabeling.CLP.HazardStatements)
                                         .Include(x=> x.ClassificationAndLabeling.DPD)
+                                        .Include(x=> x.AuthorisationHolder)
+                                        .Include(x=> x.AuthorisationHolder.Address)
                                         // .Include(x=> x.ClassificationAndLabeling.DPD.RiskPhrases)
                                         .SingleAsync(x => x.RegistrationNo == entityItem.Name);
                                 product = await chemicalDbContext.Products.FirstOrDefaultAsync(x =>
@@ -528,13 +530,13 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             {
                                 if (chemical.UseAndPossesionDeadline < DateTime.UtcNow)
                                 {
-                                    folderLookUpName = "24.04 Udløbet";
+                                    folderLookUpName = "25.04 Udløber i dag eller er udløbet";
                                 }
                                 else
                                 {
-                                    if (chemical.UseAndPossesionDeadline < DateTime.UtcNow.AddDays(30))
+                                    if (chemical.UseAndPossesionDeadline < DateTime.UtcNow.AddDays(14))
                                     {
-                                        folderLookUpName = "25.03 Udløber indenfor 30 dage";
+                                        folderLookUpName = "25.03 Udløber om senest 14 dage";
                                     }
                                 }
                             }
@@ -542,13 +544,13 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             {
                                 if (chemical.AuthorisationExpirationDate < DateTime.UtcNow)
                                 {
-                                    folderLookUpName = "24.04 Udløbet";
+                                    folderLookUpName = "25.04 Udløber i dag eller er udløbet";
                                 }
                                 else
                                 {
-                                    if (chemical.AuthorisationExpirationDate < DateTime.UtcNow.AddDays(30))
+                                    if (chemical.AuthorisationExpirationDate < DateTime.UtcNow.AddDays(14))
                                     {
-                                        folderLookUpName = "25.03 Udløber indenfor 30 dage";
+                                        folderLookUpName = "25.03 Udløber om senest 14 dage";
                                     }
                                 }
                             }
@@ -628,10 +630,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                                 var mainElement = await _sdkCore.ReadeForm(checkListTranslation.CheckListId, language);
                                 mainElement = await ModifyChemicalMainElement(mainElement, chemical, product,
-                                    productName, folderMicrotingId, areaRule, sdkSite, totalLocations.Replace("|", ", "));
+                                    productName, folderMicrotingId, areaRule, sdkSite, totalLocations.Replace("|", ", ")).ConfigureAwait(false);
 
                                 MultiSelect multiSelect = new MultiSelect(0, false, false,
-                                    "Vælg rum som kemiproduktet skal fjernes fra", " ", Constants.FieldColors.Red, -1,
+                                    "Vælg rum som produktet er fjernet fra", " ", Constants.FieldColors.Red, -1,
                                     false, options);
                                 ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]).DataItemList.Add(multiSelect);
 
@@ -817,6 +819,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         .Include(x=> x.ClassificationAndLabeling.CLP)
                                         .Include(x=> x.ClassificationAndLabeling.CLP.HazardStatements)
                                         .Include(x=> x.ClassificationAndLabeling.DPD)
+                                        .Include(x=> x.AuthorisationHolder)
+                                        .Include(x=> x.AuthorisationHolder.Address)
                                         // .Include(x=> x.ClassificationAndLabeling.DPD.RiskPhrases)
                                         .SingleAsync(x => x.Id == cpp.ChemicalId);
                                     var product = await chemicalDbContext.Products.FirstOrDefaultAsync(x =>
@@ -835,13 +839,13 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     {
                                         if (chemical.UseAndPossesionDeadline < DateTime.UtcNow)
                                         {
-                                            folderLookUpName = "24.04 Udløbet";
+                                            folderLookUpName = "25.04 Udløber i dag eller er udløbet";
                                         }
                                         else
                                         {
-                                            if (chemical.UseAndPossesionDeadline < DateTime.UtcNow.AddDays(30))
+                                            if (chemical.UseAndPossesionDeadline < DateTime.UtcNow.AddDays(14))
                                             {
-                                                folderLookUpName = "25.03 Udløber indenfor 30 dage";
+                                                folderLookUpName = "25.03 Udløber om senest 14 dage";
                                             }
                                         }
                                     }
@@ -849,13 +853,13 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     {
                                         if (chemical.AuthorisationExpirationDate < DateTime.UtcNow)
                                         {
-                                            folderLookUpName = "24.04 Udløbet";
+                                            folderLookUpName = "25.04 Udløber i dag eller er udløbet";
                                         }
                                         else
                                         {
-                                            if (chemical.AuthorisationExpirationDate < DateTime.UtcNow.AddDays(30))
+                                            if (chemical.AuthorisationExpirationDate < DateTime.UtcNow.AddDays(14))
                                             {
-                                                folderLookUpName = "25.03 Udløber indenfor 30 dage";
+                                                folderLookUpName = "25.03 Udløber om senest 14 dage";
                                             }
                                         }
                                     }
@@ -1516,19 +1520,80 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             mainElement.Label = productName;
             mainElement.ElementList[0].Label = productName;
             mainElement.ElementList.First().Description.InderValue =
-                $"Reg nr.: {chemical.RegistrationNo}<br><br>"+
-                $"<strong>Udløbsdato<br>"+
-                $"<br><strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}</strong>";
-            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Label = " ";
+                $"{chemical.AuthorisationHolder.Name}<br><br>" +
+                $"Reg nr.: {chemical.RegistrationNo}<br><br>";
+            if (chemical.PesticideProductGroup.Count > 0)
+            {
+                mainElement.ElementList.First().Description.InderValue += "Produktgruppe: ";
+                var n = 0;
+                foreach (int i in chemical.PesticideProductGroup)
+                {
+                    if (n > 0)
+                    {
+                        mainElement.ElementList.First().Description.InderValue += ",";
+                    }
+                    mainElement.ElementList.First().Description.InderValue += Microting.EformBackendConfigurationBase
+                        .Infrastructure.Const.Constants.ProductGroupPesticide.First(x => x.Key == i).Value;
+                    n++;
+                }
+                mainElement.ElementList.First().Description.InderValue += "<br><br>";
+            }
+
+            mainElement.ElementList.First().Description.InderValue +=
+                $"<strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: </strong>";
+
+            if (chemical.UseAndPossesionDeadline != null)
+            {
+                mainElement.ElementList.First().Description.InderValue += $"{chemical.UseAndPossesionDeadline:dd-MM-yyyy}<br><br>";
+            }
+            else
+            {
+                mainElement.ElementList.First().Description.InderValue += $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
+            }
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Label = productName;
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue =
-                $"<strong>Produkt</strong><br>{productName}<br>Reg nr.: {chemical.RegistrationNo}<br><br>"+
-                $"<strong>Udløbsdato<br>" +
-                $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}</strong><br><br>" +
-                $"<strong>Placering:</strong><br>" +
-                $"Ejendom: {areaRule.Property.Name}<br>" +
-                $"Rum: {locations}<br><br>" +
-                $"<br><strong>Klassificering og mærkening</strong><br>";
+                $"{chemical.AuthorisationHolder.Name}<br><br>" +
+                $"Reg nr.: {chemical.RegistrationNo}<br><br>";
+
+                if (chemical.PesticideProductGroup.Count > 0)
+                {
+                    mainElement.ElementList.First().Description.InderValue += "Produktgruppe: ";
+                    var n = 0;
+                    foreach (int i in chemical.PesticideProductGroup)
+                    {
+                        if (n > 0)
+                        {
+                            mainElement.ElementList.First().Description.InderValue += ",";
+                        }
+                        mainElement.ElementList.First().Description.InderValue += Microting.EformBackendConfigurationBase
+                            .Infrastructure.Const.Constants.ProductGroupPesticide.First(x => x.Key == i).Value;
+                        n++;
+                    }
+                    mainElement.ElementList.First().Description.InderValue += "<br><br>";
+                }
+
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue +=
+                    "<strong>Udløbsdato</strong><br>";
+
+                if (chemical.UseAndPossesionDeadline != null)
+                {
+                    ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                        .InderValue += $"{chemical.UseAndPossesionDeadline:dd-MM-yyyy}<br><br>";
+                }
+                else
+                {
+                    ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                        .InderValue += $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
+                }
+
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue +=
+                    "<strong>Placering:</strong><br>" +
+                    $"Ejendom: {areaRule.Property.Name}<br>" +
+                    $"Rum: {locations}<br><br>" +
+                    "<br><strong>Klassificering og mærkening</strong><br>";
                 List<string> HStatements = new List<string>();
                 foreach (var hazardStatement in chemical.ClassificationAndLabeling.CLP.HazardStatements)
                 {
@@ -1577,20 +1642,38 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1])
                 .DataItemList[0].Label = "Kemiprodukt fjernet";
-            ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1].Label = "Hvordan fjerner jeg et kemiprodukt?";
+            ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1].Label = "Hvordan fjerner jeg et produkt?";
             string description = $"Produkt: {productName}<br>" +
-                                 $"Reg nr.: {chemical.RegistrationNo}<br>" +
-                                 $"Ejendom: {areaRule.Property.Name}<br>" +
+                                 $"Producent: {chemical.AuthorisationHolder.Name}<br>" +
+                                 $"Reg nr.: {chemical.RegistrationNo}<br>";
+            if (chemical.PesticideProductGroup.Count > 0)
+            {
+                mainElement.ElementList.First().Description.InderValue += "Produktgruppe: ";
+                var n = 0;
+                foreach (int i in chemical.PesticideProductGroup)
+                {
+                    if (n > 0)
+                    {
+                        description += ",";
+                    }
+                    description += Microting.EformBackendConfigurationBase
+                        .Infrastructure.Const.Constants.ProductGroupPesticide.First(x => x.Key == i).Value;
+                    n++;
+                }
+                description += "<br>";
+            }
+            description += $"Ejendom: {areaRule.Property.Name}<br>" +
                                  $"Rum: {locations}<br><br>" +
-                                 "<strong>Gør følgende for at fjerne et kemiprodukt:</strong><br>" +
-                                 "1. Vælg hvilke rum kemiproduktet skal fjernes fra og tryk Gem.<br>" +
-                                 "2. Sæt flueben i <strong>Kemiprodukt fjernet</strong><br>" +
-                                 "3. Tryk på Bekræft<br><br>" +
-                                 "Nu fjernes kemiproduktet fra dine valgte rum.";
+                                 "<strong>Gør følgende for at fjerne et produkt:</strong><br>" +
+                                 "1. Vælg hvilke rum produktet skal fjernes fra og tryk Gem.<br>" +
+                                 "2. Sæt flueben i <strong>Produkt fjernet</strong><br>" +
+                                 "3. Tryk på Bekræft<br><br>";
             None none = new None(1, false, false, " ", description, Constants.FieldColors.Red, -2, false);
             ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]).DataItemList.Add(none);
+            ((CheckBox) ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]).DataItemList[0]).Label =
+                "Produkt fjernet";
             ((SaveButton) ((FieldContainer) ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]).DataItemList[1]).Label =
-                "Bekræft kemiprodukt fjernet";
+                "Bekræft produkt fjernet";
             if (product != null)
             {
                 using var webClient = new HttpClient();
