@@ -103,7 +103,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
             // }
             var sendGridKey =
                 _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
-            if (DateTime.UtcNow.Hour is > 4 and < 6)
+            if (DateTime.UtcNow.Hour is > 7 and < 9)
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
                 var url = "https://chemicalbase.microting.com/get-all-chemicals";
@@ -185,7 +185,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     });
                 }
             }
-            if (DateTime.UtcNow.Hour is > 5 and < 7)
+            if (DateTime.UtcNow.Hour is > 4 and < 9)
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
                 var properties = await _backendConfigurationDbContext.Properties
@@ -548,6 +548,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 }
                             }
                         });
+
                         var sendGridClient = new SendGridClient(sendGridKey.Value);
                         var fromEmailAddress = new EmailAddress("no-reply@microting.com",
                             $"KemiKontrol for : {property.Name}");
@@ -583,26 +584,27 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                             var expiredProducts = new List<ChemicalProductProperty>();
                             var expiringIn14Days = new List<ChemicalProductProperty>();
                             var otherProducts = new List<ChemicalProductProperty>();
+
+                            foreach (ChemicalProductProperty chemicalProductProperty in chemicals)
+                            {
+                                var chemical = _chemicalsDbContext.Chemicals.Single(x => x.Id == chemicalProductProperty.ChemicalId);
+                                var expireDate = chemical.UseAndPossesionDeadline ?? chemical.AuthorisationExpirationDate;
+                                if (expireDate < DateTime.Now)
+                                {
+                                    expiredProducts.Add(chemicalProductProperty);
+                                }
+                                else if (expireDate < DateTime.Now.AddDays(14))
+                                {
+                                    expiringIn14Days.Add(chemicalProductProperty);
+                                }
+                                else
+                                {
+                                    otherProducts.Add(chemicalProductProperty);
+                                }
+                            }
                             if (expiringIn14Days.Count > 0 || expiredProducts.Count > 0 ||
                                 DateTime.Now.DayOfWeek == DayOfWeek.Thursday)
                             {
-                                foreach (ChemicalProductProperty chemicalProductProperty in chemicals)
-                                {
-                                    var chemical = _chemicalsDbContext.Chemicals.Single(x => x.Id == chemicalProductProperty.ChemicalId);
-                                    var expireDate = chemical.UseAndPossesionDeadline ?? chemical.AuthorisationExpirationDate;
-                                    if (expireDate < DateTime.Now)
-                                    {
-                                        expiredProducts.Add(chemicalProductProperty);
-                                    }
-                                    else if (expireDate < DateTime.Now.AddDays(14))
-                                    {
-                                        expiringIn14Days.Add(chemicalProductProperty);
-                                    }
-                                    else
-                                    {
-                                        otherProducts.Add(chemicalProductProperty);
-                                    }
-                                }
 
                                 newHtml = newHtml.Replace("{{expiredProducts}}",
                                     await GenerateProductList(expiredProducts, property, _chemicalsDbContext));
@@ -708,8 +710,8 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
             mainElement.Label = productName;
             mainElement.ElementList[0].Label = productName;
             mainElement.ElementList.First().Description.InderValue =
-                $"{chemical.AuthorisationHolder.Name}<br><br>" +
-                $"Reg nr.: {chemical.RegistrationNo}<br><br>";
+                $"{chemical.AuthorisationHolder.Name}<br>" +
+                $"Reg nr.: {chemical.RegistrationNo}<br>";
             if (chemical.PesticideProductGroup.Count > 0)
             {
                 mainElement.ElementList.First().Description.InderValue += "Produktgruppe: ";
@@ -728,87 +730,91 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
             }
 
             mainElement.ElementList.First().Description.InderValue +=
-                $"<strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: </strong>";
+                $"<strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: </strong><br>";
 
             if (chemical.UseAndPossesionDeadline != null)
             {
-                mainElement.ElementList.First().Description.InderValue += $"{chemical.UseAndPossesionDeadline:dd-MM-yyyy}<br><br>";
+                mainElement.ElementList.First().Description.InderValue += $"Dato: {chemical.UseAndPossesionDeadline:dd-MM-yyyy}<br><br>";
             }
             else
             {
-                mainElement.ElementList.First().Description.InderValue += $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
+                mainElement.ElementList.First().Description.InderValue += $"Dato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
             }
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Label = productName;
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue =
-                $"{chemical.AuthorisationHolder.Name}<br><br>" +
-                $"Reg nr.: {chemical.RegistrationNo}<br><br>";
+                $"{chemical.AuthorisationHolder.Name}<br>" +
+                $"Reg nr.: {chemical.RegistrationNo}<br>";
 
-                if (chemical.PesticideProductGroup.Count > 0)
+            if (chemical.PesticideProductGroup.Count > 0)
+            {
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue += "Produktgruppe: ";
+                var n = 0;
+                foreach (int i in chemical.PesticideProductGroup)
                 {
-                    mainElement.ElementList.First().Description.InderValue += "Produktgruppe: ";
-                    var n = 0;
-                    foreach (int i in chemical.PesticideProductGroup)
+                    if (n > 0)
                     {
-                        if (n > 0)
-                        {
-                            mainElement.ElementList.First().Description.InderValue += ",";
-                        }
-                        mainElement.ElementList.First().Description.InderValue += Microting.EformBackendConfigurationBase
-                            .Infrastructure.Const.Constants.ProductGroupPesticide.First(x => x.Key == i).Value;
-                        n++;
+                        ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                            .InderValue += ",";
                     }
-                    mainElement.ElementList.First().Description.InderValue += "<br><br>";
-                }
-
-                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                    .InderValue +=
-                    "<strong>Udløbsdato</strong><br>";
-
-                if (chemical.UseAndPossesionDeadline != null)
-                {
                     ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                        .InderValue += $"{chemical.UseAndPossesionDeadline:dd-MM-yyyy}<br><br>";
+                        .InderValue += Microting.EformBackendConfigurationBase
+                        .Infrastructure.Const.Constants.ProductGroupPesticide.First(x => x.Key == i).Value;
+                    n++;
                 }
-                else
-                {
-                    ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                        .InderValue += $"{chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
-                }
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue += "<br><br>";
+            }
 
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                .InderValue +=
+                "<strong>Udløbsdato</strong><br>";
+
+            if (chemical.UseAndPossesionDeadline != null)
+            {
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue += $"Dato: {chemical.UseAndPossesionDeadline:dd-MM-yyyy}<br><br>";
+            }
+            else
+            {
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue += $"Dato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
+            }
+
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                .InderValue +=
+                "<strong>Placering:</strong><br>" +
+                $"Ejendom: {areaRule.Property.Name}<br>" +
+                $"Rum: {locations}<br><br>" +
+                "<strong>Klassificering og mærkening</strong><br>";
+            List<string> HStatements = new List<string>();
+            foreach (var hazardStatement in chemical.ClassificationAndLabeling.CLP.HazardStatements)
+            {
                 ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                     .InderValue +=
-                    "<strong>Placering:</strong><br>" +
-                    $"Ejendom: {areaRule.Property.Name}<br>" +
-                    $"Rum: {locations}<br><br>" +
-                    "<br><strong>Klassificering og mærkening</strong><br>";
-                List<string> HStatements = new List<string>();
-                foreach (var hazardStatement in chemical.ClassificationAndLabeling.CLP.HazardStatements)
-                {
-                    ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                        .InderValue +=
-                        $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.HazardStatement.First(x => x.Key == hazardStatement.Statement).Value}<br><br>";
-                    Regex regex = new Regex(@"\((H\d\d\d)\)");
-                    var res = regex.Match(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
-                        .HazardStatement.First(x => x.Key == hazardStatement.Statement).Value);
-                    HStatements.Add(res.Value);
-                }
+                    $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.HazardStatement.First(x => x.Key == hazardStatement.Statement).Value}<br><br>";
+                Regex regex = new Regex(@"\((H\d\d\d)\)");
+                var res = regex.Match(Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants
+                    .HazardStatement.First(x => x.Key == hazardStatement.Statement).Value);
+                HStatements.Add(res.Value);
+            }
 
-                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                    .InderValue +=
-                    "<br><strong>Generelle oplysninger</strong><br>" +
-                    "<u>Bekæmpelsesmiddelstype</u><br>";
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                .InderValue +=
+                "<br><strong>Generelle oplysninger</strong><br>" +
+                "<u>Bekæmpelsesmiddelstype</u><br>";
 
-                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                    .InderValue += chemical.PestControlType != null
-                        ? $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.PestControlType.FirstOrDefault(x => x.Key == chemical.PestControlType)!.Value}<br><br>"
-                        : "";
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                .InderValue += chemical.PestControlType != null
+                    ? $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.PestControlType.FirstOrDefault(x => x.Key == chemical.PestControlType)!.Value}<br><br>"
+                    : "";
 
-                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                    .InderValue +=
-                "<br><u>Productstatus</u><br>" +
-                $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductStatusType.FirstOrDefault(x => x.Key == chemical.Status).Value}<br><br>" +
-                $"<u>Pesticid produktgruppe</u><br>";
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                .InderValue +=
+            "<br><u>Productstatus</u><br>" +
+            $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductStatusType.FirstOrDefault(x => x.Key == chemical.Status).Value}<br><br>" +
+            $"<u>Pesticid produktgruppe</u><br>";
             foreach (var i in chemical.PesticideProductGroup)
             {
                 ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
@@ -836,7 +842,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                  $"Reg nr.: {chemical.RegistrationNo}<br>";
             if (chemical.PesticideProductGroup.Count > 0)
             {
-                mainElement.ElementList.First().Description.InderValue += "Produktgruppe: ";
+                description += "Produktgruppe: ";
                 var n = 0;
                 foreach (int i in chemical.PesticideProductGroup)
                 {
@@ -845,11 +851,12 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         description += ",";
                     }
                     description += Microting.EformBackendConfigurationBase
-                        .Infrastructure.Const.Constants.ProductGroupPesticide.First(x => x.Key == i).Value;
+                            .Infrastructure.Const.Constants.ProductGroupPesticide.First(x => x.Key == i).Value;
                     n++;
                 }
-                description += "<br>";
+                description += "<br><br>";
             }
+
             description += $"Ejendom: {areaRule.Property.Name}<br>" +
                                  $"Rum: {locations}<br><br>" +
                                  "<strong>Gør følgende for at fjerne et produkt:</strong><br>" +
