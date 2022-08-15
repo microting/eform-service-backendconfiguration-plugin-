@@ -103,7 +103,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
             // }
             var sendGridKey =
                 _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
-            if (DateTime.UtcNow.Hour is > 7 and < 9)
+            if (DateTime.UtcNow.Hour is > 4 and < 6)
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
                 var url = "https://chemicalbase.microting.com/get-all-chemicals";
@@ -185,7 +185,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     });
                 }
             }
-            if (DateTime.UtcNow.Hour is > 4 and < 9)
+            if (DateTime.UtcNow.Hour is > 5 and < 7)
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
                 var properties = await _backendConfigurationDbContext.Properties
