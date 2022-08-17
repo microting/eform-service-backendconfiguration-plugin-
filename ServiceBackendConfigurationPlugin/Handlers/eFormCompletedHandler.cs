@@ -745,7 +745,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     ChemicalId = chemical.Id,
                                     PropertyId = areaRule.PropertyId,
                                     SdkCaseId = (int) caseId,
-                                    Locations = totalLocations
+                                    Locations = totalLocations,
+                                    LanguageId = language.Id,
+                                    SdkSiteId = (int) sdkSite.MicrotingUid
                                 };
 
                                 await chemicalProductProperty.Create(backendConfigurationPnDbContext);
