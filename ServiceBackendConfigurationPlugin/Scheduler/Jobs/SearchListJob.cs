@@ -626,7 +626,8 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                     SdkCaseId = (int) caseId,
                                     Locations = totalLocations,
                                     LanguageId = language.Id,
-                                    SdkSiteId = (int) sdkSite.MicrotingUid
+                                    SdkSiteId = (int) sdkSite.MicrotingUid,
+                                    ExpireDate = chemical.UseAndPossesionDeadline ?? chemical.AuthorisationExpirationDate
                                 };
 
                                 await chemicalProductProperty.Create(_backendConfigurationDbContext);
@@ -667,7 +668,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         newHtml = newHtml.Replace("{{emailaddresses}}", property.MainMailAddress);
 
                         var chemicals = await _backendConfigurationDbContext.ChemicalProductProperties.Where(x =>
-                            x.WorkflowState != Constants.WorkflowStates.Removed && x.PropertyId == property.Id).ToListAsync();
+                            x.WorkflowState != Constants.WorkflowStates.Removed && x.PropertyId == property.Id).OrderBy(x => x.ExpireDate).ToListAsync();
                         var expiredProducts = new List<ChemicalProductProperty>();
                         var expiringIn14Days = new List<ChemicalProductProperty>();
                         var otherProducts = new List<ChemicalProductProperty>();
