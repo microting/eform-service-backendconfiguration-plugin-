@@ -89,8 +89,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
 
         private async Task ExecuteUpdateProperties()
         {
-            var sendGridKey =
-                _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
+
             if (DateTime.UtcNow.Hour == 4)
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
@@ -634,6 +633,8 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                             }
                         }
                     }
+                    var sendGridKey =
+                        _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
 
                     var sendGridClient = new SendGridClient(sendGridKey.Value);
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
@@ -688,8 +689,8 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 otherProducts.Add(chemicalProductProperty);
                             }
                         }
-                        if (expiringIn14Days.Count > 0 || expiredProducts.Count > 0 ||
-                            DateTime.Now.DayOfWeek == DayOfWeek.Thursday)
+                        if ((expiringIn14Days.Count > 0 && DateTime.Now.DayOfWeek == DayOfWeek.Thursday) || expiredProducts.Count > 0 ||
+                            (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && DateTime.Now.Day < 8))
                         {
 
                             newHtml = newHtml.Replace("{{expiredProducts}}",

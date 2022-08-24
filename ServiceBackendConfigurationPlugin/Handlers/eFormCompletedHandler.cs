@@ -662,15 +662,20 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         .RemoveAt(1);
                                 }
 
+                                int i = 0;
                                 foreach (PropertyWorker propertyWorker in propertySites)
                                 {
                                     if (propertyWorker.WorkerId != sdkSite.Id)
                                     {
                                         var site = await
                                             sdkDbContext.Sites.SingleOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
-                                        var list = ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1].DataItemList;
-                                        list.RemoveAt(0);
-                                        list.RemoveAt(0);
+                                        if (i == 0)
+                                        {
+                                            var list = ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]
+                                                .DataItemList;
+                                            list.RemoveAt(0);
+                                            list.RemoveAt(0);
+                                        }
                                         var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
                                             folder.Id);
                                         // var siteDbCaseId =
@@ -684,6 +689,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         };
                                         await chemicalProductPropertySite.Create(backendConfigurationPnDbContext);
                                     }
+
+                                    i++;
                                 }
 
                                 AreaRulePlanningModel areaRulePlanningModel = new AreaRulePlanningModel
