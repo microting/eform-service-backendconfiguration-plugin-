@@ -1683,25 +1683,37 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 "Bekræft produkt fjernet";
             if (product != null)
             {
-                using var webClient = new HttpClient();
-
-                await using (var s = await webClient.GetStreamAsync($"https://chemicalbase.microting.com/api/chemicals-pn/get-pdf-file?fileName={product.FileName}"))
+                if (!string.IsNullOrEmpty(product.FileName))
                 {
-                    File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
-                    await using (var fs = new FileStream(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"), FileMode.CreateNew))
+                    using var webClient = new HttpClient();
+                    Console.WriteLine(
+                        $"Trying to download https://chemicalbase.microting.com/api/chemicals-pn/get-pdf-file?fileName={product.FileName}");
+                    await using (var s = await webClient.GetStreamAsync(
+                                     $"https://chemicalbase.microting.com/api/chemicals-pn/get-pdf-file?fileName={product.FileName}"))
                     {
-                        await s.CopyToAsync(fs);
+                        File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
+                        await using (var fs = new FileStream(
+                                         Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
+                                         FileMode.CreateNew))
+                        {
+                            await s.CopyToAsync(fs);
+                        }
                     }
+
+                    var pdfId = await _sdkCore.PdfUpload(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
+
+                    await _sdkCore.PutFileToStorageSystem(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
+                        $"{product.FileName}.pdf");
+                    File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
+
+                    ((ShowPdf)((DataElement)mainElement.ElementList[0]).DataItemList[1]).Value = pdfId;
+                    ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(2);
                 }
-
-                var pdfId = await _sdkCore.PdfUpload(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
-
-                await _sdkCore.PutFileToStorageSystem(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
-                    $"{product.FileName}.pdf");
-                File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
-
-                ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfId;
-                ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(2);
+                else
+                {
+                    ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
+                    ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
+                }
             }
             else
             {
