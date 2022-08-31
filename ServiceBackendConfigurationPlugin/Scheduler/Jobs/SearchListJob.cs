@@ -635,7 +635,6 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         }
                     }
 
-                    var sendGridClient = new SendGridClient(sendGridKey.Value);
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
                         $"KemiKontrol for : {property.Name}");
                     var toEmailAddress = new List<EmailAddress>();
@@ -643,8 +642,9 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     {
                         toEmailAddress.AddRange(property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
                     }
-                    if (toEmailAddress.Count > 0)
+                    if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
                     {
+                        var sendGridClient = new SendGridClient(sendGridKey.Value);
                         var assembly = Assembly.GetExecutingAssembly();
                         var assemblyName = assembly.GetName().Name;
 
