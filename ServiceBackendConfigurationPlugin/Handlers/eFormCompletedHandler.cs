@@ -1631,15 +1631,33 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue +=
-            "<br><u>Productstatus</u><br>" +
-            $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductStatusType.FirstOrDefault(x => x.Key == chemical.Status).Value}<br><br>" +
-            $"<u>Pesticid produktgruppe</u><br>";
-            foreach (var i in chemical.PesticideProductGroup)
+                "<br><u>Productstatus</u><br>" +
+                $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductStatusType.FirstOrDefault(x => x.Key == chemical.Status).Value}<br><br>";
+
+            if (chemical.PestControlType == 2)
             {
                 ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                    .InderValue +=
-                    $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupPesticide.FirstOrDefault(x => x.Key == i).Value}<br>";
+                    .InderValue += $"<u>Pesticid produktgruppe</u><br>";
+                foreach (var i in chemical.PesticideProductGroup)
+                {
+                    ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                        .InderValue +=
+                        $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupPesticide.FirstOrDefault(x => x.Key == i).Value}<br>";
+                }
             }
+            else
+            {
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue += $"<u>Biocid produktgruppe</u><br>";
+                foreach (var i in chemical.BiocideProductType)
+                {
+                    ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                        .InderValue +=
+                        $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupBiocide.FirstOrDefault(x => x.Key == i).Value}<br>";
+                }
+            }
+
+
 
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue +=
