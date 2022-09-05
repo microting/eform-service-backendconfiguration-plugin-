@@ -374,6 +374,13 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 }
                             }
 
+                            if (propertyChemical.LastFolderName != folderLookUpName)
+                            {
+                                moveChemical = true;
+                                propertyChemical.LastFolderName = folderLookUpName;
+                                await propertyChemical.Update(_backendConfigurationDbContext);
+                            }
+
                             // Chemical should be moved
                             // moveChemical = true;
                             if (moveChemical)
@@ -543,15 +550,10 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                         var site = await
                                             _sdkDbContext.Sites.SingleOrDefaultAsync(x =>
                                                 x.Id == propertyWorker.WorkerId);
-                                        var list = ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]
-                                            .DataItemList;
-                                        list.RemoveAt(0);
-                                        list.RemoveAt(0);
                                         var siteCaseId = await _core.CaseCreate(mainElement, "",
                                             (int) site!.MicrotingUid!,
                                             folder.Id);
-                                        // var siteDbCaseId =
-                                        //     await sdkDbContext.Cases.SingleAsync(x => x.MicrotingUid == siteCaseId);
+
                                         var chemicalProductPropertySite = new ChemicalProductPropertySite()
                                         {
                                             ChemicalId = chemical.Id,
