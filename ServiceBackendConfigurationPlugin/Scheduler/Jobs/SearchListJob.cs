@@ -1082,7 +1082,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
         private async Task<string> GenerateProductList(List<ChemicalProductProperty> chemicalProductProperties, Property property, ChemicalsDbContext dbContext)
         {
             string result = "";
-            foreach (var chemicalProductProperty in chemicalProductProperties)
+            foreach (var chemicalProductProperty in chemicalProductProperties.OrderBy(x => x.ExpireDate))
             {
                 var chemical = await dbContext.Chemicals
                     .Include(x => x.AuthorisationHolder)

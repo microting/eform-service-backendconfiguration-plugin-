@@ -754,7 +754,8 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     SdkCaseId = (int) caseId,
                                     Locations = totalLocations,
                                     LanguageId = language.Id,
-                                    SdkSiteId = (int) sdkSite.MicrotingUid
+                                    SdkSiteId = (int) sdkSite.MicrotingUid,
+                                    ExpireDate = chemical.UseAndPossesionDeadline ?? chemical.AuthorisationExpirationDate
                                 };
 
                                 await chemicalProductProperty.Create(backendConfigurationPnDbContext);
