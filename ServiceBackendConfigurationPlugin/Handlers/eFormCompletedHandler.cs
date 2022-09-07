@@ -456,7 +456,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         backendConfigurationPnDbContext.AreaRulePlannings.SingleOrDefaultAsync(x =>
                             x.ItemPlanningId == planning.Id);
                     var checkListTranslation = await sdkDbContext.CheckListTranslations.FirstAsync(x =>
-                        x.Text == "25.01 Registrer produkter");
+                        x.Text == "25.01 Registrer produkter" && x.WorkflowState != Constants.WorkflowStates.Removed);
                     var areaRule =
                         await backendConfigurationPnDbContext.AreaRules.Where(x =>
                                 x.Id == areaRulePlanning.AreaRuleId)
@@ -525,34 +525,25 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 // chemicals.Add(chemical);
                             }
 
-                            string folderLookUpName = "25.02 Mine kemiprodukter";
-                            if (chemical.UseAndPossesionDeadline != null)
+                            string folderLookUpName = "25.07 Udløber om mere end 12 mdr.";
+                            var expireDate = chemical.UseAndPossesionDeadline ?? chemical.AuthorisationExpirationDate;
+                            if (expireDate <= DateTime.UtcNow)
                             {
-                                if (chemical.UseAndPossesionDeadline < DateTime.UtcNow)
-                                {
-                                    folderLookUpName = "25.04 Udløber i dag eller er udløbet";
-                                }
-                                else
-                                {
-                                    if (chemical.UseAndPossesionDeadline < DateTime.UtcNow.AddDays(14))
-                                    {
-                                        folderLookUpName = "25.03 Udløber om senest 14 dage";
-                                    }
-                                }
+                                folderLookUpName = "25.02 Udløber i dag eller er udløbet";
                             }
-                            else
+                            else if (expireDate <= DateTime.UtcNow.AddMonths(1))
                             {
-                                if (chemical.AuthorisationExpirationDate < DateTime.UtcNow)
-                                {
-                                    folderLookUpName = "25.04 Udløber i dag eller er udløbet";
-                                }
-                                else
-                                {
-                                    if (chemical.AuthorisationExpirationDate < DateTime.UtcNow.AddDays(14))
-                                    {
-                                        folderLookUpName = "25.03 Udløber om senest 14 dage";
-                                    }
-                                }
+                                folderLookUpName = "25.03 Udløber om senest 1 mdr.";
+                            }
+                            else if (expireDate <= DateTime.UtcNow.AddMonths(3))
+                            {
+                                folderLookUpName = "25.04 Udløber om senest 3 mdr.";
+                            } else if (expireDate <= DateTime.UtcNow.AddMonths(6))
+                            {
+                                folderLookUpName = "25.05 Udløber om senest 6 mdr.";
+                            } else if (expireDate <= DateTime.UtcNow.AddMonths(12))
+                            {
+                                folderLookUpName = "25.06 Udløber om senest 12 mdr.";
                             }
 
                             var folderTranslation = await sdkDbContext.Folders.Join(sdkDbContext.FolderTranslations,
@@ -844,34 +835,25 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         }
                                     }
 
-                                    string folderLookUpName = "25.02 Mine kemiprodukter";
-                                    if (chemical.UseAndPossesionDeadline != null)
+                                    string folderLookUpName = "25.07 Udløber om mere end 12 mdr.";
+                                    var expireDate = chemical.UseAndPossesionDeadline ?? chemical.AuthorisationExpirationDate;
+                                    if (expireDate <= DateTime.UtcNow)
                                     {
-                                        if (chemical.UseAndPossesionDeadline < DateTime.UtcNow)
-                                        {
-                                            folderLookUpName = "25.04 Udløber i dag eller er udløbet";
-                                        }
-                                        else
-                                        {
-                                            if (chemical.UseAndPossesionDeadline < DateTime.UtcNow.AddDays(14))
-                                            {
-                                                folderLookUpName = "25.03 Udløber om senest 14 dage";
-                                            }
-                                        }
+                                        folderLookUpName = "25.02 Udløber i dag eller er udløbet";
                                     }
-                                    else
+                                    else if (expireDate <= DateTime.UtcNow.AddMonths(1))
                                     {
-                                        if (chemical.AuthorisationExpirationDate < DateTime.UtcNow)
-                                        {
-                                            folderLookUpName = "25.04 Udløber i dag eller er udløbet";
-                                        }
-                                        else
-                                        {
-                                            if (chemical.AuthorisationExpirationDate < DateTime.UtcNow.AddDays(14))
-                                            {
-                                                folderLookUpName = "25.03 Udløber om senest 14 dage";
-                                            }
-                                        }
+                                        folderLookUpName = "25.03 Udløber om senest 1 mdr.";
+                                    }
+                                    else if (expireDate <= DateTime.UtcNow.AddMonths(3))
+                                    {
+                                        folderLookUpName = "25.04 Udløber om senest 3 mdr.";
+                                    } else if (expireDate <= DateTime.UtcNow.AddMonths(6))
+                                    {
+                                        folderLookUpName = "25.05 Udløber om senest 6 mdr.";
+                                    } else if (expireDate <= DateTime.UtcNow.AddMonths(12))
+                                    {
+                                        folderLookUpName = "25.06 Udløber om senest 12 mdr.";
                                     }
 
                                     var folderTranslation = await sdkDbContext.Folders.Join(sdkDbContext.FolderTranslations,

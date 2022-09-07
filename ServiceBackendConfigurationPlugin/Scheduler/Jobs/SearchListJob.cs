@@ -338,47 +338,31 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         //              && x.WorkflowState != Constants.WorkflowStates.Removed, ct);
                         if (propertyChemical != null)
                         {
-                            string folderLookUpName = "25.02 Mine kemiprodukter";
+                            string folderLookUpName = "25.07 Udløber om mere end 12 mdr.";
                             bool moveChemical = false;
-                            if (chemical.UseAndPossesionDeadline != null)
+                            if (propertyChemical.ExpireDate == null)
                             {
-                                if (chemical.UseAndPossesionDeadline <= DateTime.UtcNow)
-                                {
-                                    folderLookUpName = "25.04 Udløber i dag eller er udløbet";
-                                    moveChemical = ((DateTime) chemical.UseAndPossesionDeadline - DateTime.UtcNow)
-                                        .Days == 0;
-                                }
-                                else
-                                {
-                                    if (chemical.UseAndPossesionDeadline <= DateTime.UtcNow.AddDays(14))
-                                    {
-                                        var foo = ((DateTime) chemical.UseAndPossesionDeadline -
-                                                   DateTime.UtcNow.AddDays(14)).Days;
-                                        moveChemical =
-                                            ((DateTime) chemical.UseAndPossesionDeadline -
-                                             DateTime.UtcNow.AddDays(14)).Days == 0;
-                                        folderLookUpName = "25.03 Udløber om senest 14 dage";
-                                    }
-                                }
+                                propertyChemical.ExpireDate = chemical.UseAndPossesionDeadline ?? chemical.AuthorisationExpirationDate;
+                                await propertyChemical.Update(_backendConfigurationDbContext);
                             }
-                            else
+
+                            if (propertyChemical.ExpireDate <= DateTime.UtcNow)
                             {
-                                if (chemical.AuthorisationExpirationDate <= DateTime.UtcNow)
-                                {
-                                    moveChemical = ((DateTime) chemical.AuthorisationExpirationDate - DateTime.UtcNow)
-                                        .Days == 0;
-                                    folderLookUpName = "25.04 Udløber i dag eller er udløbet";
-                                }
-                                else
-                                {
-                                    if (chemical.AuthorisationExpirationDate <= DateTime.UtcNow.AddDays(14))
-                                    {
-                                        moveChemical =
-                                            ((DateTime) chemical.AuthorisationExpirationDate -
-                                             DateTime.UtcNow.AddDays(14)).Days == 0;
-                                        folderLookUpName = "25.03 Udløber om senest 14 dage";
-                                    }
-                                }
+                                folderLookUpName = "25.02 Udløber i dag eller er udløbet";
+                            }
+                            else if (propertyChemical.ExpireDate <= DateTime.UtcNow.AddMonths(1))
+                            {
+                                folderLookUpName = "25.03 Udløber om senest 1 mdr.";
+                            }
+                            else if (propertyChemical.ExpireDate <= DateTime.UtcNow.AddMonths(3))
+                            {
+                                folderLookUpName = "25.04 Udløber om senest 3 mdr.";
+                            } else if (propertyChemical.ExpireDate <= DateTime.UtcNow.AddMonths(6))
+                            {
+                                folderLookUpName = "25.05 Udløber om senest 6 mdr.";
+                            } else if (propertyChemical.ExpireDate <= DateTime.UtcNow.AddMonths(12))
+                            {
+                                folderLookUpName = "25.06 Udløber om senest 12 mdr.";
                             }
 
                             if (propertyChemical.LastFolderName != folderLookUpName)
@@ -388,8 +372,6 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 await propertyChemical.Update(_backendConfigurationDbContext);
                             }
 
-                            // Chemical should be moved
-                            // moveChemical = true;
                             if (moveChemical)
                             {
                                 Console.WriteLine(
@@ -679,7 +661,10 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         var chemicals = await _backendConfigurationDbContext.ChemicalProductProperties.Where(x =>
                             x.WorkflowState != Constants.WorkflowStates.Removed && x.PropertyId == property.Id).OrderBy(x => x.ExpireDate).ToListAsync();
                         var expiredProducts = new List<ChemicalProductProperty>();
-                        var expiringIn14Days = new List<ChemicalProductProperty>();
+                        var expiringIn1Month = new List<ChemicalProductProperty>();
+                        var expiringIn3Months = new List<ChemicalProductProperty>();
+                        var expiringIn6Months = new List<ChemicalProductProperty>();
+                        var expiringIn12Months = new List<ChemicalProductProperty>();
                         var otherProducts = new List<ChemicalProductProperty>();
 
                         foreach (ChemicalProductProperty chemicalProductProperty in chemicals)
@@ -690,23 +675,41 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                             {
                                 expiredProducts.Add(chemicalProductProperty);
                             }
-                            else if (expireDate < DateTime.Now.AddDays(14))
+                            else if (expireDate < DateTime.Now.AddMonths(1))
                             {
-                                expiringIn14Days.Add(chemicalProductProperty);
+                                expiringIn1Month.Add(chemicalProductProperty);
+                            }
+                            else if (expireDate < DateTime.Now.AddMonths(3))
+                            {
+                                expiringIn3Months.Add(chemicalProductProperty);
+                            }
+                            else if (expireDate < DateTime.Now.AddMonths(6))
+                            {
+                                expiringIn6Months.Add(chemicalProductProperty);
+                            }
+                            else if (expireDate < DateTime.Now.AddMonths(12))
+                            {
+                                expiringIn12Months.Add(chemicalProductProperty);
                             }
                             else
                             {
                                 otherProducts.Add(chemicalProductProperty);
                             }
                         }
-                        if ((expiringIn14Days.Count > 0 && DateTime.Now.DayOfWeek == DayOfWeek.Thursday) || expiredProducts.Count > 0 ||
+                        if ((expiringIn1Month.Count > 0 && DateTime.Now.DayOfWeek == DayOfWeek.Thursday) || expiredProducts.Count > 0 ||
                             (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && DateTime.Now.Day < 8))
                         {
 
                             newHtml = newHtml.Replace("{{expiredProducts}}",
                                 await GenerateProductList(expiredProducts, property, chemicalsDbContext));
-                            newHtml = newHtml.Replace("{{expiringIn14Days}}",
-                                await GenerateProductList(expiringIn14Days, property, chemicalsDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn1Month}}",
+                                await GenerateProductList(expiringIn1Month, property, chemicalsDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn3Months}}",
+                                await GenerateProductList(expiringIn3Months, property, chemicalsDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn6Months}}",
+                                await GenerateProductList(expiringIn6Months, property, chemicalsDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn12Months}}",
+                                await GenerateProductList(expiringIn12Months, property, chemicalsDbContext));
                             newHtml = newHtml.Replace("{{otherProducts}}",
                                 await GenerateProductList(otherProducts, property, chemicalsDbContext));
 
