@@ -113,109 +113,117 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     // {
                     //     MaxDegreeOfParallelism = 20
                     // };
-                    var chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
-                    foreach (var chemical in chemicals)
+                    try
                     {
-                        var c = await chemicalsDbContext.Chemicals
-                            .Include(x => x.Products)
-                            .FirstOrDefaultAsync(x => x.RemoteId == chemical.RemoteId);
-                        if (c != null)
+                        var chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
+                        foreach (var chemical in chemicals)
                         {
-                            Console.WriteLine(
-                                $"Chemical already exist, so updating : {chemical.Name} no {i} of {count}");
-                            c.Use = chemical.Use;
-                            c.Verified = chemical.Verified;
-                            c.AuthorisationDate = chemical.AuthorisationDate;
-                            c.AuthorisationExpirationDate = chemical.AuthorisationExpirationDate;
-                            c.AuthorisationTerminationDate = chemical.AuthorisationTerminationDate;
-                            c.UseAndPossesionDeadline = chemical.UseAndPossesionDeadline;
-                            c.PossessionDeadline = chemical.PossessionDeadline;
-                            c.SalesDeadline = chemical.SalesDeadline;
-                            c.Status = chemical.Status;
-                            c.PesticideUser = chemical.PesticideUser;
-                            c.FormulationType = chemical.FormulationType;
-                            c.FormulationSubType = chemical.FormulationSubType;
-                            c.BiocideAuthorisationType = chemical.BiocideAuthorisationType;
-                            c.PesticidePossibleUse = chemical.PesticidePossibleUse;
-                            c.PesticideProductGroup = chemical.PesticideProductGroup;
-                            c.BiocidePossibleUse = chemical.BiocidePossibleUse;
-                            c.BiocideSpecialUse = chemical.BiocideSpecialUse;
-                            c.BiocideUser = chemical.BiocideUser;
-                            c.PestControlType = chemical.PestControlType;
-                            // chemical.Id = c.Id;
-                            if (!chemicalsDbContext.AuthorisationHolders.Any(x =>
-                                    x.RemoteId == chemical.AuthorisationHolder.RemoteId))
+                            var c = await chemicalsDbContext.Chemicals
+                                .Include(x => x.Products)
+                                .FirstOrDefaultAsync(x => x.RemoteId == chemical.RemoteId);
+                            if (c != null)
                             {
-                                var ah = new AuthorisationHolder
+                                Console.WriteLine(
+                                    $"Chemical already exist, so updating : {chemical.Name} no {i} of {count}");
+                                c.Use = chemical.Use;
+                                c.Verified = chemical.Verified;
+                                c.AuthorisationDate = chemical.AuthorisationDate;
+                                c.AuthorisationExpirationDate = chemical.AuthorisationExpirationDate;
+                                c.AuthorisationTerminationDate = chemical.AuthorisationTerminationDate;
+                                c.UseAndPossesionDeadline = chemical.UseAndPossesionDeadline;
+                                c.PossessionDeadline = chemical.PossessionDeadline;
+                                c.SalesDeadline = chemical.SalesDeadline;
+                                c.Status = chemical.Status;
+                                c.PesticideUser = chemical.PesticideUser;
+                                c.FormulationType = chemical.FormulationType;
+                                c.FormulationSubType = chemical.FormulationSubType;
+                                c.BiocideAuthorisationType = chemical.BiocideAuthorisationType;
+                                c.PesticidePossibleUse = chemical.PesticidePossibleUse;
+                                c.PesticideProductGroup = chemical.PesticideProductGroup;
+                                c.BiocidePossibleUse = chemical.BiocidePossibleUse;
+                                c.BiocideSpecialUse = chemical.BiocideSpecialUse;
+                                c.BiocideUser = chemical.BiocideUser;
+                                c.PestControlType = chemical.PestControlType;
+                                // chemical.Id = c.Id;
+                                if (!chemicalsDbContext.AuthorisationHolders.Any(x =>
+                                        x.RemoteId == chemical.AuthorisationHolder.RemoteId))
                                 {
-                                    RemoteId = chemical.AuthorisationHolder.RemoteId,
-                                    Name = chemical.AuthorisationHolder.Name,
-                                    Address = chemical.AuthorisationHolder.Address
-                                };
-                                await ah.Create(chemicalsDbContext).ConfigureAwait(false);
-                                c.AuthorisationHolderId = ah.Id;
-                            }
-                            else
-                            {
-                                c.AuthorisationHolderId = chemicalsDbContext.AuthorisationHolders.First(x =>
-                                    x.RemoteId == chemical.AuthorisationHolder.RemoteId).Id;
-                            }
-
-                            if (chemical.Products.Count != c.Products.Count)
-                            {
-                                foreach (var chemicalProduct in chemical.Products)
-                                {
-                                    var dbProduct = await chemicalsDbContext.Products.FirstOrDefaultAsync(x =>
-                                        x.ChemicalId == c.Id && x.FileName == chemicalProduct.FileName);
-                                    if (dbProduct == null)
+                                    var ah = new AuthorisationHolder
                                     {
-                                        dbProduct = new Product()
-                                        {
-                                            FileName = chemicalProduct.FileName,
-                                            Barcode = chemicalProduct.Barcode,
-                                            ChemicalId = c.Id,
-                                            Checksum = ""
-                                        };
-                                        await dbProduct.Create(chemicalsDbContext);
-                                    }
-                                    else
-                                    {
-                                        dbProduct.Barcode = chemicalProduct.Barcode;
-                                        dbProduct.Name = chemicalProduct.Name;
-                                        dbProduct.Checksum = chemicalProduct.Checksum;
-                                        await dbProduct.Update(chemicalsDbContext);
-                                    }
+                                        RemoteId = chemical.AuthorisationHolder.RemoteId,
+                                        Name = chemical.AuthorisationHolder.Name,
+                                        Address = chemical.AuthorisationHolder.Address
+                                    };
+                                    await ah.Create(chemicalsDbContext).ConfigureAwait(false);
+                                    c.AuthorisationHolderId = ah.Id;
                                 }
-                            }
-                            else
-                            {
-                                foreach (var cProduct in c.Products)
+                                else
                                 {
-                                    var dbProduct = await chemicalsDbContext.Products.FirstAsync(x => x.Id == cProduct.Id);
+                                    c.AuthorisationHolderId = chemicalsDbContext.AuthorisationHolders.First(x =>
+                                        x.RemoteId == chemical.AuthorisationHolder.RemoteId).Id;
+                                }
+
+                                if (chemical.Products.Count != c.Products.Count)
+                                {
                                     foreach (var chemicalProduct in chemical.Products)
                                     {
-                                        if (chemicalProduct.Name == cProduct.Name)
+                                        var dbProduct = await chemicalsDbContext.Products.FirstOrDefaultAsync(x =>
+                                            x.ChemicalId == c.Id && x.FileName == chemicalProduct.FileName);
+                                        if (dbProduct == null)
                                         {
-                                            dbProduct.FileName = chemicalProduct.FileName;
+                                            dbProduct = new Product()
+                                            {
+                                                FileName = chemicalProduct.FileName,
+                                                Barcode = chemicalProduct.Barcode,
+                                                ChemicalId = c.Id,
+                                                Checksum = ""
+                                            };
+                                            await dbProduct.Create(chemicalsDbContext);
+                                        }
+                                        else
+                                        {
                                             dbProduct.Barcode = chemicalProduct.Barcode;
+                                            dbProduct.Name = chemicalProduct.Name;
+                                            dbProduct.Checksum = chemicalProduct.Checksum;
                                             await dbProduct.Update(chemicalsDbContext);
                                         }
                                     }
                                 }
+                                else
+                                {
+                                    foreach (var cProduct in c.Products)
+                                    {
+                                        var dbProduct =
+                                            await chemicalsDbContext.Products.FirstAsync(x => x.Id == cProduct.Id);
+                                        foreach (var chemicalProduct in chemical.Products)
+                                        {
+                                            if (chemicalProduct.Name == cProduct.Name)
+                                            {
+                                                dbProduct.FileName = chemicalProduct.FileName;
+                                                dbProduct.Barcode = chemicalProduct.Barcode;
+                                                await dbProduct.Update(chemicalsDbContext);
+                                            }
+                                        }
+                                    }
+                                }
+
+
+
+                                await c.Update(chemicalsDbContext).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                Console.WriteLine(
+                                    $"Chemical does not exist, so creating : {chemical.Name} no {i} of {count}");
+                                await chemical.Create(chemicalsDbContext).ConfigureAwait(false);
                             }
 
-
-
-                            await c.Update(chemicalsDbContext).ConfigureAwait(false);
+                            i++;
                         }
-                        else
-                        {
-                            Console.WriteLine(
-                                $"Chemical does not exist, so creating : {chemical.Name} no {i} of {count}");
-                            await chemical.Create(chemicalsDbContext).ConfigureAwait(false);
-                        }
-
-                        i++;
+                    }
+                    catch (Exception e)
+                    {
+                        Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got exception: " + e.Message);
                     }
                 }
             }
