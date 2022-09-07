@@ -224,7 +224,6 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
-                    throw;
                 }
             }
 
