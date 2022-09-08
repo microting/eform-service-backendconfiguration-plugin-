@@ -1853,64 +1853,56 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var assembly = Assembly.GetExecutingAssembly();
                 var resourceString = $"ServiceBackendConfigurationPlugin.Resources.GHSHazardPictogram.{imageName}.jpg";
                 // using var FileStream FileStream = new FileStream()
-                await using (var resourceStream = assembly.GetManifestResourceStream(resourceString))
+                await using var resourceStream = assembly.GetManifestResourceStream(resourceString);
+                // using var reader = new StreamReader(resourceStream ?? throw new InvalidOperationException($"{nameof(resourceStream)} is null"));
+                // html = await reader.ReadToEndAsync();
+                // MemoryStream memoryStream = new MemoryStream();
+                // await resourceStream.CopyToAsync(memoryStream);
+                using var image = new MagickImage(resourceStream);
+                var profile = image.GetExifProfile();
+                // Write all values to the console
+                try
                 {
-                    // using var reader = new StreamReader(resourceStream ?? throw new InvalidOperationException($"{nameof(resourceStream)} is null"));
-                    // html = await reader.ReadToEndAsync();
-                    // MemoryStream memoryStream = new MemoryStream();
-                    // await resourceStream.CopyToAsync(memoryStream);
-                    using (var image = new MagickImage(resourceStream))
+                    foreach (var value in profile.Values)
                     {
-                        var profile = image.GetExifProfile();
-                        // Write all values to the console
-                        try
-                        {
-                            foreach (var value in profile.Values)
-                            {
-                                Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
-                            }
-                        } catch (Exception e)
-                        {
-                            // Console.WriteLine(e);
-                        }
-                        // image.Rotate(90);
-                        var base64String = image.ToBase64();
-                        itemsHtml +=
-                            $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
+                        Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
                     }
-
-                    // await stream.DisposeAsync();
+                } catch (Exception)
+                {
+                    // Console.WriteLine(e);
                 }
+                // image.Rotate(90);
+                var base64String = image.ToBase64();
+                itemsHtml +=
+                    $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
+
+                // await stream.DisposeAsync();
             }
             else
             {
-                Stream stream;
                 var storageResult = await _sdkCore.GetFileFromS3Storage(imageName);
-                stream = storageResult.ResponseStream;
+                var stream = storageResult.ResponseStream;
 
-                using (var image = new MagickImage(stream))
+                using var image = new MagickImage(stream);
+                var profile = image.GetExifProfile();
+                // Write all values to the console
+                try
                 {
-                    var profile = image.GetExifProfile();
-                    // Write all values to the console
-                    try
+                    foreach (var value in profile.Values)
                     {
-                        foreach (var value in profile.Values)
-                        {
-                            Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
-                        }
-                    } catch (Exception e)
-                    {
-                        Console.WriteLine(e);
+                        Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
                     }
-                    image.Rotate(90);
-                    var base64String = image.ToBase64();
-                    itemsHtml +=
-                        $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
+                } catch (Exception)
+                {
+                    // Console.WriteLine(e);
                 }
+                image.Rotate(90);
+                var base64String = image.ToBase64();
+                itemsHtml +=
+                    $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
 
                 await stream.DisposeAsync();
             }
-
 
             return itemsHtml;
         }
