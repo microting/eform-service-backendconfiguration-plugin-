@@ -301,17 +301,9 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 var properties = await _backendConfigurationDbContext.Properties
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
 
-                // var options = new ParallelOptions
-                // {
-                //     MaxDegreeOfParallelism = 20
-                // };
-
                 var chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
 
-                // var backendDbContext = _backendConfigurationDbContextHelper.GetDbContext();
-                // var itemsPlanningDbContext = _itemsPlanningDbContextHelper.GetDbContext();
                 foreach (var property in properties)
-                    // await Parallel.ForEachAsync(properties, options, async (property, ct) =>
                 {
 
                     var propertyChemicals = await _backendConfigurationDbContext.ChemicalProductProperties
@@ -331,20 +323,12 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 .Include(x=> x.Products)
                                 .FirstAsync(x => x.Id == propertyChemical.ChemicalId);
 
-                        // var propertyChemical =
-                        //     await backendDbContext.ChemicalProductProperties.FirstOrDefaultAsync(
-                        //         x => x.PropertyId == property.Id
-                        //              && x.ChemicalId == chemical.Id
-                        //              && x.WorkflowState != Constants.WorkflowStates.Removed, ct);
                         if (propertyChemical != null)
                         {
                             string folderLookUpName = "25.07 Udløber om mere end 12 mdr.";
                             bool moveChemical = false;
-                            if (propertyChemical.ExpireDate == null)
-                            {
-                                propertyChemical.ExpireDate = chemical.UseAndPossesionDeadline ?? chemical.AuthorisationExpirationDate;
-                                await propertyChemical.Update(_backendConfigurationDbContext);
-                            }
+                            propertyChemical.ExpireDate = chemical.UseAndPossesionDeadline ?? chemical.AuthorisationExpirationDate;
+                            await propertyChemical.Update(_backendConfigurationDbContext);
 
                             if (propertyChemical.ExpireDate <= DateTime.UtcNow)
                             {
