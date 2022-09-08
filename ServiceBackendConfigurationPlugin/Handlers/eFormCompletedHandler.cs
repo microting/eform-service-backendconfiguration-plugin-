@@ -135,9 +135,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             var dbCase = await sdkDbContext.Cases
                 .AsNoTracking()
-                .SingleOrDefaultAsync(x => x.Id == message.CaseId) ??
+                .FirstOrDefaultAsync(x => x.Id == message.CaseId) ??
                          await sdkDbContext.Cases
-                             .SingleOrDefaultAsync(x => x.MicrotingCheckUid == message.CheckId);
+                             .FirstOrDefaultAsync(x => x.MicrotingCheckUid == message.CheckId);
             if (dbCase == null)
             {
                 Console.WriteLine("dbCase is null");
@@ -169,49 +169,52 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     .Include(x => x.Site)
                     .LastAsync();
 
-                var language = await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.Id == cls.Site.LanguageId) ??
-                               await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.LanguageCode == LocaleNames.Danish);
+                var language = await sdkDbContext.Languages.FirstOrDefaultAsync(x => x.Id == cls.Site.LanguageId) ??
+                               await sdkDbContext.Languages.FirstOrDefaultAsync(x => x.LanguageCode == LocaleNames.Danish);
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(language.LanguageCode);
 
                 var areaField =
-                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 1);
-                var areaFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
+                    await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 1);
+                var areaFieldValue = await sdkDbContext.FieldValues.FirstOrDefaultAsync(x => x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
 
                 var pictureField =
-                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 2);
+                    await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 2);
                 var pictureFieldValues = await sdkDbContext.FieldValues.Where(x => x.FieldId == pictureField.Id && x.CaseId == dbCase.Id).ToListAsync();
 
                 var commentField =
-                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 3);
-                var commentFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
+                    await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 3);
+                var commentFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
 
                 var assignToTexField =
-                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 4);
-                var assignedToFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == assignToTexField.Id && x.CaseId == dbCase.Id);
+                    await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 4);
+                var assignedToFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == assignToTexField.Id && x.CaseId == dbCase.Id);
 
                 var assignToSelectField =
-                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 5);
-                var assignedToSelectFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
+                    await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 5);
+                var assignedToSelectFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
 
-                var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == dbCase.SiteId);
+                var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == dbCase.SiteId);
                 var updatedByName = site.Name;
                 // var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
 
                 var areasGroup = await sdkDbContext.EntityGroups
-                    .SingleAsync(x => x.Id == property.EntitySelectListAreas);
+                    .FirstAsync(x => x.Id == property.EntitySelectListAreas);
                 var deviceUsersGroup = await sdkDbContext.EntityGroups
-                    .SingleAsync(x => x.Id == property.EntitySelectListDeviceUsers);
+                    .FirstAsync(x => x.Id == property.EntitySelectListDeviceUsers);
 
-                var assignedTo = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
+                var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
                 var areaName = "";
-                if (!string.IsNullOrEmpty(areaFieldValue.Value) && areaFieldValue.Value != "null")
+                if (areaFieldValue != null)
                 {
-                    var area = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaFieldValue.Value));
-                    areaName = area.Name;
-                    // workorderCase.EntityItemIdForArea = area.Id;
+                    if (!string.IsNullOrEmpty(areaFieldValue!.Value) && areaFieldValue!.Value != "null")
+                    {
+                        var area = await sdkDbContext.EntityItems.FirstAsync(x =>
+                            x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaFieldValue.Value));
+                        areaName = area.Name;
+                        // workorderCase.EntityItemIdForArea = area.Id;
+                    }
                 }
-
                 if (backendConfigurationPnDbContext.WorkorderCases.Any(x =>
                         x.ParentWorkorderCaseId == workorderCase.Id
                         && x.WorkflowState != Constants.WorkflowStates.Removed
@@ -245,18 +248,18 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 foreach (var pictureFieldValue in pictureFieldValues.Where(pictureFieldValue => pictureFieldValue.UploadedDataId != null))
                 {
                     var uploadedData =
-                        await sdkDbContext.UploadedDatas.SingleAsync(x => x.Id == pictureFieldValue.UploadedDataId);
+                        await sdkDbContext.UploadedDatas.FirstAsync(x => x.Id == pictureFieldValue.UploadedDataId);
                     var workOrderCaseImage = new WorkorderCaseImage
                     {
                         WorkorderCaseId = newWorkorderCase.Id,
-                        UploadedDataId = (int) pictureFieldValue.UploadedDataId
+                        UploadedDataId = (int) pictureFieldValue.UploadedDataId!
                     };
 
                     picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
                     await workOrderCaseImage.Create(backendConfigurationPnDbContext);
                 }
 
-                var hash = await GeneratePdf(picturesOfTasks, (int)cls.SiteId);
+                var hash = await GeneratePdf(picturesOfTasks, (int)cls.SiteId!);
 
                 var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
                             $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
@@ -306,33 +309,33 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     .Include(x => x.Site)
                     .LastAsync();
 
-                var language = await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.Id == cls.Site.LanguageId) ??
-                               await sdkDbContext.Languages.SingleOrDefaultAsync(x => x.LanguageCode == LocaleNames.Danish);
+                var language = await sdkDbContext.Languages.FirstOrDefaultAsync(x => x.Id == cls.Site.LanguageId) ??
+                               await sdkDbContext.Languages.FirstOrDefaultAsync(x => x.LanguageCode == LocaleNames.Danish);
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(language.LanguageCode);
 
                 // var fieldValues = await _sdkCore.Advanced_FieldValueReadList(new() { cls.Id }, language);
 
                 var deviceUsersGroup = await sdkDbContext.EntityGroups
-                    .SingleAsync(x => x.Id == property.EntitySelectListDeviceUsers);
+                    .FirstAsync(x => x.Id == property.EntitySelectListDeviceUsers);
 
                 var pictureField =
-                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 2);
+                    await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 2);
                 var pictureFieldValues = await sdkDbContext.FieldValues.Where(x => x.FieldId == pictureField.Id && x.CaseId == dbCase.Id).ToListAsync();
 
                 var commentField =
-                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 3);
-                var commentFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
+                    await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 3);
+                var commentFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
 
                 var assignToSelectField =
-                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 4);
-                var assignedToSelectFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
+                    await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 4);
+                var assignedToSelectFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
 
                 var statusField =
-                    await sdkDbContext.Fields.SingleAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 5);
-                var statusFieldValue = await sdkDbContext.FieldValues.SingleAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
+                    await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 5);
+                var statusFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
 
-                var assignedTo = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
+                var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
                 // var area = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaId));
                 var textStatus = statusFieldValue.Value == "1" ? Translations.Ongoing : Translations.Completed;
 
@@ -344,11 +347,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 {
                     if (pictureFieldValue.UploadedDataId != null)
                     {
-                        var uploadedData = await sdkDbContext.UploadedDatas.SingleOrDefaultAsync(x => x.Id == pictureFieldValue.UploadedDataId);
+                        var uploadedData = await sdkDbContext.UploadedDatas.FirstAsync(x => x.Id == pictureFieldValue.UploadedDataId);
                         var workOrderCaseImage = new WorkorderCaseImage
                         {
                             WorkorderCaseId = workorderCase.Id,
-                            UploadedDataId = (int) pictureFieldValue.UploadedDataId
+                            UploadedDataId = (int) pictureFieldValue.UploadedDataId!
                         };
 
                         picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
@@ -359,7 +362,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 foreach (var workorderCaseImage in parentCaseImages)
                 {
-                    var uploadedData = await sdkDbContext.UploadedDatas.SingleAsync(x => x.Id == workorderCaseImage.UploadedDataId);
+                    var uploadedData = await sdkDbContext.UploadedDatas.FirstAsync(x => x.Id == workorderCaseImage.UploadedDataId);
                     picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
                     var workOrderCaseImage = new WorkorderCaseImage
                     {
