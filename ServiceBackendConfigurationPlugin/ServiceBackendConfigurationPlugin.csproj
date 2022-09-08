@@ -11,19 +11,19 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ChemicalsBase" Version="1.0.7" />
+    <PackageReference Include="ChemicalsBase" Version="1.0.9" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="2.17.1" />
     <PackageReference Include="Magick.NET-Q16-x64" Version="12.1.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="6.0.0" />
-    <PackageReference Include="Microting.eForm" Version="5.5.54" />
-    <PackageReference Include="Microting.EformAngularFrontendBase" Version="1.2.25" />
-    <PackageReference Include="Microting.EformBackendConfigurationBase" Version="1.1.63" />
+    <PackageReference Include="Microting.eForm" Version="5.5.58" />
+    <PackageReference Include="Microting.EformAngularFrontendBase" Version="1.2.28" />
+    <PackageReference Include="Microting.EformBackendConfigurationBase" Version="1.1.69" />
     <PackageReference Include="Microting.HtmlToOpenXml.dll" Version="2.3.1" />
-    <PackageReference Include="Microting.ItemsPlanningBase" Version="3.0.146" />
+    <PackageReference Include="Microting.ItemsPlanningBase" Version="3.0.149" />
     <PackageReference Include="Microting.WindowsService.BasePn" Version="2.0.0" />
     <PackageReference Include="SendGrid" Version="9.28.1" />
     <PackageReference Include="System.ComponentModel.Composition" Version="6.0.0" />
-    <PackageReference Include="Microting.eFormApi.BasePn" Version="3.1.83" />
+    <PackageReference Include="Microting.eFormApi.BasePn" Version="3.1.86" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Resources\Translations.Designer.cs">

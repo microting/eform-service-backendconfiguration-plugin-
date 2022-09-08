@@ -92,131 +92,138 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
 
             if (DateTime.UtcNow.Hour == 4)
             {
-                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
-                var url = "https://chemicalbase.microting.com/get-all-chemicals";
-                var client = new HttpClient();
-                var response = await client.GetAsync(url).ConfigureAwait(false);
-                var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                JsonSerializerOptions options = new JsonSerializerOptions
+                try
                 {
-                    PropertyNameCaseInsensitive = true,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-                };
-                List<Chemical> chemicals = JsonSerializer.Deserialize<List<Chemical>>(result, options);
+                    Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
+                    var url = "https://chemicalbase.microting.com/get-all-chemicals";
+                    var client = new HttpClient();
+                    var response = await client.GetAsync(url).ConfigureAwait(false);
+                    var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                if (chemicals != null)
-                {
-                    int count = chemicals.Count;
-                    int i = 0;
-                    // var parallelOptions = new ParallelOptions()
-                    // {
-                    //     MaxDegreeOfParallelism = 20
-                    // };
-                    var chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
-                    foreach (var chemical in chemicals)
+                    JsonSerializerOptions options = new JsonSerializerOptions
                     {
-                        var c = await chemicalsDbContext.Chemicals
-                            .Include(x => x.Products)
-                            .FirstOrDefaultAsync(x => x.RemoteId == chemical.RemoteId);
-                        if (c != null)
-                        {
-                            Console.WriteLine(
-                                $"Chemical already exist, so updating : {chemical.Name} no {i} of {count}");
-                            c.Use = chemical.Use;
-                            c.Verified = chemical.Verified;
-                            c.AuthorisationDate = chemical.AuthorisationDate;
-                            c.AuthorisationExpirationDate = chemical.AuthorisationExpirationDate;
-                            c.AuthorisationTerminationDate = chemical.AuthorisationTerminationDate;
-                            c.UseAndPossesionDeadline = chemical.UseAndPossesionDeadline;
-                            c.PossessionDeadline = chemical.PossessionDeadline;
-                            c.SalesDeadline = chemical.SalesDeadline;
-                            c.Status = chemical.Status;
-                            c.PesticideUser = chemical.PesticideUser;
-                            c.FormulationType = chemical.FormulationType;
-                            c.FormulationSubType = chemical.FormulationSubType;
-                            c.BiocideAuthorisationType = chemical.BiocideAuthorisationType;
-                            c.PesticidePossibleUse = chemical.PesticidePossibleUse;
-                            c.PesticideProductGroup = chemical.PesticideProductGroup;
-                            c.BiocidePossibleUse = chemical.BiocidePossibleUse;
-                            c.BiocideSpecialUse = chemical.BiocideSpecialUse;
-                            c.BiocideUser = chemical.BiocideUser;
-                            c.PestControlType = chemical.PestControlType;
-                            // chemical.Id = c.Id;
-                            if (!chemicalsDbContext.AuthorisationHolders.Any(x =>
-                                    x.RemoteId == chemical.AuthorisationHolder.RemoteId))
-                            {
-                                var ah = new AuthorisationHolder
-                                {
-                                    RemoteId = chemical.AuthorisationHolder.RemoteId,
-                                    Name = chemical.AuthorisationHolder.Name,
-                                    Address = chemical.AuthorisationHolder.Address
-                                };
-                                await ah.Create(chemicalsDbContext).ConfigureAwait(false);
-                                c.AuthorisationHolderId = ah.Id;
-                            }
-                            else
-                            {
-                                c.AuthorisationHolderId = chemicalsDbContext.AuthorisationHolders.First(x =>
-                                    x.RemoteId == chemical.AuthorisationHolder.RemoteId).Id;
-                            }
+                        PropertyNameCaseInsensitive = true,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+                    };
+                    List<Chemical> chemicals = JsonSerializer.Deserialize<List<Chemical>>(result, options);
 
-                            if (chemical.Products.Count != c.Products.Count)
+                    if (chemicals != null)
+                    {
+                        int count = chemicals.Count;
+                        int i = 0;
+                        // var parallelOptions = new ParallelOptions()
+                        // {
+                        //     MaxDegreeOfParallelism = 20
+                        // };
+                        var chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
+                        foreach (var chemical in chemicals)
+                        {
+                            var c = await chemicalsDbContext.Chemicals
+                                .Include(x => x.Products)
+                                .FirstOrDefaultAsync(x => x.RemoteId == chemical.RemoteId);
+                            if (c != null)
                             {
-                                foreach (var chemicalProduct in chemical.Products)
+                                Console.WriteLine(
+                                    $"Chemical already exist, so updating : {chemical.Name} no {i} of {count}");
+                                c.Use = chemical.Use;
+                                c.Verified = chemical.Verified;
+                                c.AuthorisationDate = chemical.AuthorisationDate;
+                                c.AuthorisationExpirationDate = chemical.AuthorisationExpirationDate;
+                                c.AuthorisationTerminationDate = chemical.AuthorisationTerminationDate;
+                                c.UseAndPossesionDeadline = chemical.UseAndPossesionDeadline;
+                                c.PossessionDeadline = chemical.PossessionDeadline;
+                                c.SalesDeadline = chemical.SalesDeadline;
+                                c.Status = chemical.Status;
+                                c.PesticideUser = chemical.PesticideUser;
+                                c.FormulationType = chemical.FormulationType;
+                                c.FormulationSubType = chemical.FormulationSubType;
+                                c.BiocideAuthorisationType = chemical.BiocideAuthorisationType;
+                                c.PesticidePossibleUse = chemical.PesticidePossibleUse;
+                                c.PesticideProductGroup = chemical.PesticideProductGroup;
+                                c.BiocidePossibleUse = chemical.BiocidePossibleUse;
+                                c.BiocideSpecialUse = chemical.BiocideSpecialUse;
+                                c.BiocideUser = chemical.BiocideUser;
+                                c.PestControlType = chemical.PestControlType;
+                                // chemical.Id = c.Id;
+                                if (!chemicalsDbContext.AuthorisationHolders.Any(x =>
+                                        x.RemoteId == chemical.AuthorisationHolder.RemoteId))
                                 {
-                                    var dbProduct = await chemicalsDbContext.Products.FirstOrDefaultAsync(x =>
-                                        x.ChemicalId == c.Id && x.FileName == chemicalProduct.FileName);
-                                    if (dbProduct == null)
+                                    var ah = new AuthorisationHolder
                                     {
-                                        dbProduct = new Product()
-                                        {
-                                            FileName = chemicalProduct.FileName,
-                                            Barcode = chemicalProduct.Barcode,
-                                            ChemicalId = c.Id,
-                                            Checksum = ""
-                                        };
-                                        await dbProduct.Create(chemicalsDbContext);
-                                    }
-                                    else
-                                    {
-                                        dbProduct.Barcode = chemicalProduct.Barcode;
-                                        dbProduct.Name = chemicalProduct.Name;
-                                        dbProduct.Checksum = chemicalProduct.Checksum;
-                                        await dbProduct.Update(chemicalsDbContext);
-                                    }
+                                        RemoteId = chemical.AuthorisationHolder.RemoteId,
+                                        Name = chemical.AuthorisationHolder.Name,
+                                        Address = chemical.AuthorisationHolder.Address
+                                    };
+                                    await ah.Create(chemicalsDbContext).ConfigureAwait(false);
+                                    c.AuthorisationHolderId = ah.Id;
                                 }
-                            }
-                            else
-                            {
-                                foreach (var cProduct in c.Products)
+                                else
                                 {
-                                    var dbProduct = await chemicalsDbContext.Products.FirstAsync(x => x.Id == cProduct.Id);
+                                    c.AuthorisationHolderId = chemicalsDbContext.AuthorisationHolders.First(x =>
+                                        x.RemoteId == chemical.AuthorisationHolder.RemoteId).Id;
+                                }
+
+                                if (chemical.Products.Count != c.Products.Count)
+                                {
                                     foreach (var chemicalProduct in chemical.Products)
                                     {
-                                        if (chemicalProduct.Name == cProduct.Name)
+                                        var dbProduct = await chemicalsDbContext.Products.FirstOrDefaultAsync(x =>
+                                            x.ChemicalId == c.Id && x.FileName == chemicalProduct.FileName);
+                                        if (dbProduct == null)
                                         {
-                                            dbProduct.FileName = chemicalProduct.FileName;
+                                            dbProduct = new Product()
+                                            {
+                                                FileName = chemicalProduct.FileName,
+                                                Barcode = chemicalProduct.Barcode,
+                                                ChemicalId = c.Id,
+                                                Checksum = ""
+                                            };
+                                            await dbProduct.Create(chemicalsDbContext);
+                                        }
+                                        else
+                                        {
                                             dbProduct.Barcode = chemicalProduct.Barcode;
+                                            dbProduct.Name = chemicalProduct.Name;
+                                            dbProduct.Checksum = chemicalProduct.Checksum;
                                             await dbProduct.Update(chemicalsDbContext);
                                         }
                                     }
                                 }
+                                else
+                                {
+                                    foreach (var cProduct in c.Products)
+                                    {
+                                        var dbProduct = await chemicalsDbContext.Products.FirstAsync(x => x.Id == cProduct.Id);
+                                        foreach (var chemicalProduct in chemical.Products)
+                                        {
+                                            if (chemicalProduct.Name == cProduct.Name)
+                                            {
+                                                dbProduct.FileName = chemicalProduct.FileName;
+                                                dbProduct.Barcode = chemicalProduct.Barcode;
+                                                await dbProduct.Update(chemicalsDbContext);
+                                            }
+                                        }
+                                    }
+                                }
+
+
+
+                                await c.Update(chemicalsDbContext).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                Console.WriteLine(
+                                    $"Chemical does not exist, so creating : {chemical.Name} no {i} of {count}");
+                                await chemical.Create(chemicalsDbContext).ConfigureAwait(false);
                             }
 
-
-
-                            await c.Update(chemicalsDbContext).ConfigureAwait(false);
+                            i++;
                         }
-                        else
-                        {
-                            Console.WriteLine(
-                                $"Chemical does not exist, so creating : {chemical.Name} no {i} of {count}");
-                            await chemical.Create(chemicalsDbContext).ConfigureAwait(false);
-                        }
-
-                        i++;
                     }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
                 }
             }
 
@@ -294,17 +301,9 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 var properties = await _backendConfigurationDbContext.Properties
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
 
-                // var options = new ParallelOptions
-                // {
-                //     MaxDegreeOfParallelism = 20
-                // };
-
                 var chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
 
-                // var backendDbContext = _backendConfigurationDbContextHelper.GetDbContext();
-                // var itemsPlanningDbContext = _itemsPlanningDbContextHelper.GetDbContext();
                 foreach (var property in properties)
-                    // await Parallel.ForEachAsync(properties, options, async (property, ct) =>
                 {
 
                     var propertyChemicals = await _backendConfigurationDbContext.ChemicalProductProperties
@@ -324,58 +323,39 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 .Include(x=> x.Products)
                                 .FirstAsync(x => x.Id == propertyChemical.ChemicalId);
 
-                        // var propertyChemical =
-                        //     await backendDbContext.ChemicalProductProperties.FirstOrDefaultAsync(
-                        //         x => x.PropertyId == property.Id
-                        //              && x.ChemicalId == chemical.Id
-                        //              && x.WorkflowState != Constants.WorkflowStates.Removed, ct);
                         if (propertyChemical != null)
                         {
-                            string folderLookUpName = "25.02 Mine kemiprodukter";
+                            string folderLookUpName = "25.07 Udløber om mere end 12 mdr.";
                             bool moveChemical = false;
-                            if (chemical.UseAndPossesionDeadline != null)
+                            propertyChemical.ExpireDate = chemical.UseAndPossesionDeadline ?? chemical.AuthorisationExpirationDate;
+                            await propertyChemical.Update(_backendConfigurationDbContext);
+
+                            if (propertyChemical.ExpireDate <= DateTime.UtcNow)
                             {
-                                if (chemical.UseAndPossesionDeadline <= DateTime.UtcNow)
-                                {
-                                    folderLookUpName = "25.04 Udløber i dag eller er udløbet";
-                                    moveChemical = ((DateTime) chemical.UseAndPossesionDeadline - DateTime.UtcNow)
-                                        .Days == 0;
-                                }
-                                else
-                                {
-                                    if (chemical.UseAndPossesionDeadline <= DateTime.UtcNow.AddDays(14))
-                                    {
-                                        var foo = ((DateTime) chemical.UseAndPossesionDeadline -
-                                                   DateTime.UtcNow.AddDays(14)).Days;
-                                        moveChemical =
-                                            ((DateTime) chemical.UseAndPossesionDeadline -
-                                             DateTime.UtcNow.AddDays(14)).Days == 0;
-                                        folderLookUpName = "25.03 Udløber om senest 14 dage";
-                                    }
-                                }
+                                folderLookUpName = "25.02 Udløber i dag eller er udløbet";
                             }
-                            else
+                            else if (propertyChemical.ExpireDate <= DateTime.UtcNow.AddMonths(1))
                             {
-                                if (chemical.AuthorisationExpirationDate <= DateTime.UtcNow)
-                                {
-                                    moveChemical = ((DateTime) chemical.AuthorisationExpirationDate - DateTime.UtcNow)
-                                        .Days == 0;
-                                    folderLookUpName = "25.04 Udløber i dag eller er udløbet";
-                                }
-                                else
-                                {
-                                    if (chemical.AuthorisationExpirationDate <= DateTime.UtcNow.AddDays(14))
-                                    {
-                                        moveChemical =
-                                            ((DateTime) chemical.AuthorisationExpirationDate -
-                                             DateTime.UtcNow.AddDays(14)).Days == 0;
-                                        folderLookUpName = "25.03 Udløber om senest 14 dage";
-                                    }
-                                }
+                                folderLookUpName = "25.03 Udløber om senest 1 mdr.";
+                            }
+                            else if (propertyChemical.ExpireDate <= DateTime.UtcNow.AddMonths(3))
+                            {
+                                folderLookUpName = "25.04 Udløber om senest 3 mdr.";
+                            } else if (propertyChemical.ExpireDate <= DateTime.UtcNow.AddMonths(6))
+                            {
+                                folderLookUpName = "25.05 Udløber om senest 6 mdr.";
+                            } else if (propertyChemical.ExpireDate <= DateTime.UtcNow.AddMonths(12))
+                            {
+                                folderLookUpName = "25.06 Udløber om senest 12 mdr.";
                             }
 
-                            // Chemical should be moved
-                            // moveChemical = true;
+                            if (propertyChemical.LastFolderName != folderLookUpName)
+                            {
+                                moveChemical = true;
+                                propertyChemical.LastFolderName = folderLookUpName;
+                                await propertyChemical.Update(_backendConfigurationDbContext);
+                            }
+
                             if (moveChemical)
                             {
                                 Console.WriteLine(
@@ -543,15 +523,10 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                         var site = await
                                             _sdkDbContext.Sites.SingleOrDefaultAsync(x =>
                                                 x.Id == propertyWorker.WorkerId);
-                                        var list = ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]
-                                            .DataItemList;
-                                        list.RemoveAt(0);
-                                        list.RemoveAt(0);
                                         var siteCaseId = await _core.CaseCreate(mainElement, "",
                                             (int) site!.MicrotingUid!,
                                             folder.Id);
-                                        // var siteDbCaseId =
-                                        //     await sdkDbContext.Cases.SingleAsync(x => x.MicrotingUid == siteCaseId);
+
                                         var chemicalProductPropertySite = new ChemicalProductPropertySite()
                                         {
                                             ChemicalId = chemical.Id,
@@ -637,7 +612,6 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     var sendGridKey =
                         _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
 
-                    var sendGridClient = new SendGridClient(sendGridKey.Value);
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
                         $"KemiKontrol for : {property.Name}");
                     var toEmailAddress = new List<EmailAddress>();
@@ -645,8 +619,9 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     {
                         toEmailAddress.AddRange(property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
                     }
-                    if (toEmailAddress.Count > 0)
+                    if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
                     {
+                        var sendGridClient = new SendGridClient(sendGridKey.Value);
                         var assembly = Assembly.GetExecutingAssembly();
                         var assemblyName = assembly.GetName().Name;
 
@@ -670,7 +645,10 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         var chemicals = await _backendConfigurationDbContext.ChemicalProductProperties.Where(x =>
                             x.WorkflowState != Constants.WorkflowStates.Removed && x.PropertyId == property.Id).OrderBy(x => x.ExpireDate).ToListAsync();
                         var expiredProducts = new List<ChemicalProductProperty>();
-                        var expiringIn14Days = new List<ChemicalProductProperty>();
+                        var expiringIn1Month = new List<ChemicalProductProperty>();
+                        var expiringIn3Months = new List<ChemicalProductProperty>();
+                        var expiringIn6Months = new List<ChemicalProductProperty>();
+                        var expiringIn12Months = new List<ChemicalProductProperty>();
                         var otherProducts = new List<ChemicalProductProperty>();
 
                         foreach (ChemicalProductProperty chemicalProductProperty in chemicals)
@@ -681,23 +659,41 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                             {
                                 expiredProducts.Add(chemicalProductProperty);
                             }
-                            else if (expireDate < DateTime.Now.AddDays(14))
+                            else if (expireDate < DateTime.Now.AddMonths(1))
                             {
-                                expiringIn14Days.Add(chemicalProductProperty);
+                                expiringIn1Month.Add(chemicalProductProperty);
+                            }
+                            else if (expireDate < DateTime.Now.AddMonths(3))
+                            {
+                                expiringIn3Months.Add(chemicalProductProperty);
+                            }
+                            else if (expireDate < DateTime.Now.AddMonths(6))
+                            {
+                                expiringIn6Months.Add(chemicalProductProperty);
+                            }
+                            else if (expireDate < DateTime.Now.AddMonths(12))
+                            {
+                                expiringIn12Months.Add(chemicalProductProperty);
                             }
                             else
                             {
                                 otherProducts.Add(chemicalProductProperty);
                             }
                         }
-                        if ((expiringIn14Days.Count > 0 && DateTime.Now.DayOfWeek == DayOfWeek.Thursday) || expiredProducts.Count > 0 ||
+                        if ((expiringIn1Month.Count > 0 && DateTime.Now.DayOfWeek == DayOfWeek.Thursday) || expiredProducts.Count > 0 ||
                             (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && DateTime.Now.Day < 8))
                         {
 
                             newHtml = newHtml.Replace("{{expiredProducts}}",
                                 await GenerateProductList(expiredProducts, property, chemicalsDbContext));
-                            newHtml = newHtml.Replace("{{expiringIn14Days}}",
-                                await GenerateProductList(expiringIn14Days, property, chemicalsDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn1Month}}",
+                                await GenerateProductList(expiringIn1Month, property, chemicalsDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn3Months}}",
+                                await GenerateProductList(expiringIn3Months, property, chemicalsDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn6Months}}",
+                                await GenerateProductList(expiringIn6Months, property, chemicalsDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn12Months}}",
+                                await GenerateProductList(expiringIn12Months, property, chemicalsDbContext));
                             newHtml = newHtml.Replace("{{otherProducts}}",
                                 await GenerateProductList(otherProducts, property, chemicalsDbContext));
 
@@ -959,25 +955,36 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 "Bekræft produkt fjernet";
             if (product != null)
             {
-                using var webClient = new HttpClient();
-
-                await using (var s = await webClient.GetStreamAsync($"https://chemicalbase.microting.com/api/chemicals-pn/get-pdf-file?fileName={product.FileName}"))
+                if (!string.IsNullOrEmpty(product.FileName))
                 {
-                    File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
-                    await using (var fs = new FileStream(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"), FileMode.CreateNew))
+                    using var webClient = new HttpClient();
+
+                    await using (var s = await webClient.GetStreamAsync(
+                                     $"https://chemicalbase.microting.com/api/chemicals-pn/get-pdf-file?fileName={product.FileName}"))
                     {
-                        await s.CopyToAsync(fs);
+                        File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
+                        await using (var fs = new FileStream(
+                                         Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
+                                         FileMode.CreateNew))
+                        {
+                            await s.CopyToAsync(fs);
+                        }
                     }
+
+                    var pdfId = await _core.PdfUpload(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
+
+                    await _core.PutFileToStorageSystem(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
+                        $"{product.FileName}.pdf");
+                    File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
+
+                    ((ShowPdf)((DataElement)mainElement.ElementList[0]).DataItemList[1]).Value = pdfId;
+                    ((DataElement)mainElement.ElementList[0]).DataItemList.RemoveAt(2);
                 }
-
-                var pdfId = await _core.PdfUpload(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
-
-                await _core.PutFileToStorageSystem(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
-                    $"{product.FileName}.pdf");
-                File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
-
-                ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfId;
-                ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(2);
+                else
+                {
+                    ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
+                    ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
+                }
             }
             else
             {
@@ -1080,7 +1087,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
         private async Task<string> GenerateProductList(List<ChemicalProductProperty> chemicalProductProperties, Property property, ChemicalsDbContext dbContext)
         {
             string result = "";
-            foreach (var chemicalProductProperty in chemicalProductProperties)
+            foreach (var chemicalProductProperty in chemicalProductProperties.OrderBy(x => x.ExpireDate))
             {
                 var chemical = await dbContext.Chemicals
                     .Include(x => x.AuthorisationHolder)
