@@ -336,10 +336,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var statusFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
 
                 var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
-                // var area = await sdkDbContext.EntityItems.SingleAsync(x => x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaId));
+                // var area = await sdkDbContext.EntityItems.FirstAsync(x => x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaId));
                 var textStatus = statusFieldValue.Value == "1" ? Translations.Ongoing : Translations.Completed;
 
-                var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == dbCase.SiteId);
+                var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == dbCase.SiteId);
                 var updatedByName = site.Name;
 
                 var picturesOfTasks = new List<string>();
@@ -427,19 +427,19 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             {
                 var planningCaseSite =
                     await itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking()
-                        .SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == dbCase.Id);
+                        .FirstOrDefaultAsync(x => x.MicrotingSdkCaseId == dbCase.Id);
 
                 if (planningCaseSite == null)
                 {
-                    // var site = await sdkDbContext.Sites.SingleOrDefaultAsync(x => x.MicrotingUid == caseDto.SiteUId);
-                    var checkListSite = await sdkDbContext.CheckListSites.AsNoTracking().SingleOrDefaultAsync(x =>
+                    // var site = await sdkDbContext.Sites.FirstOrDefaultAsync(x => x.MicrotingUid == caseDto.SiteUId);
+                    var checkListSite = await sdkDbContext.CheckListSites.AsNoTracking().FirstOrDefaultAsync(x =>
                         x.MicrotingUid == message.MicrotingUId).ConfigureAwait(false);
                     if (checkListSite == null)
                     {
                         return;
                     }
                     planningCaseSite =
-                        await itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking().SingleOrDefaultAsync(x =>
+                        await itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking().FirstOrDefaultAsync(x =>
                             x.MicrotingCheckListSitId == checkListSite.Id).ConfigureAwait(false);
                 }
 
@@ -451,12 +451,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 var planning =
                     await itemsPlanningPnDbContext.Plannings.AsNoTracking()
-                        .SingleAsync(x => x.Id == planningCaseSite.PlanningId);
+                        .FirstAsync(x => x.Id == planningCaseSite.PlanningId);
 
                 if (planning.RepeatType == RepeatType.Day && planning.RepeatEvery == 0)
                 {
                     var areaRulePlanning = await
-                        backendConfigurationPnDbContext.AreaRulePlannings.SingleOrDefaultAsync(x =>
+                        backendConfigurationPnDbContext.AreaRulePlannings.FirstOrDefaultAsync(x =>
                             x.ItemPlanningId == planning.Id);
                     var checkListTranslation = await sdkDbContext.CheckListTranslations.FirstAsync(x =>
                         x.Text == "25.01 Registrer produkter" && x.WorkflowState != Constants.WorkflowStates.Removed);
@@ -466,16 +466,16 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             .Include(x => x.Area)
                             .Include(x => x.Property)
                             .Include(x => x.AreaRuleTranslations)
-                            .SingleAsync();
+                            .FirstAsync();
                     var planningSites = await itemsPlanningPnDbContext.PlanningSites
                         .Where(x => x.PlanningId == planning.Id).ToListAsync();
 
-                    var sdkSite = await sdkDbContext.Sites.SingleAsync(x => x.Id == planningSites.First().SiteId);
-                    var language = await sdkDbContext.Languages.SingleAsync(x => x.Id == sdkSite.LanguageId);
+                    var sdkSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == planningSites.First().SiteId);
+                    var language = await sdkDbContext.Languages.FirstAsync(x => x.Id == sdkSite.LanguageId);
                     var caseIds = new List<int>() {dbCase.Id};
                     var fieldValues = await _sdkCore.Advanced_FieldValueReadList(caseIds, language);
                     var chemicalDbContext = _chemicalDbContextHelper.GetDbContext();
-                    var folder = await sdkDbContext.Folders.SingleAsync(x => x.Id == areaRule.FolderId);
+                    var folder = await sdkDbContext.Folders.FirstAsync(x => x.Id == areaRule.FolderId);
                     if (planningCaseSite.MicrotingSdkeFormId == checkListTranslation.CheckListId)
                     {
                         List<string> entityIds = fieldValues.Where(x=> x.Value != "null" && x.Value != null && x.FieldType == Constants.FieldTypes.EntitySearch).Select(x => x.Value).ToList();
@@ -494,7 +494,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                         foreach (string entityId in entityIds)
                         {
-                            var entityItem = await sdkDbContext.EntityItems.SingleAsync(x => x.Id == int.Parse(entityId));
+                            var entityItem = await sdkDbContext.EntityItems.FirstAsync(x => x.Id == int.Parse(entityId));
                             Chemical chemical = null;
                             Product product = null;
                             if (entityItem.Name.Contains("-"))
@@ -508,7 +508,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         .Include(x=> x.AuthorisationHolder)
                                         .Include(x=> x.AuthorisationHolder.Address)
                                         // .Include(x=> x.ClassificationAndLabeling.DPD.RiskPhrases)
-                                        .SingleAsync(x => x.RegistrationNo == entityItem.Name);
+                                        .FirstAsync(x => x.RegistrationNo == entityItem.Name);
                                 product = await chemicalDbContext.Products.FirstOrDefaultAsync(x =>
                                     x.ChemicalId == chemical.Id);
                                 // chemicals.Add(chemical);
@@ -524,7 +524,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     .Include(x=> x.ClassificationAndLabeling.CLP.HazardStatements)
                                     .Include(x=> x.ClassificationAndLabeling.DPD)
                                     // .Include(x=> x.ClassificationAndLabeling.DPD.RiskPhrases)
-                                    .SingleAsync(x => x.Id == product.ChemicalId);
+                                    .FirstAsync(x => x.Id == product.ChemicalId);
                                 // chemicals.Add(chemical);
                             }
 
@@ -662,7 +662,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     if (propertyWorker.WorkerId != sdkSite.Id)
                                     {
                                         var site = await
-                                            sdkDbContext.Sites.SingleOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
+                                            sdkDbContext.Sites.FirstOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
                                         if (i == 0)
                                         {
                                             var list = ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1]
@@ -673,7 +673,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
                                             folder.Id);
                                         // var siteDbCaseId =
-                                        //     await sdkDbContext.Cases.SingleAsync(x => x.MicrotingUid == siteCaseId);
+                                        //     await sdkDbContext.Cases.FirstAsync(x => x.MicrotingUid == siteCaseId);
                                         var chemicalProductPropertySite = new ChemicalProductPropertySite()
                                         {
                                             ChemicalId = chemical.Id,
@@ -772,9 +772,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             if (fieldValues.Any(x =>
                                     x.FieldType == Constants.FieldTypes.CheckBox && x.Value == "checked"))
                             {
-                                var indexesToRemove = fieldValues.Single(x => x.FieldId == 0).Value.Split("|").ToList();
+                                var indexesToRemove = fieldValues.First(x => x.FieldId == 0).Value.Split("|").ToList();
                                 var cpp = await backendConfigurationPnDbContext.ChemicalProductProperties
-                                    .SingleAsync(x =>
+                                    .FirstAsync(x =>
                                         x.SdkCaseId == dbCase.MicrotingUid);
                                 var currentLocations = cpp.Locations.Split("|").ToList();
                                 var locationsToBeRemoved = new List<string>();
@@ -826,7 +826,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         .Include(x=> x.AuthorisationHolder)
                                         .Include(x=> x.AuthorisationHolder.Address)
                                         // .Include(x=> x.ClassificationAndLabeling.DPD.RiskPhrases)
-                                        .SingleAsync(x => x.Id == cpp.ChemicalId);
+                                        .FirstAsync(x => x.Id == cpp.ChemicalId);
                                     var product = await chemicalDbContext.Products.FirstOrDefaultAsync(x =>
                                         x.ChemicalId == chemical.Id);
                                     var productName = chemical.Name;
@@ -905,7 +905,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     if (propertyWorker.WorkerId != sdkSite.Id)
                                     {
                                         var site = await
-                                            sdkDbContext.Sites.SingleOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
+                                            sdkDbContext.Sites.FirstOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
                                         var list = ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1].DataItemList;
                                         list.RemoveAt(0);
                                         list.RemoveAt(0);
@@ -914,7 +914,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
                                             folder.Id);
                                         // var siteDbCaseId =
-                                        //     await sdkDbContext.Cases.SingleAsync(x => x.MicrotingUid == siteCaseId);
+                                        //     await sdkDbContext.Cases.FirstAsync(x => x.MicrotingUid == siteCaseId);
                                         var chemicalProductPropertySite = new ChemicalProductPropertySite()
                                         {
                                             ChemicalId = chemical.Id,
@@ -1006,19 +1006,19 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     if (planning.RepeatType == RepeatType.Week && planning.RepeatEvery == 1)
                     {
                         var poolHour = await
-                            backendConfigurationPnDbContext.PoolHours.SingleOrDefaultAsync(x =>
+                            backendConfigurationPnDbContext.PoolHours.FirstOrDefaultAsync(x =>
                                 x.ItemsPlanningId == planning.Id);
                         if (poolHour != null)
                         {
                             var poolPlanningCaseSite =
-                                await itemsPlanningPnDbContext.PlanningCaseSites.SingleOrDefaultAsync(x =>
+                                await itemsPlanningPnDbContext.PlanningCaseSites.FirstOrDefaultAsync(x =>
                                     x.MicrotingSdkCaseId == dbCase.Id);
                             var theDate = new DateTime(dbCase.CreatedAt.Value.Year, dbCase.CreatedAt.Value.Month,
                                 poolPlanningCaseSite.CreatedAt.Day, poolHour.Index, 0, 0);
                             var historyDate = new DateTime(dbCase.CreatedAt.Value.Year, dbCase.CreatedAt.Value.Month,
                                 poolPlanningCaseSite.CreatedAt.Day, 0, 0, 0);
                             var poolHourResult =
-                                await backendConfigurationPnDbContext.PoolHourResults.SingleOrDefaultAsync(x =>
+                                await backendConfigurationPnDbContext.PoolHourResults.FirstOrDefaultAsync(x =>
                                     x.PoolHourId == poolHour.Id && x.Date == theDate);
 
                             var checkList = await sdkDbContext.CheckListTranslations.FirstOrDefaultAsync(x =>
@@ -1028,91 +1028,91 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 await backendConfigurationPnDbContext.AreaRules.Where(x =>
                                     x.Id == poolHour.AreaRuleId)
                                     .Include(x => x.AreaRuleTranslations)
-                                    .SingleOrDefaultAsync();
+                                    .FirstOrDefaultAsync();
 
                             if (poolHourResult == null)
                             {
 
                                 var areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 0);
-                                var pulseFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
+                                var pulseFieldValue = await sdkDbContext.FieldValues.FirstAsync(x =>
                                     x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 1);
-                                var phFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
+                                var phFieldValue = await sdkDbContext.FieldValues.FirstAsync(x =>
                                     x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 2);
                                 var freeClorideFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 3);
-                                var tempFieldValue = await sdkDbContext.FieldValues.SingleAsync(x =>
+                                var tempFieldValue = await sdkDbContext.FieldValues.FirstAsync(x =>
                                     x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 4);
                                 var numberOfGuestsFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 5);
                                 var clarityFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 6);
                                 var measuredFreeClorideFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 7);
                                 var totalClorideFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 8);
                                 var boundClorideFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 9);
                                 var measuredPhFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 10);
                                 var receiptFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 11);
                                 var measuredTempFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 12);
                                 var commentFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
                                 areaField =
-                                    await sdkDbContext.Fields.SingleAsync(x =>
+                                    await sdkDbContext.Fields.FirstAsync(x =>
                                         x.CheckListId == planning.RelatedEFormId + 1 && x.DisplayIndex == 13);
                                 var doneByFieldValue =
-                                    await sdkDbContext.FieldValues.SingleAsync(x =>
+                                    await sdkDbContext.FieldValues.FirstAsync(x =>
                                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
 
                                 poolHourResult = new PoolHourResult()
@@ -1176,10 +1176,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         .Where(x => x.AreaRuleId == poolHour.AreaRuleId)
                                         .Where(x => x.SiteId == planningSite.SiteId)
                                         .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-                                        .Where(x => x.Date == historyDate).SingleOrDefaultAsync();
+                                        .Where(x => x.Date == historyDate).FirstOrDefaultAsync();
 
-                                    var sdkSite = await sdkDbContext.Sites.SingleAsync(x => x.Id == planningSite.SiteId);
-                                    var language = await sdkDbContext.Languages.SingleAsync(x => x.Id == sdkSite.LanguageId);
+                                    var sdkSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == planningSite.SiteId);
+                                    var language = await sdkDbContext.Languages.FirstAsync(x => x.Id == sdkSite.LanguageId);
                                     var mainElement = await _sdkCore.ReadeForm(checkList.CheckListId, language);
                                     mainElement.Repeated = 0;
                                     mainElement.CheckListFolderName = poolDayFolder.MicrotingUid.ToString();
@@ -1217,7 +1217,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                                         localTime = TimeZoneInfo.ConvertTimeFromUtc(hourResult.DoneAt, timeZoneInfo);
                                         var selectedPoolHour =
-                                            await backendConfigurationPnDbContext.PoolHours.SingleAsync(x =>
+                                            await backendConfigurationPnDbContext.PoolHours.FirstAsync(x =>
                                                 x.Id == hourResult.PoolHourId);
                                         header.Append($"<strong>{selectedPoolHour.Name}:00 {regex.Replace($"{poolDayFolder.FolderTranslations.Where(x => x.LanguageId == language.Id).Select(x => x.Name).First()} - {areaRule.AreaRuleTranslations.First().Name}", "")}</strong>");
                                         header.Append($"<br>Dato: {localTime:dd-MM-yyyy}<br>");
@@ -1276,12 +1276,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             Thread.Sleep(1000);
                             Console.WriteLine($"Waiting for case {planningCaseSite.Id} to be completed");
                             planningCaseSite = itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking()
-                                .Single(x => x.Id == planningCaseSite.Id);
+                                .First(x => x.Id == planningCaseSite.Id);
                             if (planningCaseSite.Status == 100)
                             {
                                 planningCaseSite =
                                     itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking()
-                                        .Single(x => x.Id == planningCaseSite.Id);
+                                        .First(x => x.Id == planningCaseSite.Id);
                             }
                         }
 
@@ -1304,7 +1304,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             if (compliance != null)
                             {
                                 var dbCompliance =
-                                    await backendConfigurationPnDbContext.Compliances.SingleAsync(
+                                    await backendConfigurationPnDbContext.Compliances.FirstAsync(
                                         x => x.Id == compliance.Id);
                                 await dbCompliance.Delete(backendConfigurationPnDbContext);
                             }
@@ -1313,7 +1313,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
 
                             var property =
-                                await backendConfigurationPnDbContext.Properties.SingleOrDefaultAsync(x =>
+                                await backendConfigurationPnDbContext.Properties.FirstOrDefaultAsync(x =>
                                     x.Id == backendPlanning.PropertyId);
 
                             if (property == null)
@@ -1413,7 +1413,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     .Select(x => x.PlanningId)
                                     .FirstOrDefaultAsync();
 
-                                // var itemPlanning = await itemsPlanningPnDbContext.Plannings.SingleAsync(x => x.Id == itemPlanningId);
+                                // var itemPlanning = await itemsPlanningPnDbContext.Plannings.FirstAsync(x => x.Id == itemPlanningId);
                                 var itemPlanningSites = await itemsPlanningPnDbContext.PlanningSites
                                     .Where(x => x.PlanningId == itemPlanningId).ToListAsync();
                                 PlanningCase planningCase = new PlanningCase()
@@ -1424,10 +1424,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 };
                                 foreach (var itemPlanningSite in itemPlanningSites)
                                 {
-                                    var site = await sdkDbContext.Sites.SingleAsync(
+                                    var site = await sdkDbContext.Sites.FirstAsync(
                                         x => x.Id == itemPlanningSite.SiteId);
                                     var siteLanguage =
-                                        await sdkDbContext.Languages.SingleAsync(x => x.Id == site.LanguageId);
+                                        await sdkDbContext.Languages.FirstAsync(x => x.Id == site.LanguageId);
                                     var nameTank = await _itemsPlanningDbContextHelper
                                         .GetDbContext().PlanningNameTranslation
                                         .Where(x => x.PlanningId == itemPlanningId)
@@ -1451,7 +1451,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     mainElement.CheckListFolderName = await sdkDbContext.Folders
                                         .Where(x => x.Id == dbCase.FolderId)
                                         .Select(x => x.MicrotingUid.ToString())
-                                        .SingleAsync();
+                                        .FirstAsync();
                                     planningCaseSite = new PlanningCaseSite()
                                     {
                                         MicrotingSdkSiteId = site.Id,
@@ -1470,13 +1470,13 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                             .FirstOrDefault(y => y.Id == planning.SdkFolderId)
                                             ?.Id;
                                         FolderTranslation folderTranslation =
-                                            await sdkDbContext.FolderTranslations.SingleOrDefaultAsync(x =>
+                                            await sdkDbContext.FolderTranslations.FirstOrDefaultAsync(x =>
                                                 x.FolderId == folder.Id && x.LanguageId == site.LanguageId);
                                         body = $"{folderTranslation.Name} ({site.Name};{DateTime.Now:dd.MM.yyyy})";
                                     }
 
                                     PlanningNameTranslation planningNameTranslation =
-                                        await itemsPlanningPnDbContext.PlanningNameTranslation.SingleOrDefaultAsync(x =>
+                                        await itemsPlanningPnDbContext.PlanningNameTranslation.FirstOrDefaultAsync(x =>
                                             x.PlanningId == planning.Id
                                             && x.LanguageId == site.LanguageId);
 
@@ -1756,10 +1756,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             var i = 0;
             foreach (var propertyWorker in propertyWorkers)
             {
-                var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == propertyWorker.WorkerId);
-                var siteLanguage = await sdkDbContext.Languages.SingleAsync(x => x.Id == site.LanguageId);
+                var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == propertyWorker.WorkerId);
+                var siteLanguage = await sdkDbContext.Languages.FirstAsync(x => x.Id == site.LanguageId);
                 var mainElement = await _sdkCore.ReadeForm(eformId, siteLanguage);
-                mainElement.CheckListFolderName = sdkDbContext.Folders.Single(x => x.Id == folderId)
+                mainElement.CheckListFolderName = sdkDbContext.Folders.First(x => x.Id == folderId)
                     .MicrotingUid.ToString();
                 mainElement.Label = " ";
                 mainElement.ElementList[0].QuickSyncEnabled = true;

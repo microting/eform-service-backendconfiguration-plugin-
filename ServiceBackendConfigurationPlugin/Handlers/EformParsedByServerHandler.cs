@@ -70,20 +70,20 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             var planningCaseSite =
                 await itemsPlanningPnDbContext.PlanningCaseSites
                     .AsNoTracking()
-                    .SingleOrDefaultAsync(x => x.MicrotingSdkCaseId == message.CaseId);
+                    .FirstOrDefaultAsync(x => x.MicrotingSdkCaseId == message.CaseId);
 
             if (planningCaseSite == null)
             {
-                // var site = await sdkDbContext.Sites.SingleOrDefaultAsync(x => x.MicrotingUid == caseDto.SiteUId);
+                // var site = await sdkDbContext.Sites.FirstOrDefaultAsync(x => x.MicrotingUid == caseDto.SiteUId);
                 var checkListSite = await sdkDbContext.CheckListSites
                     .AsNoTracking()
-                    .SingleOrDefaultAsync(x =>
+                    .FirstOrDefaultAsync(x =>
                     x.MicrotingUid == message.MicrotingUId);
                 if (checkListSite == null) return;
                 planningCaseSite =
                     await itemsPlanningPnDbContext.PlanningCaseSites
                         .AsNoTracking()
-                        .SingleOrDefaultAsync(x =>
+                        .FirstOrDefaultAsync(x =>
                         x.MicrotingCheckListSitId == checkListSite.Id);
             }
 
@@ -100,9 +100,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             if (backendPlannings != null)
             {
-                var property = await backendConfigurationPnDbContext.Properties.SingleAsync(x => x.Id == backendPlannings.PropertyId);
+                var property = await backendConfigurationPnDbContext.Properties.FirstAsync(x => x.Id == backendPlannings.PropertyId);
 
-                var planning = await itemsPlanningPnDbContext.Plannings.AsNoTracking().SingleAsync(x => x.Id == planningCaseSite.PlanningId);
+                var planning = await itemsPlanningPnDbContext.Plannings.AsNoTracking().FirstAsync(x => x.Id == planningCaseSite.PlanningId);
 
                 if (planning.RepeatEvery == 0 && planning.RepeatType == RepeatType.Day) { }
                 else
