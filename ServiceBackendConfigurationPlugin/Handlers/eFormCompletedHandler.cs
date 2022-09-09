@@ -218,7 +218,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 if (backendConfigurationPnDbContext.WorkorderCases.Any(x =>
                         x.ParentWorkorderCaseId == workorderCase.Id
                         && x.WorkflowState != Constants.WorkflowStates.Removed
-                        && x.CaseId == dbCase.Id
+                        && x.CaseId == dbCase.MicrotingUid
                         && x.PropertyWorkerId == workorderCase.PropertyWorkerId
                         && x.SelectedAreaName == areaName
                         && x.CreatedByName == cls.Site.Name
@@ -232,7 +232,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var newWorkorderCase = new WorkorderCase
                 {
                     ParentWorkorderCaseId = workorderCase.Id,
-                    CaseId = dbCase.Id,
+                    CaseId = 0,
                     PropertyWorkerId = workorderCase.PropertyWorkerId,
                     SelectedAreaName = areaName,
                     CreatedByName = cls.Site.Name,
@@ -1838,7 +1838,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 var parentCase = await backendConfigurationPnDbContext.WorkorderCases
                     .FirstAsync(x => x.Id == workOrderCase.ParentWorkorderCaseId);
 
-                if (parentCase.CaseId != 0)
+                if (parentCase.CaseId != 0 && parentCase.ParentWorkorderCaseId != null)
                 {
                     await _sdkCore.CaseDelete(parentCase.CaseId);
                 }
