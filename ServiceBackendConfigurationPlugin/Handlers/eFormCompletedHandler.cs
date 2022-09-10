@@ -1831,7 +1831,12 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 foreach (var theCase in workOrdersToRetract)
                 {
-                    await _sdkCore.CaseDelete(theCase.CaseId);
+                    try {
+                        await _sdkCore.CaseDelete(theCase.CaseId);
+                    } catch (Exception e) {
+                        Console.WriteLine(e);
+                        Console.WriteLine($"faild to delete case {theCase.CaseId}");
+                    }
                     await theCase.Delete(backendConfigurationPnDbContext);
                 }
 
@@ -1840,7 +1845,13 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 if (parentCase.CaseId != 0 && parentCase.ParentWorkorderCaseId != null)
                 {
-                    await _sdkCore.CaseDelete(parentCase.CaseId);
+                    try
+                    {
+                        await _sdkCore.CaseDelete(parentCase.CaseId);
+                    } catch (Exception e) {
+                        Console.WriteLine(e);
+                        Console.WriteLine($"faild to delete case {parentCase.CaseId}");
+                    }
                 }
                 await parentCase.Delete(backendConfigurationPnDbContext);
             }
