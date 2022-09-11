@@ -230,66 +230,62 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
             if (DateTime.UtcNow.Hour == 5)
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
-                var properties = await _backendConfigurationDbContext.Properties
-                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
 
                 var sdkDbContext = _core.DbContextHelper.GetDbContext();
-                foreach (var property in properties)
+                var entityGroupBarcodeId =
+                    await sdkDbContext.EntityGroups.FirstOrDefaultAsync(x => x.Name == "Chemicals - Barcode");
+                var entityGroupRegNoId = await sdkDbContext.EntityGroups.FirstOrDefaultAsync(x => x.Name == "Chemicals - RegNo");
+                if (entityGroupBarcodeId != null && entityGroupRegNoId != null)
                 {
-                    if (property.EntitySearchListChemicalRegNos != null)
+                    var entityGroup = await _core.EntityGroupRead(entityGroupBarcodeId.MicrotingUid)
+                    .ConfigureAwait(false);
+                    var entityGroupRegNo = await _core
+                        .EntityGroupRead(entityGroupRegNoId.MicrotingUid).ConfigureAwait(false);
+                    var nextItemUid = entityGroup.EntityGroupItemLst.Count;
+                    var _chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
+                    var internalChemicals = await _chemicalsDbContext.Chemicals
+                        .Where(x => x.AuthorisationExpirationDate > DateTime.Now.AddYears(-10))
+                        .Include(x => x.ClassificationAndLabeling)
+                        .Include(x => x.ClassificationAndLabeling.CLP)
+                        .Include(x => x.ClassificationAndLabeling.CLP.HazardStatements)
+                        .Include(x => x.ClassificationAndLabeling.DPD)
+                        .Include(x => x.AuthorisationHolder)
+                        .Include(x => x.AuthorisationHolder.Address)
+                        .Include(x => x.Products).ToListAsync();
+
+                    foreach (var chemical in internalChemicals)
                     {
-                        var entityGroup = await _core.EntityGroupRead(property.EntitySearchListChemicals.ToString())
-                            .ConfigureAwait(false);
-                        var entityGroupRegNo = await _core
-                            .EntityGroupRead(property.EntitySearchListChemicalRegNos.ToString()).ConfigureAwait(false);
-                        var nextItemUid = entityGroup.EntityGroupItemLst.Count;
-                        var _chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
-                        var internalChemicals = await _chemicalsDbContext.Chemicals
-                            .Where(x => x.AuthorisationExpirationDate > DateTime.Now.AddYears(-10))
-                            .Include(x => x.ClassificationAndLabeling)
-                            .Include(x => x.ClassificationAndLabeling.CLP)
-                            .Include(x => x.ClassificationAndLabeling.CLP.HazardStatements)
-                            .Include(x => x.ClassificationAndLabeling.DPD)
-                            .Include(x => x.AuthorisationHolder)
-                            .Include(x => x.AuthorisationHolder.Address)
-                            .Include(x => x.Products).ToListAsync();
-
-                        foreach (var chemical in internalChemicals)
+                        foreach (Product product in chemical.Products)
                         {
-                            // var backendDbContext = _backendConfigurationDbContextHelper.GetDbContext();
-                            // var itemsPlanningDbContext = _itemsPlanningDbContextHelper.GetDbContext();
-                            foreach (Product product in chemical.Products)
+                            if (product.Verified &&
+                                !sdkDbContext.EntityItems.AsNoTracking().Any(x =>
+                                    x.EntityGroupId == entityGroup.Id && x.Name == product.Barcode) &&
+                                !string.IsNullOrEmpty(product.Barcode))
                             {
-                                if (product.Verified &&
-                                    !sdkDbContext.EntityItems.AsNoTracking().Any(x =>
-                                        x.EntityGroupId == entityGroup.Id && x.Name == product.Barcode) &&
-                                    !string.IsNullOrEmpty(product.Barcode))
-                                {
-                                    await _core.EntitySearchItemCreate(entityGroup.Id, product.Barcode,
-                                        chemical.Name,
-                                        nextItemUid.ToString());
-                                    nextItemUid++;
-                                }
-                                else
-                                {
-                                    Console.WriteLine($"Product already exist, so skipping : {product.Name}");
-                                }
-                            }
-
-                            if (chemical.Verified && !sdkDbContext.EntityItems.AsNoTracking().Any(x =>
-                                    x.EntityGroupId == entityGroupRegNo.Id && x.Name == chemical.RegistrationNo))
-                            {
-                                Console.WriteLine(
-                                    $"Adding chemical with name : {chemical.Name} and registration no {chemical.RegistrationNo}");
-                                await _core.EntitySearchItemCreate(entityGroupRegNo.Id, chemical.RegistrationNo,
+                                await _core.EntitySearchItemCreate(entityGroup.Id, product.Barcode,
                                     chemical.Name,
                                     nextItemUid.ToString());
                                 nextItemUid++;
                             }
                             else
                             {
-                                Console.WriteLine($"Chemical already exist, so skipping : {chemical.Name}");
+                                Console.WriteLine($"Product already exist, so skipping : {product.Name}");
                             }
+                        }
+
+                        if (chemical.Verified && !sdkDbContext.EntityItems.AsNoTracking().Any(x =>
+                                x.EntityGroupId == entityGroupRegNo.Id && x.Name == chemical.RegistrationNo))
+                        {
+                            Console.WriteLine(
+                                $"Adding chemical with name : {chemical.Name} and registration no {chemical.RegistrationNo}");
+                            await _core.EntitySearchItemCreate(entityGroupRegNo.Id, chemical.RegistrationNo,
+                                chemical.Name,
+                                nextItemUid.ToString());
+                            nextItemUid++;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Chemical already exist, so skipping : {chemical.Name}");
                         }
                     }
                 }
