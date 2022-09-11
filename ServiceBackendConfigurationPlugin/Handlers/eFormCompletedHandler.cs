@@ -999,6 +999,125 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 }
                             }
                         }
+                        else
+                        {
+                            if (areaRule.SecondaryeFormId != 0 && (areaRule.SecondaryeFormName == "Morgenrundtur" || areaRule.SecondaryeFormName == "Morning tour"))
+                            {
+                                Console.WriteLine("we have a morning tour");
+
+                                var planningCaseSites = await itemsPlanningPnDbContext.PlanningCaseSites
+                                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                                    .Where(x => x.PlanningId == planningCaseSite.PlanningId).ToListAsync();
+
+                                foreach (var caseSite in planningCaseSites)
+                                {
+                                    if (caseSite.MicrotingCheckListSitId != 0)
+                                    {
+                                        var cls = await sdkDbContext.CheckListSites.FirstAsync(x =>
+                                            x.Id == caseSite.MicrotingCheckListSitId);
+                                        await _sdkCore.CaseDelete(cls.MicrotingUid);
+                                    }
+                                    var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == caseSite.MicrotingSdkSiteId);
+                                    var siteLanguage = await sdkDbContext.Languages.FirstAsync(x => x.Id == site.LanguageId);
+                                    var mainElement = await _sdkCore.ReadeForm(areaRule.SecondaryeFormId, siteLanguage);
+
+                                    foreach (var fieldValue in fieldValues)
+                                    {
+                                        var field = ((DataElement)mainElement.ElementList[0]).DataItemList
+                                            .FirstOrDefault(x => x.Id == fieldValue.FieldId);
+                                        if (field != null && !string.IsNullOrEmpty(fieldValue.ValueReadable))
+                                        {
+                                            if (fieldValue.ValueReadable == "unchecked")
+                                            {
+                                                fieldValue.ValueReadable = language.Name switch
+                                                {
+                                                    "Danish" => "Ikke OK",
+                                                    "English" => "Not okay",
+                                                    _ => "Nicht okay",
+                                                };
+                                            } else if (fieldValue.ValueReadable == "checked")
+                                            {
+                                                fieldValue.ValueReadable = language.Name switch
+                                                {
+                                                    "Danish" => "OK",
+                                                    "English" => "Okay",
+                                                    _ => "Okay",
+                                                };
+                                            }
+                                            field!.Description.InderValue += language.Name switch
+                                            {
+                                                "Danish" => "<br>Sidst indsendte: " + fieldValue.ValueReadable,
+                                                "English" => "<br>Last submitted: " + fieldValue.ValueReadable,
+                                                _ => "<br>Zuletzt eingereicht: " + fieldValue.ValueReadable
+                                            };
+                                        }
+                                    }
+
+                                    await caseSite.Delete(itemsPlanningPnDbContext);
+                                    var translation = itemsPlanningPnDbContext.PlanningNameTranslation
+                                        .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                                        .Where(x => x.LanguageId == language.Id)
+                                        .Where(x => x.PlanningId == planning.Id)
+                                        .Select(x => x.Name)
+                                        .FirstOrDefault();
+
+                                    mainElement.Label = string.IsNullOrEmpty(planning.PlanningNumber)
+                                        ? ""
+                                        : planning.PlanningNumber;
+                                    if (!string.IsNullOrEmpty(translation))
+                                    {
+                                        mainElement.Label +=
+                                            string.IsNullOrEmpty(mainElement.Label) ? $"{translation}" : $" - {translation}";
+                                    }
+
+                                    if (!string.IsNullOrEmpty(planning.BuildYear))
+                                    {
+                                        mainElement.Label += string.IsNullOrEmpty(mainElement.Label)
+                                            ? $"{planning.BuildYear}"
+                                            : $" - {planning.BuildYear}";
+                                    }
+
+                                    if (!string.IsNullOrEmpty(planning.Type))
+                                    {
+                                        mainElement.Label += string.IsNullOrEmpty(mainElement.Label)
+                                            ? $"{planning.Type}"
+                                            : $" - {planning.Type}";
+                                    }
+
+                                    if (mainElement.ElementList.Count == 1)
+                                    {
+                                        mainElement.ElementList[0].Label = mainElement.Label;
+                                    }
+                                    var thisFolder = await sdkDbContext.Folders.SingleAsync(x => x.Id == areaRule.FolderId).ConfigureAwait(false);
+                                    var folderMicrotingId = thisFolder.MicrotingUid.ToString();
+                                    mainElement.CheckListFolderName = folderMicrotingId;
+                                    mainElement.StartDate = DateTime.Now.ToUniversalTime();
+                                    mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
+                                    mainElement.Repeated = 0;
+                                    var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site!.MicrotingUid!, areaRule.FolderId).ConfigureAwait(false);
+                                    var planningCase = new PlanningCase
+                                    {
+                                        PlanningId = planning.Id,
+                                        Status = 66,
+                                        MicrotingSdkeFormId = (int)areaRule.EformId!
+                                    };
+                                    await planningCase.Create(itemsPlanningPnDbContext).ConfigureAwait(false);
+                                    var checkListSite = await sdkDbContext.CheckListSites.SingleAsync(x => x.MicrotingUid == caseId).ConfigureAwait(false);
+                                    var newPlanningCaseSite = new PlanningCaseSite
+                                    {
+                                        MicrotingSdkSiteId = site.Id,
+                                        MicrotingSdkeFormId = (int)areaRule.EformId!,
+                                        Status = 66,
+                                        PlanningId = planning.Id,
+                                        PlanningCaseId = planningCase.Id,
+                                        MicrotingSdkCaseId = (int)caseId!,
+                                        MicrotingCheckListSitId = checkListSite.Id
+                                    };
+
+                                    await newPlanningCaseSite.Create(itemsPlanningPnDbContext).ConfigureAwait(false);
+                                }
+                            }
+                        }
                     }
                 }
                 else
