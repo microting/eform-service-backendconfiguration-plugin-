@@ -146,6 +146,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                     c.PesticideProductGroup = chemical.PesticideProductGroup;
                                     c.BiocidePossibleUse = chemical.BiocidePossibleUse;
                                     c.BiocideSpecialUse = chemical.BiocideSpecialUse;
+                                    c.BiocideProductType = chemical.BiocideProductType;
                                     c.BiocideUser = chemical.BiocideUser;
                                     c.PestControlType = chemical.PestControlType;
                                     // chemical.Id = c.Id;

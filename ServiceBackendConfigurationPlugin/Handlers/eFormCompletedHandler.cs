@@ -1654,7 +1654,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             }
 
             mainElement.ElementList.First().Description.InderValue +=
-                $"<strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: </strong><br>";
+                $"<br><strong>Placering</strong><br>Ejendom: {areaRule.Property.Name}<br>Rum: {locations}<br><br><strong>Udløbsdato: </strong><br>";
 
             if (chemical.UseAndPossesionDeadline != null)
             {
@@ -1668,7 +1668,22 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue =
                 $"{chemical.AuthorisationHolder.Name}<br>" +
-                $"Reg nr.: {chemical.RegistrationNo}<br>";
+                $"Reg nr.: {chemical.RegistrationNo}<br><br>";
+
+            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                .InderValue +=
+                "<strong>Udløbsdato</strong><br>";
+
+            if (chemical.UseAndPossesionDeadline != null)
+            {
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue += $"Dato: {chemical.UseAndPossesionDeadline:dd-MM-yyyy}<br><br>";
+            }
+            else
+            {
+                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
+                    .InderValue += $"Dato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
+            }
 
             if (chemical.PesticideProductGroup.Count > 0)
             {
@@ -1689,21 +1704,6 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 }
                 ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                     .InderValue += "<br><br>";
-            }
-
-            ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                .InderValue +=
-                "<strong>Udløbsdato</strong><br>";
-
-            if (chemical.UseAndPossesionDeadline != null)
-            {
-                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                    .InderValue += $"Dato: {chemical.UseAndPossesionDeadline:dd-MM-yyyy}<br><br>";
-            }
-            else
-            {
-                ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
-                    .InderValue += $"Dato: {chemical.AuthorisationExpirationDate:dd-MM-yyyy}<br><br>";
             }
 
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
@@ -1736,7 +1736,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue +=
-                "<br><u>Productstatus</u><br>" +
+                "<u>Produktstatus</u><br>" +
                 $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductStatusType.FirstOrDefault(x => x.Key == chemical.Status).Value}<br><br>";
 
             if (chemical.PestControlType == 2)
