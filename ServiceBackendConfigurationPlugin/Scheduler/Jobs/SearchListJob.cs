@@ -90,7 +90,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
         private async Task ExecuteUpdateProperties()
         {
 
-            if (DateTime.UtcNow.Hour == 4)
+            if (DateTime.UtcNow.Hour == 2)
             {
                 try
                 {
@@ -247,7 +247,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 }
             }
 
-            if (DateTime.UtcNow.Hour == 5)
+            if (DateTime.UtcNow.Hour == 3)
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
 
@@ -325,7 +325,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 }
             }
 
-            if (DateTime.UtcNow.Hour == 6)
+            if (DateTime.UtcNow.Hour == 4)
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
                 var properties = await _backendConfigurationDbContext.Properties
