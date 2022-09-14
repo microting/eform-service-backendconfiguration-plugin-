@@ -271,35 +271,15 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         .Include(x => x.ClassificationAndLabeling.DPD)
                         .Include(x => x.AuthorisationHolder)
                         .Include(x => x.AuthorisationHolder.Address)
+                        .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                         .Include(x => x.Products).ToListAsync();
 
                     foreach (var chemical in internalChemicals)
                     {
-                        if (chemical.RegistrationNo == "101-1")
-                        {
-                            Console.WriteLine("Found it");
-                        }
-
-                        // foreach (Product product in chemical.Products)
-                        // {
-                        //     if (product.Verified &&
-                        //         !sdkDbContext.EntityItems.AsNoTracking().Any(x =>
-                        //             x.EntityGroupId == entityGroup.Id && x.Name == product.Barcode) &&
-                        //         !string.IsNullOrEmpty(product.Barcode))
-                        //     {
-                        //         await _core.EntitySearchItemCreate(entityGroup.Id, product.Barcode,
-                        //             chemical.Name,
-                        //             nextItemUid.ToString());
-                        //         nextItemUid++;
-                        //     }
-                        //     else
-                        //     {
-                        //         Console.WriteLine($"Product already exist, so skipping : {product.Name}");
-                        //     }
-                        // }
-
                         if (!sdkDbContext.EntityItems.AsNoTracking().Any(x =>
-                                x.EntityGroupId == entityGroupRegNo.Id && x.Name == chemical.RegistrationNo))
+                                x.EntityGroupId == entityGroupRegNo.Id
+                                && x.Name == chemical.RegistrationNo
+                                && x.WorkflowState != Constants.WorkflowStates.Removed))
                         {
                             if (chemical.WorkflowState != Constants.WorkflowStates.Removed && chemical.Verified)
                             {
@@ -462,26 +442,11 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 }
 
                                 var productName = chemical.Name;
-                                // if (product != null)
-                                // {
-                                //     if (product.Name != "Emballagestørrelse ikke angivet")
-                                //     {
-                                //         productName += " - " + product.Name;
-                                //     }
-                                // }
 
                                 List<Microting.eForm.Dto.KeyValuePair> options =
                                     new List<Microting.eForm.Dto.KeyValuePair>();
                                 int j = 0;
                                 var totalLocations = string.Empty;
-                                // foreach (var s in location!.ValueReadable.Split("|"))
-                                // {
-                                //     Microting.eForm.Dto.KeyValuePair keyValuePair =
-                                //         new Microting.eForm.Dto.KeyValuePair(j.ToString(), s, false, j.ToString());
-                                //     options.Add(keyValuePair);
-                                //     totalLocations = s;
-                                //     j++;
-                                // }
                                 if (propertyChemical.Locations != null)
                                 {
                                     foreach (var s in propertyChemical.Locations.Split("|"))
