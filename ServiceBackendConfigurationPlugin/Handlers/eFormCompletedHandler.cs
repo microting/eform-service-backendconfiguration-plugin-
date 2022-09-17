@@ -1034,9 +1034,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                             }
                                             field!.Description.InderValue += language.Name switch
                                             {
-                                                "Danish" => "<br>Sidst indsendte: " + fieldValue.ValueReadable,
-                                                "English" => "<br>Last submitted: " + fieldValue.ValueReadable,
-                                                _ => "<br>Zuletzt eingereicht: " + fieldValue.ValueReadable
+                                                "Danish" => $"<br>Sidst indsendte:<br><strong>{fieldValue.ValueReadable}</strong>",
+                                                "English" => $"<br>Last submitted:<br><strong>{fieldValue.ValueReadable}</strong>",
+                                                _ => $"<br>Zuletzt eingereicht:<br><strong>{fieldValue.ValueReadable}</strong>",
                                             };
                                         }
                                     }
