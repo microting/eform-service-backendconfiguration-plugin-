@@ -1742,11 +1742,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             {
                 ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                     .InderValue += $"<u>Biocid produktgruppe</u><br>";
-                foreach (var i in chemical.BiocideProductType)
+                if (chemical.BiocideProductGroup != null)
                 {
                     ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                         .InderValue +=
-                        $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupBiocide.FirstOrDefault(x => x.Key == i).Value}<br>";
+                        $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupBiocide.FirstOrDefault(x => x.Key == chemical.BiocideProductGroup).Value}<br>";
                 }
             }
 
