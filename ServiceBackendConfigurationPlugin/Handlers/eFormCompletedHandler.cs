@@ -888,21 +888,25 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 var propertySites = await backendConfigurationPnDbContext.PropertyWorkers
                                     .Where(x => x.PropertyId == areaRule.PropertyId).ToListAsync();
 
+                                if (string.IsNullOrEmpty(chemical.Use))
+                                {
+                                    ((DataElement) mainElement.ElementList[0]).DataItemGroupList
+                                        .RemoveAt(0);
+                                }
+                                else
+                                {
+                                    ((DataElement) mainElement.ElementList[0]).DataItemGroupList
+                                        .RemoveAt(1);
+                                }
+
                                 foreach (PropertyWorker propertyWorker in propertySites)
                                 {
                                     if (propertyWorker.WorkerId != sdkSite.Id)
                                     {
                                         var site = await
                                             sdkDbContext.Sites.FirstOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
-                                        var list = ((DataElement) mainElement.ElementList[0]).DataItemGroupList[1].DataItemList;
-                                        list.RemoveAt(0);
-                                        list.RemoveAt(0);
-                                        ((DataElement) mainElement.ElementList[0]).DataItemGroupList
-                                            .RemoveAt(1);
                                         var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
                                             folder.Id);
-                                        // var siteDbCaseId =
-                                        //     await sdkDbContext.Cases.FirstAsync(x => x.MicrotingUid == siteCaseId);
                                         var chemicalProductPropertySite = new ChemicalProductPropertySite()
                                         {
                                             ChemicalId = chemical.Id,
@@ -1749,8 +1753,6 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         $"{Microting.EformBackendConfigurationBase.Infrastructure.Const.Constants.ProductGroupBiocide.FirstOrDefault(x => x.Key == chemical.BiocideProductGroup).Value}<br>";
                 }
             }
-
-
 
             ((None) ((DataElement) mainElement.ElementList[0]).DataItemList[0]).Description
                 .InderValue +=
