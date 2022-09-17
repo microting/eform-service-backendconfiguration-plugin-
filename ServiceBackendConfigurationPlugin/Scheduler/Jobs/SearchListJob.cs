@@ -150,6 +150,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                     c.BiocideUser = chemical.BiocideUser;
                                     c.PestControlType = chemical.PestControlType;
                                     c.BarcodeValue = chemical.BarcodeValue;
+                                    c.BiocideProductGroup = chemical.BiocideProductGroup;
                                     // chemical.Id = c.Id;
                                     if (!chemicalsDbContext.AuthorisationHolders.Any(x =>
                                             x.RemoteId == chemical.AuthorisationHolder.RemoteId))
