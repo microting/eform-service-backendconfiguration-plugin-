@@ -89,7 +89,6 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
 
         private async Task ExecuteUpdateProperties()
         {
-
             if (DateTime.UtcNow.Hour == 2)
             {
                 try
@@ -112,13 +111,14 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     {
                         int count = chemicals.Count;
                         int i = 0;
-                        // var parallelOptions = new ParallelOptions()
-                        // {
-                        //     MaxDegreeOfParallelism = 20
-                        // };
-                        var chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
-                        foreach (var chemical in chemicals)
+                        var parallelOptions = new ParallelOptions()
                         {
+                            MaxDegreeOfParallelism = -1
+                        };
+                        // foreach (var chemical in chemicals)
+                        await Parallel.ForEachAsync(chemicals, parallelOptions, async (chemical, ct) =>
+                        {
+                            var chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
                             var c = await chemicalsDbContext.Chemicals
                                 .Include(x => x.Products)
                                 .FirstOrDefaultAsync(x => x.RemoteId == chemical.RemoteId);
@@ -149,6 +149,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                     c.BiocideProductType = chemical.BiocideProductType;
                                     c.BiocideUser = chemical.BiocideUser;
                                     c.PestControlType = chemical.PestControlType;
+                                    c.BarcodeValue = chemical.BarcodeValue;
                                     // chemical.Id = c.Id;
                                     if (!chemicalsDbContext.AuthorisationHolders.Any(x =>
                                             x.RemoteId == chemical.AuthorisationHolder.RemoteId))
@@ -216,7 +217,8 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 }
                                 else
                                 {
-                                    Console.WriteLine($"Chemical is removed so skipping : {chemical.Name} no {i} of {count}");
+                                    Console.WriteLine(
+                                        $"Chemical is removed so skipping : {chemical.Name} no {i} of {count}");
                                 }
                             }
                             else
@@ -227,8 +229,9 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                             }
 
                             i++;
-                        }
+                        });
 
+                        var chemicalsDbContext = _chemicalDbContextHelper.GetDbContext();
                         var toBeRemoved = await chemicalsDbContext.Chemicals
                             .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                             .Where(x => !regNos.Contains(x.RegistrationNo)).ToListAsync();
@@ -274,9 +277,15 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                         .Include(x => x.Products).ToListAsync();
 
-                    foreach (var chemical in internalChemicals)
+
+                    var parallelOptions = new ParallelOptions()
                     {
-                        if (!sdkDbContext.EntityItems.AsNoTracking().Any(x =>
+                        MaxDegreeOfParallelism = -1
+                    };
+                    await Parallel.ForEachAsync(internalChemicals, parallelOptions, async (chemical, ct) =>
+                    {
+                        var internalDbContext = _core.DbContextHelper.GetDbContext();
+                        if (!internalDbContext.EntityItems.AsNoTracking().Any(x =>
                                 x.EntityGroupId == entityGroupRegNo.Id
                                 && x.Name == chemical.RegistrationNo
                                 && x.WorkflowState != Constants.WorkflowStates.Removed))
@@ -301,7 +310,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                             }
                             Console.WriteLine($"Chemical already exist, so skipping : {chemical.Name}");
                         }
-                    }
+                    });
                 }
             }
 
