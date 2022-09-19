@@ -466,7 +466,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             .Include(x => x.Area)
                             .Include(x => x.Property)
                             .Include(x => x.AreaRuleTranslations)
-                            .FirstAsync();
+                            .FirstOrDefaultAsync();
+                    if (areaRule == null)
+                    {
+                        return;
+                    }
                     var planningSites = await itemsPlanningPnDbContext.PlanningSites
                         .Where(x => x.PlanningId == planning.Id).ToListAsync();
 
@@ -1085,7 +1089,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     mainElement.CheckListFolderName = folderMicrotingId;
                                     mainElement.StartDate = DateTime.Now.ToUniversalTime();
                                     mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
-                                    mainElement.Repeated = 0;
+                                    mainElement.Repeated = 1;
                                     var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site!.MicrotingUid!, areaRule.FolderId).ConfigureAwait(false);
                                     var planningCase = new PlanningCase
                                     {
