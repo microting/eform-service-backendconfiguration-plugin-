@@ -1085,7 +1085,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     mainElement.CheckListFolderName = folderMicrotingId;
                                     mainElement.StartDate = DateTime.Now.ToUniversalTime();
                                     mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
-                                    mainElement.Repeated = 0;
+                                    mainElement.Repeated = 1;
                                     var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site!.MicrotingUid!, areaRule.FolderId).ConfigureAwait(false);
                                     var planningCase = new PlanningCase
                                     {
@@ -1094,7 +1094,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         MicrotingSdkeFormId = (int)areaRule.EformId!
                                     };
                                     await planningCase.Create(itemsPlanningPnDbContext).ConfigureAwait(false);
-                                    var checkListSite = await sdkDbContext.CheckListSites.SingleAsync(x => x.MicrotingUid == caseId).ConfigureAwait(false);
+                                    // var checkListSite = await sdkDbContext.CheckListSites.SingleOrDefaultAsync(x => x.MicrotingUid == caseId).ConfigureAwait(false);
                                     var newPlanningCaseSite = new PlanningCaseSite
                                     {
                                         MicrotingSdkSiteId = site.Id,
@@ -1103,7 +1103,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         PlanningId = planning.Id,
                                         PlanningCaseId = planningCase.Id,
                                         MicrotingSdkCaseId = (int)caseId!,
-                                        MicrotingCheckListSitId = checkListSite.Id
+                                        // MicrotingCheckListSitId = checkListSite.Id
                                     };
 
                                     await newPlanningCaseSite.Create(itemsPlanningPnDbContext).ConfigureAwait(false);
