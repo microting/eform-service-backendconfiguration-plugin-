@@ -466,7 +466,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             .Include(x => x.Area)
                             .Include(x => x.Property)
                             .Include(x => x.AreaRuleTranslations)
-                            .FirstAsync();
+                            .FirstOrDefaultAsync();
+                    if (areaRule == null)
+                    {
+                        return;
+                    }
                     var planningSites = await itemsPlanningPnDbContext.PlanningSites
                         .Where(x => x.PlanningId == planning.Id).ToListAsync();
 
