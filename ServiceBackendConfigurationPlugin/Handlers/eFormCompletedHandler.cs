@@ -1098,7 +1098,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         MicrotingSdkeFormId = (int)areaRule.EformId!
                                     };
                                     await planningCase.Create(itemsPlanningPnDbContext).ConfigureAwait(false);
-                                    var checkListSite = await sdkDbContext.CheckListSites.SingleAsync(x => x.MicrotingUid == caseId).ConfigureAwait(false);
+                                    // var checkListSite = await sdkDbContext.CheckListSites.SingleOrDefaultAsync(x => x.MicrotingUid == caseId).ConfigureAwait(false);
                                     var newPlanningCaseSite = new PlanningCaseSite
                                     {
                                         MicrotingSdkSiteId = site.Id,
@@ -1107,7 +1107,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         PlanningId = planning.Id,
                                         PlanningCaseId = planningCase.Id,
                                         MicrotingSdkCaseId = (int)caseId!,
-                                        MicrotingCheckListSitId = checkListSite.Id
+                                        // MicrotingCheckListSitId = checkListSite.Id
                                     };
 
                                     await newPlanningCaseSite.Create(itemsPlanningPnDbContext).ConfigureAwait(false);
