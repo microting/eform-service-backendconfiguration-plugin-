@@ -1007,12 +1007,15 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                                 foreach (var caseSite in planningCaseSites)
                                 {
-                                    if (caseSite.MicrotingCheckListSitId != 0)
-                                    {
-                                        var cls = await sdkDbContext.CheckListSites.FirstAsync(x =>
-                                            x.Id == caseSite.MicrotingCheckListSitId);
-                                        await _sdkCore.CaseDelete(cls.MicrotingUid);
-                                    }
+                                    // if (caseSite.MicrotingCheckListSitId != 0)
+                                    // {
+                                    //     var cls = await sdkDbContext.CheckListSites.FirstAsync(x =>
+                                    //         x.Id == caseSite.MicrotingCheckListSitId);
+                                    //     await _sdkCore.CaseDelete(cls.MicrotingUid);
+                                    // }
+
+                                    var aseSite = await sdkDbContext.Cases.SingleAsync(x => x.Id == caseSite.MicrotingSdkCaseId).ConfigureAwait(false);
+                                    await _sdkCore.CaseDelete((int) aseSite.MicrotingUid!);
                                     var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == caseSite.MicrotingSdkSiteId);
                                     var siteLanguage = await sdkDbContext.Languages.FirstAsync(x => x.Id == site.LanguageId);
                                     var mainElement = await _sdkCore.ReadeForm(areaRule.SecondaryeFormId, siteLanguage);
