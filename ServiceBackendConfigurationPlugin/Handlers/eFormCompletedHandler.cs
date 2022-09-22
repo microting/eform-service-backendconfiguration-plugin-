@@ -1023,17 +1023,17 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                             {
                                                 fieldValue.ValueReadable = language.Name switch
                                                 {
-                                                    "Danish" => "Ikke OK",
-                                                    "English" => "Not okay",
-                                                    _ => "Nicht okay",
+                                                    "Danish" => "Ikke afkrydset",
+                                                    "English" => "Not checked",
+                                                    _ => "Nicht ausgewählt",
                                                 };
                                             } else if (fieldValue.ValueReadable == "checked")
                                             {
                                                 fieldValue.ValueReadable = language.Name switch
                                                 {
-                                                    "Danish" => "OK",
-                                                    "English" => "Okay",
-                                                    _ => "Okay",
+                                                    "Danish" => "Afkrydset",
+                                                    "English" => "Checked",
+                                                    _ => "Ausgewählt",
                                                 };
                                             }
                                             field!.Description.InderValue += language.Name switch
