@@ -988,9 +988,6 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 };
 
                                 await chemicalProductProperty.Create(backendConfigurationPnDbContext);
-                                    // var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
-                                    //     folder.Id);
-                                    // var thisDbCase = await sdkDbContext.CheckListSites.AsNoTracking().FirstAsync(x => x.MicrotingUid == caseId);
 
                                 }
                             }
@@ -1007,12 +1004,6 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                                 foreach (var caseSite in planningCaseSites)
                                 {
-                                    // if (caseSite.MicrotingCheckListSitId != 0)
-                                    // {
-                                    //     var cls = await sdkDbContext.CheckListSites.FirstAsync(x =>
-                                    //         x.Id == caseSite.MicrotingCheckListSitId);
-                                    //     await _sdkCore.CaseDelete(cls.MicrotingUid);
-                                    // }
 
                                     var aseSite = await sdkDbContext.Cases.SingleAsync(x => x.Id == caseSite.MicrotingSdkCaseId).ConfigureAwait(false);
                                     await _sdkCore.CaseDelete((int) aseSite.MicrotingUid!);
@@ -1022,33 +1013,42 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                                     foreach (var fieldValue in fieldValues)
                                     {
-                                        var field = ((DataElement)mainElement.ElementList[0]).DataItemList
-                                            .FirstOrDefault(x => x.Id == fieldValue.FieldId);
-                                        if (field != null && !string.IsNullOrEmpty(fieldValue.ValueReadable))
+                                        foreach (var element in mainElement.ElementList)
                                         {
-                                            if (fieldValue.ValueReadable == "unchecked")
+                                            var dataItemList = (DataElement) element;
+                                            var field = dataItemList.DataItemList
+                                                .FirstOrDefault(x => x.Id == fieldValue.FieldId);
+                                            if (field != null && !string.IsNullOrEmpty(fieldValue.ValueReadable))
                                             {
-                                                fieldValue.ValueReadable = language.Name switch
+                                                if (fieldValue.ValueReadable == "unchecked")
                                                 {
-                                                    "Danish" => "Ikke OK",
-                                                    "English" => "Not okay",
-                                                    _ => "Nicht okay",
-                                                };
-                                            } else if (fieldValue.ValueReadable == "checked")
-                                            {
-                                                fieldValue.ValueReadable = language.Name switch
+                                                    fieldValue.ValueReadable = language.Name switch
+                                                    {
+                                                        "Danish" => "Ikke OK",
+                                                        "English" => "Not okay",
+                                                        _ => "Nicht okay",
+                                                    };
+                                                }
+                                                else if (fieldValue.ValueReadable == "checked")
                                                 {
-                                                    "Danish" => "OK",
-                                                    "English" => "Okay",
-                                                    _ => "Okay",
+                                                    fieldValue.ValueReadable = language.Name switch
+                                                    {
+                                                        "Danish" => "OK",
+                                                        "English" => "Okay",
+                                                        _ => "Okay",
+                                                    };
+                                                }
+
+                                                field!.Description.InderValue += language.Name switch
+                                                {
+                                                    "Danish" =>
+                                                        $"<br>Sidst indsendte:<br><strong>{fieldValue.ValueReadable}</strong>",
+                                                    "English" =>
+                                                        $"<br>Last submitted:<br><strong>{fieldValue.ValueReadable}</strong>",
+                                                    _ =>
+                                                        $"<br>Zuletzt eingereicht:<br><strong>{fieldValue.ValueReadable}</strong>",
                                                 };
                                             }
-                                            field!.Description.InderValue += language.Name switch
-                                            {
-                                                "Danish" => $"<br>Sidst indsendte:<br><strong>{fieldValue.ValueReadable}</strong>",
-                                                "English" => $"<br>Last submitted:<br><strong>{fieldValue.ValueReadable}</strong>",
-                                                _ => $"<br>Zuletzt eingereicht:<br><strong>{fieldValue.ValueReadable}</strong>",
-                                            };
                                         }
                                     }
 
