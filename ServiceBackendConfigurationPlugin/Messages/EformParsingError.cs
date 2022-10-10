@@ -26,9 +26,9 @@ using System;
 
 namespace ServiceBackendConfigurationPlugin.Messages
 {
-    public class EformParsingError
+    public sealed class EformParsingError
     {
-        public int CaseId { get; protected set; }
+        public int CaseId { get; }
 
         public EformParsingError(int caseId)
         {

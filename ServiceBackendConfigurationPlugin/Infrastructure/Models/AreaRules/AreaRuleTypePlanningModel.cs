@@ -27,7 +27,7 @@ using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
 
 namespace ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules
 {
-    public class AreaRuleTypePlanningModel
+    public sealed class AreaRuleTypePlanningModel
     {
         public int? RepeatEvery { get; set; }
 

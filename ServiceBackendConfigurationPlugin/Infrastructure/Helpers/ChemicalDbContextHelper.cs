@@ -27,7 +27,7 @@ using ChemicalsBase.Infrastructure.Data.Factories;
 
 namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers
 {
-    public class ChemicalDbContextHelper
+    public sealed class ChemicalDbContextHelper
     {
         private string ConnectionString { get;}
 

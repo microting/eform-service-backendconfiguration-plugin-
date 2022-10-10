@@ -27,7 +27,7 @@ using Microting.EformBackendConfigurationBase.Infrastructure.Data.Factories;
 
 namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers
 {
-    public class BackendConfigurationDbContextHelper
+    public sealed class BackendConfigurationDbContextHelper
     {
         private string ConnectionString { get;}
 

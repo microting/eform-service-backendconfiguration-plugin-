@@ -27,7 +27,7 @@ using System.Collections.Generic;
 
 namespace ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules
 {
-    public class AreaRulePlanningModel
+    public sealed class AreaRulePlanningModel
     {
         public int? Id { get; set; }
 

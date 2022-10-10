@@ -23,12 +23,12 @@ SOFTWARE.
 */
 namespace ServiceBackendConfigurationPlugin.Messages
 {
-    public class eFormCompleted
+    public sealed class eFormCompleted
     {
-        public int? CaseId { get; protected set; }
-        public int? MicrotingUId { get; protected set; }
-        public int? CheckId { get; protected set; }
-        public int? SiteUId { get; protected set; }
+        public int? CaseId { get;}
+        public int? MicrotingUId { get; }
+        public int? CheckId { get; }
+        public int? SiteUId { get; }
 
         public eFormCompleted(int? caseId, int? microtingUId, int? checkId, int? siteUId)
         {

@@ -26,11 +26,11 @@ using System;
 
 namespace ServiceBackendConfigurationPlugin.Messages
 {
-    public class EformParsedByServer
+    public sealed class EformParsedByServer
     {
-        public int? CaseId { get; protected set; }
-        public int? MicrotingUId { get; protected set; }
-        public int? CheckId { get; protected set; }
+        public int? CaseId { get; }
+        public int? MicrotingUId { get; }
+        public int? CheckId { get; }
 
         public EformParsedByServer(int? caseId, int? MicrotingUId, int? checkId)
         {

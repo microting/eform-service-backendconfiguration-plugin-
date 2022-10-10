@@ -24,7 +24,7 @@ SOFTWARE.
 
 namespace ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules
 {
-    public class AreaRuleAssignedSitesModel
+    public sealed class AreaRuleAssignedSitesModel
     {
         public int SiteId { get; set; }
 

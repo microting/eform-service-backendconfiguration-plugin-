@@ -30,7 +30,7 @@ using HtmlToOpenXml;
 
 namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers
 {
-    public class WordProcessor : IDisposable
+    public sealed class WordProcessor : IDisposable
     {
         // Document
         private readonly WordprocessingDocument _wordProcessingDocument;

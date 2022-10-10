@@ -31,7 +31,7 @@ using Rebus.Logging;
 
 namespace ServiceBackendConfigurationPlugin.Installers
 {
-    public class RebusInstaller: IWindsorInstaller
+    public sealed class RebusInstaller: IWindsorInstaller
     {
         private readonly string _connectionString;
         private readonly int _maxParallelism;
