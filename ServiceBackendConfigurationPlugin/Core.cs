@@ -27,6 +27,8 @@ using ChemicalsBase.Infrastructure;
 using ChemicalsBase.Infrastructure.Data.Factories;
 using Microting.EformAngularFrontendBase.Infrastructure.Data;
 using Microting.EformAngularFrontendBase.Infrastructure.Data.Factories;
+using Microting.eFormCaseTemplateBase.Infrastructure.Data;
+using Microting.eFormCaseTemplateBase.Infrastructure.Data.Factories;
 using ServiceBackendConfigurationPlugin.Scheduler.Jobs;
 
 namespace ServiceBackendConfigurationPlugin
@@ -71,6 +73,7 @@ namespace ServiceBackendConfigurationPlugin
         private ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
         private ChemicalsDbContext _chemicalsDbContext;
         private ChemicalDbContextHelper _chemicalDbContextHelper;
+        private CaseTemplateDbContextHelper _caseTemplateDbContextHelper;
         private BaseDbContext _baseDbContext;
 
         public void CoreEventException(object sender, EventArgs args)
@@ -172,16 +175,28 @@ namespace ServiceBackendConfigurationPlugin
 
 
                     pluginDbName = $"Database={dbPrefix}_chemical-base-plugin;";
-                    var angularDbName = $"Database={dbPrefix}_Angular;";
                     var chemicalConnectionString = sdkConnectionString.Replace(dbNameSection, pluginDbName);
                     var chemicalContextFactory = new ChemicalsContextFactory();
+
+
+                    var angularDbName = $"Database={dbPrefix}_Angular;";
                     var angularConnectionString = sdkConnectionString.Replace(dbNameSection, angularDbName);
                     _baseDbContext = new BaseDbContextFactory().CreateDbContext(new []{angularConnectionString});
 
 
+                    pluginDbName = $"Database={dbPrefix}_eform-angular-case-template-plugin;";
+
+                    var caseTemplateConnectionString = sdkConnectionString.Replace(dbNameSection, pluginDbName);
+                    var caseTemplateContextFactory = new CaseTemplatePnContextFactory();
+
                     _chemicalsDbContext =
                         chemicalContextFactory.CreateDbContext(new[] { chemicalConnectionString });
                     _chemicalDbContextHelper = new ChemicalDbContextHelper(chemicalConnectionString);
+
+                    _caseTemplateDbContextHelper = new CaseTemplateDbContextHelper(caseTemplateConnectionString);
+
+                    var caseTemplateDbContext = caseTemplateContextFactory.CreateDbContext(new[] { caseTemplateConnectionString });
+                    caseTemplateDbContext.Database.Migrate();
 
                     _coreAvailable = true;
                     _coreStatChanging = false;
@@ -206,6 +221,8 @@ namespace ServiceBackendConfigurationPlugin
                         .Instance(_itemsPlanningDbContextHelper));
                     _container.Register(Component.For<ChemicalDbContextHelper>()
                         .Instance(_chemicalDbContextHelper));
+                    _container.Register(Component.For<CaseTemplateDbContextHelper>()
+                        .Instance(_caseTemplateDbContextHelper));
                     _container.Register(Component.For<eFormCore.Core>().Instance(_sdkCore));
                     _container.Register(Component.For<BaseDbContext>().Instance(_baseDbContext));
                     _container.Install(
@@ -246,7 +263,7 @@ namespace ServiceBackendConfigurationPlugin
                     _bus.Dispose();
                 }
 
-                _sdkCore.Close();
+                _sdkCore.Close().GetAwaiter().GetResult();
 
                 _coreStatChanging = false;
             }
@@ -263,7 +280,7 @@ namespace ServiceBackendConfigurationPlugin
         {
             _sdkCore = new eFormCore.Core();
 
-            _sdkCore.StartSqlOnly(sdkConnectionString);
+            _sdkCore.StartSqlOnly(sdkConnectionString).GetAwaiter().GetResult();
         }
 
         private void CheckComplianceIntegrity(string connectionStringBackend, string connectionStringItemsPlanning)
@@ -323,8 +340,8 @@ namespace ServiceBackendConfigurationPlugin
                             {
                                 PlanningId = planning.Id,
                                 AreaId = areaRulePlanning.AreaId,
-                                Deadline = (DateTime)planning.NextExecutionTime,
-                                StartDate = (DateTime)planning.LastExecutedTime,
+                                Deadline = (DateTime)planning.NextExecutionTime!,
+                                StartDate = (DateTime)planning.LastExecutedTime!,
                                 MicrotingSdkCaseId = planningCase.MicrotingSdkCaseId,
                                 MicrotingSdkeFormId = planning.RelatedEFormId,
                                 PropertyId = property.Id
@@ -374,10 +391,12 @@ namespace ServiceBackendConfigurationPlugin
         {
             var job = _container.Resolve<SearchListJob>();
 
-            _scheduleTimer = new Timer(async x =>
+            async void Callback(object x)
             {
                 await job.Execute();
-            }, null, TimeSpan.Zero, TimeSpan.FromMinutes(60));
+            }
+
+            _scheduleTimer = new Timer(Callback, null, TimeSpan.Zero, TimeSpan.FromMinutes(60));
         }
     }
 }

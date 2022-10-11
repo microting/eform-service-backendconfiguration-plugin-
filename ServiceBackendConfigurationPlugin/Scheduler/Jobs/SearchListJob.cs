@@ -46,6 +46,8 @@ using Microting.eFormApi.BasePn.Infrastructure.Helpers;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
 using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
+using Microting.eFormCaseTemplateBase.Infrastructure.Data;
+using Microting.eFormCaseTemplateBase.Infrastructure.Data.Entities;
 using Microting.ItemsPlanningBase.Infrastructure.Data;
 using Microting.ItemsPlanningBase.Infrastructure.Data.Entities;
 using Microting.ItemsPlanningBase.Infrastructure.Enums;
@@ -67,18 +69,21 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
         private readonly MicrotingDbContext _sdkDbContext;
         private readonly ItemsPlanningPnDbContext _itemsPlanningPnDbContext;
         private readonly BaseDbContext _baseDbContext;
+        private readonly CaseTemplateDbContextHelper _caseTemplateDbContextHelper;
 
         public SearchListJob(
             BackendConfigurationDbContextHelper dbContextHelper, ChemicalDbContextHelper chemicalDbContextHelper,
-            eFormCore.Core core, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper, BaseDbContext baseDbContext)
+            eFormCore.Core core, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper, BaseDbContext baseDbContext, CaseTemplateDbContextHelper caseTemplateDbContextHelper)
         {
             _core = core;
             _baseDbContext = baseDbContext;
+            _caseTemplateDbContextHelper = caseTemplateDbContextHelper;
             _itemsPlanningPnDbContext = itemsPlanningDbContextHelper.GetDbContext();
             _chemicalDbContextHelper = chemicalDbContextHelper;
             // _backendConfigurationDbContextHelper = dbContextHelper;
             _backendConfigurationDbContext = dbContextHelper.GetDbContext();
             _sdkDbContext = _core.DbContextHelper.GetDbContext();
+            _caseTemplateDbContextHelper = caseTemplateDbContextHelper;
             // _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper.GetDbContext();
         }
 
@@ -784,6 +789,123 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     }
                 }
             }
+
+            if (DateTime.UtcNow.Hour == 5)
+            {
+                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
+                var properties = await _backendConfigurationDbContext.Properties
+                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
+
+                var caseTemplateDbContext = _caseTemplateDbContextHelper.GetDbContext();
+
+                foreach (var property in properties)
+                {
+                    var sendGridKey =
+                        _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
+
+                    var fromEmailAddress = new EmailAddress("no-reply@microting.com",
+                        $"DokumentKontrol for : {property.Name}");
+                    var toEmailAddress = new List<EmailAddress>();
+                    if (!string.IsNullOrEmpty(property.MainMailAddress))
+                    {
+                        toEmailAddress.AddRange(property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
+                    }
+
+                    if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
+                    {
+                        var sendGridClient = new SendGridClient(sendGridKey.Value);
+                        var assembly = Assembly.GetExecutingAssembly();
+                        var assemblyName = assembly.GetName().Name;
+
+                        var stream =
+                            assembly.GetManifestResourceStream($"{assemblyName}.Resources.DokumentKontrol_rapport_1.0_Libre.html");
+                        string html;
+                        if (stream == null)
+                        {
+                            throw new InvalidOperationException("Resource not found");
+                        }
+
+                        using (var reader = new StreamReader(stream, Encoding.UTF8))
+                        {
+                            html = await reader.ReadToEndAsync();
+                        }
+                        var newHtml = html;
+                        newHtml = newHtml.Replace("{{propertyName}}", property.Name);
+                        newHtml = newHtml.Replace("{{dato}}", DateTime.Now.ToString("dd-MM-yyyy"));
+                        newHtml = newHtml.Replace("{{emailaddresses}}", property.MainMailAddress);
+
+                        var documentProperties = await caseTemplateDbContext.DocumentProperties.Where(x =>
+                            x.WorkflowState != Constants.WorkflowStates.Removed && x.PropertyId == property.Id).OrderBy(x => x.ExpireDate).ToListAsync();
+                        var expiredProducts = new List<DocumentProperty>();
+                        var expiringIn1Month = new List<DocumentProperty>();
+                        var expiringIn3Months = new List<DocumentProperty>();
+                        var expiringIn6Months = new List<DocumentProperty>();
+                        var expiringIn12Months = new List<DocumentProperty>();
+                        var otherProducts = new List<DocumentProperty>();
+
+                        foreach (var documentProperty in documentProperties)
+                        {
+                            var document = await caseTemplateDbContext.Documents.FirstAsync(x =>
+                                x.Id == documentProperty.DocumentId);
+
+                            if (document.EndAt < DateTime.Now)
+                            {
+                                expiredProducts.Add(documentProperty);
+                            }
+                            else if (document.EndAt < DateTime.Now.AddMonths(1))
+                            {
+                                expiringIn1Month.Add(documentProperty);
+                            }
+                            else if (document.EndAt < DateTime.Now.AddMonths(3))
+                            {
+                                expiringIn3Months.Add(documentProperty);
+                            }
+                            else if (document.EndAt < DateTime.Now.AddMonths(6))
+                            {
+                                expiringIn6Months.Add(documentProperty);
+                            }
+                            else if (document.EndAt < DateTime.Now.AddMonths(12))
+                            {
+                                expiringIn12Months.Add(documentProperty);
+                            }
+                            else
+                            {
+                                otherProducts.Add(documentProperty);
+                            }
+                        }
+
+                        if ((expiringIn1Month.Count > 0 && DateTime.Now.DayOfWeek == DayOfWeek.Thursday) ||
+                            expiredProducts.Count > 0 ||
+                            (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && DateTime.Now.Day < 8))
+                        {
+                            newHtml = newHtml.Replace("{{expiredProducts}}",
+                                await GenerateDocumentList(expiredProducts, caseTemplateDbContext, _backendConfigurationDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn1Month}}",
+                                await GenerateDocumentList(expiringIn1Month, caseTemplateDbContext, _backendConfigurationDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn3Months}}",
+                                await GenerateDocumentList(expiringIn3Months, caseTemplateDbContext, _backendConfigurationDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn6Months}}",
+                                await GenerateDocumentList(expiringIn6Months, caseTemplateDbContext, _backendConfigurationDbContext));
+                            newHtml = newHtml.Replace("{{expiringIn12Months}}",
+                                await GenerateDocumentList(expiringIn12Months, caseTemplateDbContext, _backendConfigurationDbContext));
+                            newHtml = newHtml.Replace("{{otherProducts}}",
+                                await GenerateDocumentList(otherProducts, caseTemplateDbContext, _backendConfigurationDbContext));
+
+                            var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress, toEmailAddress,
+                                $"DokumentKontrol for: {property.Name}", null, newHtml);
+
+                            var responseMessage = await sendGridClient.SendEmailAsync(msg);
+                            if ((int) responseMessage.StatusCode < 200 ||
+                                (int) responseMessage.StatusCode >= 300)
+                            {
+                                throw new Exception($"Status: {responseMessage.StatusCode}");
+                            }
+                        }
+                    }
+
+                }
+
+            }
         }
 
 
@@ -1158,6 +1280,68 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                           "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
                           "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
                           $"<span>{chemicalProductProperty.Locations}</span></p>" +
+                          "</td>" +
+                          "</tr>";
+            }
+
+            return result;
+        }
+
+        private async Task<string> GenerateDocumentList(List<DocumentProperty> documentProperties,
+            CaseTemplatePnDbContext caseTemplatePnDbContext, BackendConfigurationPnDbContext backendConfigurationPnDbContext)
+        {
+            string result = "";
+
+            foreach (var documentProperty in documentProperties.OrderBy(x => x.ExpireDate))
+            {
+                var document = await caseTemplatePnDbContext.Documents
+                    .Include(x => x.DocumentTranslations)
+                    .Include(x => x.DocumentProperties)
+                    .Where(x => x.Status == true)
+                    .FirstOrDefaultAsync(x => x.Id == documentProperty.DocumentId);
+
+                if (document == null)
+                {
+                    continue;
+                }
+
+                var folders = await caseTemplatePnDbContext.FolderTranslations
+                    .Where(y => y.LanguageId == 1)
+                    .Where(x => x.Id == document.FolderId).Select(x => x.Name).ToListAsync();
+
+                var properties = await backendConfigurationPnDbContext.Properties
+                    .Where(x => document.DocumentProperties.Select(y => y.PropertyId).Contains(x.Id))
+                    .Select(x => x.Name).ToListAsync();
+
+                result += "<tr valign=\"top\">" +
+                          "<td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{document.Id}</span></p>" +
+                          "</td>" +
+                          "<td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{string.Join("<br>", properties)}</span></p>" +
+                          "</td>" +
+                          "<td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{string.Join("<br>", folders)}</span></p>" +
+                          "</td>" +
+                          "<td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{document.DocumentTranslations.First(x => x.LanguageId == 1).Name}</span></p>" +
+                          "</td><td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{document.DocumentTranslations.First(x => x.LanguageId == 1).Description}</span></p>" +
+                          "</td>" +
+                          "<td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{document.EndAt:dd-MM-yyyy}</span></p>" +
                           "</td>" +
                           "</tr>";
             }
