@@ -90,6 +90,10 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <None Remove="Resources\Fjern-produkt.pdf" />
+    <None Remove="Resources\DokumentKontrol_rapport_1.0_Libre.html" />
+    <EmbeddedResource Include="Resources\DokumentKontrol_rapport_1.0_Libre.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Infrastructure\Constants" />
