@@ -906,8 +906,37 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 }
 
             }
-        }
 
+            try
+            {
+                var emails = _backendConfigurationDbContext.Emails
+                    .Where(x => x.Sent == null)
+                    .Where(x => x.DelayedUntil > DateTime.UtcNow)
+                    .ToList();
+
+                foreach (var email in emails)
+                {
+                    var sendGridKey =
+                        _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
+                    var client = new SendGridClient(sendGridKey.Value);
+                    var fromEmailAddress = new EmailAddress("no-reply@microting.com");
+                    var msg = MailHelper.CreateSingleEmail(fromEmailAddress, new EmailAddress(email.To), email.Subject, "", email.Body);
+                    var response = await client.SendEmailAsync(msg);
+                    if ((int)response.StatusCode < 200 || (int)response.StatusCode >= 300)
+                    {
+                        email.Error = $"Status: {response.StatusCode}";
+                    } else
+                    {
+                        email.SentAt = DateTime.UtcNow;
+                        email.Sent = response.StatusCode.ToString();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
 
         private async Task<MainElement> ModifyChemicalMainElement(MainElement mainElement, Chemical chemical,
             Product product, string productName, string folderMicrotingId, AreaRule areaRule, Site sdkSite, string locations)
