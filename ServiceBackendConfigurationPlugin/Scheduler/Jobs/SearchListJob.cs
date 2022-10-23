@@ -911,7 +911,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
             {
                 var emails = _backendConfigurationDbContext.Emails
                     .Where(x => x.Sent == null)
-                    .Where(x => x.DelayedUntil > DateTime.UtcNow)
+                    .Where(x => x.DelayedUntil < DateTime.UtcNow)
                     .ToList();
 
                 foreach (var email in emails)
@@ -921,14 +921,49 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     var client = new SendGridClient(sendGridKey.Value);
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com");
                     var msg = MailHelper.CreateSingleEmail(fromEmailAddress, new EmailAddress(email.To), email.Subject, "", email.Body);
+
+                    var emailAttachments = await _backendConfigurationDbContext.EmailAttachments
+                        .Where(x => x.EmailId == email.Id).ToListAsync();
+
+                    List<Attachment> attachments = new List<Attachment>();
+                    var assembly = Assembly.GetExecutingAssembly();
+                    var assemblyName = assembly.GetName().Name;
+                    foreach (var emailAttachment in emailAttachments)
+                    {
+                        var stream =
+                            assembly.GetManifestResourceStream($"{assemblyName}.Resources.{emailAttachment.ResourceName}");
+                        if (stream == null)
+                        {
+                            throw new InvalidOperationException("Resource not found");
+                        }
+                        byte[] bytes;
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            await stream.CopyToAsync(memoryStream);
+                            bytes = memoryStream.ToArray();
+                        }
+                        var attachment1 = new Attachment
+                        {
+                            Filename = emailAttachment.ResourceName,
+                            Content = Convert.ToBase64String(bytes),
+                            ContentId = emailAttachment.CidName,
+                            Disposition = "inline"
+                        };
+                        attachments.Add(attachment1);
+                    }
+                    msg.AddAttachments(attachments);
+
                     var response = await client.SendEmailAsync(msg);
                     if ((int)response.StatusCode < 200 || (int)response.StatusCode >= 300)
                     {
                         email.Error = $"Status: {response.StatusCode}";
+                        await email.Update(_backendConfigurationDbContext).ConfigureAwait(false);
                     } else
                     {
                         email.SentAt = DateTime.UtcNow;
                         email.Sent = response.StatusCode.ToString();
+                        email.Status = "Sent";
+                        await email.Update(_backendConfigurationDbContext).ConfigureAwait(false);
                     }
                 }
             }

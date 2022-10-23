@@ -1,14 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microting.eForm.Infrastructure;
 using Microting.eForm.Infrastructure.Constants;
 using Microting.eForm.Infrastructure.Data.Entities;
 using Microting.eForm.Infrastructure.Models;
+using Microting.EformAngularFrontendBase.Infrastructure.Data;
+using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
 using Microting.ItemsPlanningBase.Infrastructure.Data.Entities;
 using Rebus.Handlers;
+using SendGrid.Helpers.Mail;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 using ServiceBackendConfigurationPlugin.Messages;
 using ServiceBackendConfigurationPlugin.Resources;
@@ -177,8 +183,9 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                     oldComment;
 
                 mainElement.StartDate = DateTime.Now.AddDays(6).ToUniversalTime();
+                mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
                 mainElement.CheckListFolderName = await sdkDbContext.Folders
-                    .Where(x => x.Id == dbCase.FolderId)
+                    .Where(x => x.Id == planning.SdkFolderId)
                     .Select(x => x.MicrotingUid.ToString())
                     .FirstAsync();
                 planningCaseSite = new PlanningCaseSite()
@@ -195,17 +202,17 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                 string body = "";
                 if (folder != null)
                 {
-                    planning.SdkFolderId = sdkDbContext.Folders
-                        .FirstOrDefault(y => y.Id == planning.SdkFolderId)
-                        ?.Id;
+                    // planning.SdkFolderId = sdkDbContext.Folders
+                        // .FirstOrDefault(y => y.Id == planning.SdkFolderId)
+                        // ?.Id;
                     FolderTranslation folderTranslation =
-                        await sdkDbContext.FolderTranslations.FirstOrDefaultAsync(x =>
+                        await sdkDbContext.FolderTranslations.FirstAsync(x =>
                             x.FolderId == folder.Id && x.LanguageId == site.LanguageId);
                     body = $"{folderTranslation.Name} ({site.Name};{DateTime.Now:dd.MM.yyyy})";
                 }
 
                 PlanningNameTranslation planningNameTranslation =
-                    await itemsPlanningPnDbContext.PlanningNameTranslation.FirstOrDefaultAsync(x =>
+                    await itemsPlanningPnDbContext.PlanningNameTranslation.FirstAsync(x =>
                         x.PlanningId == planning.Id
                         && x.LanguageId == site.LanguageId);
 
@@ -213,7 +220,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                 mainElement.PushMessageTitle = planningNameTranslation.Name;
                 // var _ = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
                 var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) site.MicrotingUid,
-                    dbCase.FolderId);
+                    planning.SdkFolderId);
 
                 if (caseId != null)
                 {
@@ -223,6 +230,88 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                     await planningCaseSite.Update(itemsPlanningPnDbContext);
                 }
             }
+
+            try {
+
+                var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.AsNoTracking()
+                    .Include(x => x.AreaRule.AreaRuleTranslations)
+                    .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstAsync();
+
+                var property =
+                    await backendConfigurationPnDbContext.Properties.FirstAsync(x =>
+                        x.Id == backendPlanning.PropertyId);
+                // var sendGridKey =
+                //     _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
+
+                // var fromEmailAddress = new EmailAddress("no-reply@microting.com",
+                    // $"KemiKontrol for : {property.Name}");
+                var toEmailAddress = new List<EmailAddress>();
+                if (!string.IsNullOrEmpty(property.MainMailAddress))
+                {
+                    toEmailAddress.AddRange(property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
+                }
+
+                if (toEmailAddress.Count > 0)
+                {
+                    var assembly = Assembly.GetExecutingAssembly();
+                    var assemblyName = assembly.GetName().Name;
+
+                    var stream =
+                        assembly.GetManifestResourceStream($"{assemblyName}.Resources.Flydelagskontrol_1.0_Libre.html");
+                    string html;
+                    if (stream == null)
+                    {
+                        throw new InvalidOperationException("Resource not found");
+                    }
+
+                    using (var reader = new StreamReader(stream, Encoding.UTF8))
+                    {
+                        html = await reader.ReadToEndAsync();
+                    }
+                    var newHtml = html;
+                    newHtml = newHtml.Replace("{{propertyName}}", property.Name);
+                    newHtml = newHtml.Replace("{{todaysDate}}", DateTime.Now.ToString("dd-MM-yyyy"));
+                    newHtml = newHtml.Replace("{{emailaddresses}}", property.MainMailAddress);
+                    newHtml = newHtml.Replace("{{slurryTankName}}", backendPlanning.AreaRule.AreaRuleTranslations.First(x => x.LanguageId == 1).Name);
+                    newHtml = newHtml.Replace("{{slurryTankStatus}}", statusOrActivity);
+                    newHtml = newHtml.Replace("{{comment}}", oldComment);
+
+                    var sdkContext =  _sdkCore.DbContextHelper.GetDbContext();
+                    var folder = await sdkContext.Folders.FirstAsync(x => x.Id == planning.SdkFolderId);
+
+                    FolderTranslation folderTranslation =
+                        await sdkDbContext.FolderTranslations.FirstAsync(x =>
+                            x.FolderId == folder.ParentId && x.LanguageId == 1);
+                    newHtml = newHtml.Replace("{{slurryTankFolderName}}", folderTranslation.Name);
+
+                    PlanningNameTranslation planningNameTranslation =
+                        await itemsPlanningPnDbContext.PlanningNameTranslation.FirstAsync(x =>
+                            x.PlanningId == planning.Id
+                            && x.LanguageId == 1);
+
+                    var backendConfigurationDbContext = _backendConfigurationDbContextHelper.GetDbContext();
+                    var email = new Email
+                    {
+                        Body = newHtml,
+                        Subject = $"Opfølgning flydelag: {planningNameTranslation.Name}; {property.Name}",
+                        To = property.MainMailAddress,
+                        DelayedUntil = DateTime.Now.AddDays(6).ToUniversalTime(),
+                        From = "no-reply@microting.com",
+                        Status = "not-sent"
+                    };
+                    await email.Create(backendConfigurationDbContext).ConfigureAwait(false);
+
+                    var emailAttachment = new EmailAttachment
+                    {
+                        EmailId = email.Id,
+                        CidName = "eform-logo",
+                        ResourceName = "KemiKontrol_rapport_1.0_Libre_html_5d7c0d01f9da8102.png",
+                    };
+                    await emailAttachment.Create(backendConfigurationDbContext).ConfigureAwait(false);
+                }
+            } catch (Exception e) {
+                Console.WriteLine(e.Message);
+            }
         }
 
     }
@@ -231,7 +320,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
     private async Task<Folder> GetTopFolderName(int folderId, MicrotingDbContext dbContext)
     {
         var result = await dbContext.Folders.FirstOrDefaultAsync(y => y.Id == folderId);
-        if (result.ParentId != null)
+        if (result is {ParentId: { }})
         {
             result = await GetTopFolderName((int)result.ParentId, dbContext);
         }
