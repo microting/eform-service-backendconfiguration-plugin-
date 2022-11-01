@@ -154,16 +154,17 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             x.PlanningCaseSiteId == planningCaseSite.Id &&
                             x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
-                        var deadLine = (DateTime)planning.NextExecutionTime;
-                        Compliance compliance = new Compliance()
+                        var deadLine = (DateTime)planning.NextExecutionTime!;
+                        Compliance compliance = new Compliance
                         {
                             PropertyId = property.Id,
                             PlanningId = planningCaseSite.PlanningId,
                             AreaId = backendPlannings.AreaId,
                             Deadline = new DateTime(deadLine.Year, deadLine.Month, deadLine.Day, 0, 0, 0),
-                            StartDate = (DateTime)planning.LastExecutedTime,
+                            StartDate = (DateTime)planning.LastExecutedTime!,
                             MicrotingSdkeFormId = planning.RelatedEFormId,
-                            PlanningCaseSiteId = planningCaseSite.Id
+                            PlanningCaseSiteId = planningCaseSite.Id,
+                            MicrotingSdkCaseId = (int) message.CaseId!
                         };
 
                         await compliance.Create(backendConfigurationPnDbContext);
