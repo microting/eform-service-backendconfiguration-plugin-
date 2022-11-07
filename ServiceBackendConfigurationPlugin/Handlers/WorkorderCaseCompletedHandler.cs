@@ -226,7 +226,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
             // deploy eform to ongoing status
             await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks,
-                (int) property.FolderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, newWorkorderCase,
+                property, label, CaseStatusesEnum.Ongoing, newWorkorderCase,
                 commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
                 assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
         }else if (eformIdForOngoingTasks == dbCase.CheckListId && workOrderCase != null)
@@ -348,27 +348,27 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 // retract eform
                 await RetractEform(workOrderCase);
                 // deploy eform to ongoing status
-                await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, folderIdForOngoingTasks, label, CaseStatusesEnum.Ongoing, workOrderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
+                await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, property, label, CaseStatusesEnum.Ongoing, workOrderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
             }
             else
             {
-                label = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
-                        (!string.IsNullOrEmpty(workOrderCase.SelectedAreaName)
-                            ? $"<strong>{Translations.Area}:</strong> {workOrderCase.SelectedAreaName}<br>"
-                            : "") +
-                        $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
-                        $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByName}<br>" +
-                        (!string.IsNullOrEmpty(workOrderCase.CreatedByText)
-                            ? $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByText}<br>"
-                            : "") +
-                        $"<strong>{Translations.CreatedDate}:</strong> {workOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                        $"<strong>{Translations.LastUpdatedBy}:</strong> {cls.Site.Name}<br>" +
-                        $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                        $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
+                // label = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+                //         (!string.IsNullOrEmpty(workOrderCase.SelectedAreaName)
+                //             ? $"<strong>{Translations.Area}:</strong> {workOrderCase.SelectedAreaName}<br>"
+                //             : "") +
+                //         $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
+                //         $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByName}<br>" +
+                //         (!string.IsNullOrEmpty(workOrderCase.CreatedByText)
+                //             ? $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByText}<br>"
+                //             : "") +
+                //         $"<strong>{Translations.CreatedDate}:</strong> {workOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
+                //         $"<strong>{Translations.LastUpdatedBy}:</strong> {cls.Site.Name}<br>" +
+                //         $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
+                //         $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
                 // retract eform
                 await RetractEform(workOrderCase);
                 // deploy eform to completed status
-                await DeployWorkOrderEform(propertyWorkers, eformIdForCompletedTasks, folderIdForCompletedTasks, label, CaseStatusesEnum.Completed, workOrderCase, commentFieldValue.Value, null, hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
+                // await DeployWorkOrderEform(propertyWorkers, eformIdForCompletedTasks, property, label, CaseStatusesEnum.Completed, workOrderCase, commentFieldValue.Value, null, hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
             }
         }
     }
@@ -376,7 +376,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
     private async Task DeployWorkOrderEform(
         List<PropertyWorker> propertyWorkers,
         int eformId,
-        int folderId,
+        Property property,
         string description,
         CaseStatusesEnum status,
         WorkorderCase workorderCase,
@@ -388,6 +388,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
         string pushMessageTitle,
         string updatedByName)
     {
+        int? folderId = null;
         await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
             _backendConfigurationDbContextHelper.GetDbContext();
@@ -397,8 +398,6 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == propertyWorker.WorkerId);
             var siteLanguage = await sdkDbContext.Languages.FirstAsync(x => x.Id == site.LanguageId);
             var mainElement = await _sdkCore.ReadeForm(eformId, siteLanguage);
-            mainElement.CheckListFolderName = sdkDbContext.Folders.First(x => x.Id == folderId)
-                .MicrotingUid.ToString();
             mainElement.Label = " ";
             mainElement.ElementList[0].QuickSyncEnabled = true;
             mainElement.EnableQuickSync = true;
@@ -411,8 +410,17 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             }
             if (site.Name == siteName)
             {
+                mainElement.CheckListFolderName = sdkDbContext.Folders.First(x => x.Id == property.FolderIdForOngoingTasks)
+                    .MicrotingUid.ToString();
+                folderId = property.FolderIdForOngoingTasks;
                 mainElement.PushMessageTitle = pushMessageTitle;
                 mainElement.PushMessageBody = pushMessageBody;
+            }
+            else
+            {
+                folderId = property.FolderIdForCompletedTasks;
+                mainElement.CheckListFolderName = sdkDbContext.Folders.First(x => x.Id == property.FolderIdForCompletedTasks)
+                    .MicrotingUid.ToString();
             }
             // TODO uncomment when new app has been released.
             ((DataElement)mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description.Replace("\n", "<br>");
