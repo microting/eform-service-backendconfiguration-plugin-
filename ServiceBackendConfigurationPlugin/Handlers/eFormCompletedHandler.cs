@@ -92,10 +92,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                 .AsQueryable();
 
-            var eformIdForNewTasks = await eformQuery
-                .Where(x => x.Text == "01. New task")
-                .Select(x => x.CheckListId)
-                .FirstOrDefaultAsync();
+            var eformIdForNewTasks = await sdkDbContext.CheckLists
+                .Where(x => x.OriginalId == "142663new2")
+                .Select(x => x.Id)
+                .FirstAsync();
 
             if (eformIdForNewTasks == 0)
             {
@@ -103,9 +103,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 return;
             }
 
-            var eformIdForOngoingTasks = await eformQuery
-                .Where(x => x.Text == "02. Ongoing task")
-                .Select(x => x.CheckListId)
+            var eformIdForOngoingTasks = await sdkDbContext.CheckLists
+                .Where(x => x.OriginalId == "142664new")
+                .Select(x => x.Id)
                 .FirstOrDefaultAsync();
 
             if (eformIdForOngoingTasks == 0)
