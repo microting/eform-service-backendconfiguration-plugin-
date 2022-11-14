@@ -18,24 +18,23 @@ using Rebus.Handlers;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 using ServiceBackendConfigurationPlugin.Messages;
 using ServiceBackendConfigurationPlugin.Resources;
-using KeyValuePair = Microting.eForm.Dto.KeyValuePair;
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
 
-public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseCompleted>
+public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCaseCompleted>
 {
     private readonly eFormCore.Core _sdkCore;
     private readonly ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
     private readonly BackendConfigurationDbContextHelper _backendConfigurationDbContextHelper;
 
-    public WorkOrderCaseCompletedHandler(BackendConfigurationDbContextHelper backendConfigurationDbContextHelper, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper, eFormCore.Core sdkCore)
+    public OldWorkOrderCaseCompletedHandler(BackendConfigurationDbContextHelper backendConfigurationDbContextHelper, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper, eFormCore.Core sdkCore)
     {
         _backendConfigurationDbContextHelper = backendConfigurationDbContextHelper;
         _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper;
         _sdkCore = sdkCore;
     }
 
-    public async Task Handle(WorkOrderCaseCompleted message)
+    public async Task Handle(OldWorkOrderCaseCompleted message)
     {
         Console.WriteLine("EFormCompletedHandler .Handle called");
         Console.WriteLine($"message.CaseId: {message.CaseId}");
@@ -57,15 +56,20 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             .Select(x => x.Id)
             .FirstAsync();
 
+        var eformIdForNewTasksOld = await eformQuery
+            .Where(x => x.Text == "01. New task")
+            .Select(x => x.CheckListId)
+            .FirstOrDefaultAsync();
+
+        var eformIdForOngoingTasksOld = await eformQuery
+            .Where(x => x.Text == "02. Ongoing task")
+            .Select(x => x.CheckListId)
+            .FirstOrDefaultAsync();
+
         var eformIdForOngoingTasks = await sdkDbContext.CheckLists
             .Where(x => x.OriginalId == "142664new2")
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
-
-        // var eformIdForCompletedTasks = await eformQuery
-        //     .Where(x => x.Text == "03. Completed task")
-        //     .Select(x => x.CheckListId)
-        //     .FirstAsync();
 
         var dbCase = await sdkDbContext.Cases
                          .AsNoTracking()
@@ -83,7 +87,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             .ThenInclude(x => x.WorkorderCases)
             .FirstOrDefaultAsync();
 
-        if (eformIdForNewTasks == dbCase.CheckListId && workOrderCase != null)
+        if (eformIdForNewTasksOld == dbCase.CheckListId && workOrderCase != null)
         {
             var property = workOrderCase.PropertyWorker.Property;
 
@@ -103,12 +107,13 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(language.LanguageCode);
 
-            var priorityFiled =
-                await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 1);
-            var priorityFieldValue =
-                await sdkDbContext.FieldValues.FirstOrDefaultAsync(x =>
-                    x.FieldId == priorityFiled.Id && x.CaseId == dbCase.Id);
+
+            // var priorityFiled =
+            //     await sdkDbContext.Fields.FirstAsync(x =>
+            //         x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 1);
+            // var priorityFieldValue =
+            //     await sdkDbContext.FieldValues.FirstOrDefaultAsync(x =>
+            //         x.FieldId == priorityFiled.Id && x.CaseId == dbCase.Id);
 
             var areaField =
                 await sdkDbContext.Fields.FirstAsync(x =>
@@ -193,7 +198,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 Description = commentFieldValue.Value,
                 CaseInitiated = DateTime.UtcNow,
                 LeadingCase = false,
-                Priority = priorityFieldValue != null ? priorityFieldValue.Value : "4",
+                Priority = "3",
             };
             await newWorkOrderCase.Create(backendConfigurationPnDbContext);
 
@@ -215,31 +220,12 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
             var hash = await GeneratePdf(picturesOfTasks, (int) cls.SiteId!);
 
-            var priorityText = "";
-
-            switch (workOrderCase.Priority)
-            {
-                case "1":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Urgent}<br><br>";
-                    break;
-                case "2":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.High}<br><br>";
-                    break;
-                case "3":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br><br>";
-                    break;
-                case "4":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br><br>";
-                    break;
-            }
-
             var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
                         $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
                         (!string.IsNullOrEmpty(areaName)
                             ? $"<strong>{Translations.Area}:</strong> {areaName}<br>"
                             : "") +
-                        $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br>" +
-                        priorityText +
+                        $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
                         $"<strong>{Translations.CreatedBy}:</strong> {cls.Site.Name}<br>" +
                         (!string.IsNullOrEmpty(assignedToFieldValue.Value)
                             ? $"<strong>{Translations.CreatedBy}:</strong> {assignedToFieldValue.Value}<br>"
@@ -252,13 +238,27 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 : $"{property.Name}";
             var pushMessageBody = $"{commentFieldValue.Value}";
 
+            // var priorityText = "";
+            //
+            // switch (workOrderCase.Priority)
+            // {
+            //     case "2":
+            //         priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.High}<br>";
+            //         break;
+            //     case "3":
+            //         priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br>";
+            //         break;
+            //     case "4":
+            //         priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br>";
+            //         break;
+            // }
 
             // deploy eform to ongoing status
             await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks,
                 property, label, CaseStatusesEnum.Ongoing, newWorkOrderCase,
                 commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
                 assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
-        }else if (eformIdForOngoingTasks == dbCase.CheckListId && workOrderCase != null)
+        }else if (eformIdForOngoingTasksOld == dbCase.CheckListId && workOrderCase != null)
         {
             var property = workOrderCase.PropertyWorker.Property;
 
@@ -304,19 +304,12 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 3);
             var commentFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
 
-            var priorityFiled =
-                await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 4);
-            var priorityFieldValue =
-                await sdkDbContext.FieldValues.FirstOrDefaultAsync(x =>
-                    x.FieldId == priorityFiled.Id && x.CaseId == dbCase.Id);
-
             var assignToSelectField =
-                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 5);
+                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 4);
             var assignedToSelectFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
 
             var statusField =
-                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 6);
+                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 5);
             var statusFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
 
             var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
@@ -388,29 +381,11 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 .FirstAsync();
             if (textStatus != "Afsluttet")
             {
-                var priorityText = "";
-
-                switch (workOrderCase.Priority)
-                {
-                    case "1":
-                        priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Urgent}<br><br>";
-                        break;
-                    case "2":
-                        priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.High}<br><br>";
-                        break;
-                    case "3":
-                        priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br><br>";
-                        break;
-                    case "4":
-                        priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br><br>";
-                        break;
-                }
                 label += $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
                          (!string.IsNullOrEmpty(workOrderCase.SelectedAreaName)
                              ? $"<strong>{Translations.Area}:</strong> {workOrderCase.SelectedAreaName}<br>"
                              : "") +
-                         $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br>" +
-                         priorityText +
+                         $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br><br>" +
                          $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByName}<br>" +
                          (!string.IsNullOrEmpty(workOrderCase.CreatedByText)
                              ? $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByText}<br>"
@@ -486,6 +461,10 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 case "4":
                     priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br>";
                     break;
+                default:
+                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br>";
+                    workorderCase.Priority = "3";
+                    break;
             }
 
             var textStatus = "";
@@ -549,25 +528,12 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             ((DataElement)mainElement.ElementList[0]).DataItemList[0].Label = " ";
             ((DataElement)mainElement.ElementList[0]).DataItemList[0].Color = Constants.FieldColors.Yellow;
             ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfHash;
-
-            List<KeyValuePair> kvpList = ((SingleSelect) ((DataElement) mainElement.ElementList[0]).DataItemList[4]).KeyValuePairList;
-            var newKvpList = new List<KeyValuePair>();
-            foreach (var keyValuePair in kvpList)
-            {
-                if (keyValuePair.Key == workorderCase.Priority)
-                {
-                    keyValuePair.Selected = true;
-                    newKvpList.Add(keyValuePair);
-                }
-            }
-            ((SingleSelect) ((DataElement) mainElement.ElementList[0]).DataItemList[4]).KeyValuePairList = newKvpList;
-
             if (deviceUsersGroupId != null)
             {
-                ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[5]).Source = (int)deviceUsersGroupId;
-                ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[5]).Mandatory = true;
+                ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[4]).Source = (int)deviceUsersGroupId;
+                ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[4]).Mandatory = true;
                 ((Comment)((DataElement)mainElement.ElementList[0]).DataItemList[3]).Value = newDescription;
-                ((SingleSelect)((DataElement)mainElement.ElementList[0]).DataItemList[6]).Mandatory = true;
+                ((SingleSelect)((DataElement)mainElement.ElementList[0]).DataItemList[5]).Mandatory = true;
                 mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
                 mainElement.Repeated = 1;
             }

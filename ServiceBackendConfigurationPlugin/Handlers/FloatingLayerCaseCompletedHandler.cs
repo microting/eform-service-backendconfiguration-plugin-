@@ -188,7 +188,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                     .Where(x => x.Id == planning.SdkFolderId)
                     .Select(x => x.MicrotingUid.ToString())
                     .FirstAsync();
-                planningCaseSite = new PlanningCaseSite()
+                planningCaseSite = new PlanningCaseSite
                 {
                     MicrotingSdkSiteId = site.Id,
                     MicrotingSdkeFormId = (int) dbCase.CheckListId,

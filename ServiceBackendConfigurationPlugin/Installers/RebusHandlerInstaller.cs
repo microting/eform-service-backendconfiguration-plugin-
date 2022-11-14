@@ -39,6 +39,7 @@ namespace ServiceBackendConfigurationPlugin.Installers
             container.Register(Component.For<IHandleMessages<eFormCompleted>>().ImplementedBy<EFormCompletedHandler>().LifestyleTransient());
             container.Register(Component.For<IHandleMessages<EformParsedByServer>>().ImplementedBy<EformParsedByServerHandler>().LifestyleTransient());
             container.Register(Component.For<IHandleMessages<WorkOrderCaseCompleted>>().ImplementedBy<WorkOrderCaseCompletedHandler>().LifestyleTransient());
+            container.Register(Component.For<IHandleMessages<OldWorkOrderCaseCompleted>>().ImplementedBy<OldWorkOrderCaseCompletedHandler>().LifestyleTransient());
             container.Register(Component.For<IHandleMessages<ChemicalCaseCompleted>>().ImplementedBy<ChemicalCaseCompletedHandler>().LifestyleTransient());
             container.Register(Component.For<IHandleMessages<MorningTourCaseCompleted>>().ImplementedBy<MorningTourCaseCompletedHandler>().LifestyleTransient());
             container.Register(Component.For<IHandleMessages<PoolHourCaseCompleted>>().ImplementedBy<PoolHourCaseCompletedHandler>().LifestyleTransient());

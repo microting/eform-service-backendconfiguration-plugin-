@@ -97,16 +97,26 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 .Select(x => x.Id)
                 .FirstAsync();
 
+            var eformIdForNewTasksOld = await eformQuery
+                .Where(x => x.Text == "01. New task")
+                .Select(x => x.CheckListId)
+                .FirstOrDefaultAsync();
+
+            var eformIdForOngoingTasksOld = await eformQuery
+                .Where(x => x.Text == "02. Ongoing task")
+                .Select(x => x.CheckListId)
+                .FirstOrDefaultAsync();
+
+            var eformIdForOngoingTasks = await sdkDbContext.CheckLists
+                .Where(x => x.OriginalId == "142664new2")
+                .Select(x => x.Id)
+                .FirstOrDefaultAsync();
+
             if (eformIdForNewTasks == 0)
             {
                 Console.WriteLine("eformIdForNewTasks is 0");
                 return;
             }
-
-            var eformIdForOngoingTasks = await sdkDbContext.CheckLists
-                .Where(x => x.OriginalId == "142664new")
-                .Select(x => x.Id)
-                .FirstOrDefaultAsync();
 
             if (eformIdForOngoingTasks == 0)
             {
@@ -167,6 +177,18 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             else if (eformIdForOngoingTasks == dbCase.CheckListId && workorderCase != null)
             {
                 await _bus.SendLocal(new WorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
+                    message.SiteUId));
+                // WorkorderCaseCompletedHandler will handle this case
+            }
+            else if (eformIdForNewTasksOld == dbCase.CheckListId && workorderCase != null)
+            {
+                await _bus.SendLocal(new OldWorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
+                    message.SiteUId));
+                // WorkorderCaseCompletedHandler will handle this case
+            }
+            else if (eformIdForOngoingTasksOld == dbCase.CheckListId && workorderCase != null)
+            {
+                await _bus.SendLocal(new OldWorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
                     message.SiteUId));
                 // WorkorderCaseCompletedHandler will handle this case
             }
