@@ -308,7 +308,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 await sdkDbContext.Fields.FirstAsync(x =>
                     x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 4);
             var priorityFieldValue =
-                await sdkDbContext.FieldValues.FirstOrDefaultAsync(x =>
+                await sdkDbContext.FieldValues.FirstAsync(x =>
                     x.FieldId == priorityFiled.Id && x.CaseId == dbCase.Id);
 
             var assignToSelectField =
@@ -323,6 +323,8 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             // var area = await sdkDbContext.EntityItems.FirstAsync(x => x.EntityGroupId == areasGroup.Id && x.Id == int.Parse(areaId));
             // var textStatus = statusFieldValue.Value == "1" ? Translations.Ongoing : Translations.Completed;
             var textStatus = "";
+
+            workOrderCase.Priority = priorityFieldValue.Value;
 
             switch (statusFieldValue.Value)
             {
