@@ -557,8 +557,8 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 if (keyValuePair.Key == workorderCase.Priority)
                 {
                     keyValuePair.Selected = true;
-                    newKvpList.Add(keyValuePair);
                 }
+                newKvpList.Add(keyValuePair);
             }
             ((SingleSelect) ((DataElement) mainElement.ElementList[0]).DataItemList[4]).KeyValuePairList = newKvpList;
 
