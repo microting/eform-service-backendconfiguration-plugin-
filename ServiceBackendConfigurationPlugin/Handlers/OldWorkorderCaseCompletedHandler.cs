@@ -18,6 +18,7 @@ using Rebus.Handlers;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 using ServiceBackendConfigurationPlugin.Messages;
 using ServiceBackendConfigurationPlugin.Resources;
+using KeyValuePair = Microting.eForm.Dto.KeyValuePair;
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
 
@@ -117,34 +118,34 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
 
             var areaField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 2);
+                    x.CheckListId == eformIdForNewTasksOld + 1 && x.DisplayIndex == 2);
             var areaFieldValue =
                 await sdkDbContext.FieldValues.FirstOrDefaultAsync(x =>
                     x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
 
             var pictureField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 3);
+                    x.CheckListId == eformIdForNewTasksOld + 1 && x.DisplayIndex == 3);
             var pictureFieldValues = await sdkDbContext.FieldValues
                 .Where(x => x.FieldId == pictureField.Id && x.CaseId == dbCase.Id).ToListAsync();
 
             var commentField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 4);
+                    x.CheckListId == eformIdForNewTasksOld + 1 && x.DisplayIndex == 4);
             var commentFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(
                     x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
 
             var assignToTexField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 5);
+                    x.CheckListId == eformIdForNewTasksOld + 1 && x.DisplayIndex == 5);
             var assignedToFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x =>
                     x.FieldId == assignToTexField.Id && x.CaseId == dbCase.Id);
 
             var assignToSelectField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 6);
+                    x.CheckListId == eformIdForNewTasksOld + 1 && x.DisplayIndex == 6);
             var assignedToSelectFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x =>
                     x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
@@ -297,19 +298,19 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
                 .FirstAsync(x => x.Id == property.EntitySelectListDeviceUsers);
 
             var pictureField =
-                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 2);
+                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasksOld + 1 && x.DisplayIndex == 2);
             var pictureFieldValues = await sdkDbContext.FieldValues.Where(x => x.FieldId == pictureField.Id && x.CaseId == dbCase.Id).ToListAsync();
 
             var commentField =
-                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 3);
+                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasksOld + 1 && x.DisplayIndex == 3);
             var commentFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
 
             var assignToSelectField =
-                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 4);
+                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasksOld + 1 && x.DisplayIndex == 4);
             var assignedToSelectFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
 
             var statusField =
-                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 5);
+                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasksOld + 1 && x.DisplayIndex == 5);
             var statusFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
 
             var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
@@ -461,10 +462,6 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
                 case "4":
                     priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br>";
                     break;
-                default:
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br>";
-                    workorderCase.Priority = "3";
-                    break;
             }
 
             var textStatus = "";
@@ -528,12 +525,25 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
             ((DataElement)mainElement.ElementList[0]).DataItemList[0].Label = " ";
             ((DataElement)mainElement.ElementList[0]).DataItemList[0].Color = Constants.FieldColors.Yellow;
             ((ShowPdf) ((DataElement) mainElement.ElementList[0]).DataItemList[1]).Value = pdfHash;
+
+            List<KeyValuePair> kvpList = ((SingleSelect) ((DataElement) mainElement.ElementList[0]).DataItemList[4]).KeyValuePairList;
+            var newKvpList = new List<KeyValuePair>();
+            foreach (var keyValuePair in kvpList)
+            {
+                if (keyValuePair.Key == workorderCase.Priority)
+                {
+                    keyValuePair.Selected = true;
+                }
+                newKvpList.Add(keyValuePair);
+            }
+            ((SingleSelect) ((DataElement) mainElement.ElementList[0]).DataItemList[4]).KeyValuePairList = newKvpList;
+
             if (deviceUsersGroupId != null)
             {
-                ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[4]).Source = (int)deviceUsersGroupId;
-                ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[4]).Mandatory = true;
+                ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[5]).Source = (int)deviceUsersGroupId;
+                ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[5]).Mandatory = true;
                 ((Comment)((DataElement)mainElement.ElementList[0]).DataItemList[3]).Value = newDescription;
-                ((SingleSelect)((DataElement)mainElement.ElementList[0]).DataItemList[5]).Mandatory = true;
+                ((SingleSelect)((DataElement)mainElement.ElementList[0]).DataItemList[6]).Mandatory = true;
                 mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
                 mainElement.Repeated = 1;
             }

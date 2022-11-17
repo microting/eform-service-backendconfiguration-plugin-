@@ -306,7 +306,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
             var priorityFiled =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == eformIdForNewTasks + 1 && x.DisplayIndex == 4);
+                    x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 4);
             var priorityFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x =>
                     x.FieldId == priorityFiled.Id && x.CaseId == dbCase.Id);
@@ -424,7 +424,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 // retract eform
                 await RetractEform(workOrderCase);
                 // deploy eform to ongoing status
-                await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, property, label,  CaseStatusesEnum.Ongoing, workOrderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
+                await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, property, label,  workOrderCase.CaseStatusesEnum, workOrderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
             }
             else
             {
