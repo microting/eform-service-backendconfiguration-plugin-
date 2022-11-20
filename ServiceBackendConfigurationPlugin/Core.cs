@@ -23,12 +23,16 @@ SOFTWARE.
 */
 
 
+using System.Threading.Tasks;
 using ChemicalsBase.Infrastructure;
 using ChemicalsBase.Infrastructure.Data.Factories;
+using Microting.eForm.Infrastructure.Models;
 using Microting.EformAngularFrontendBase.Infrastructure.Data;
 using Microting.EformAngularFrontendBase.Infrastructure.Data.Factories;
+using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
 using Microting.eFormCaseTemplateBase.Infrastructure.Data;
 using Microting.eFormCaseTemplateBase.Infrastructure.Data.Factories;
+using ServiceBackendConfigurationPlugin.Resources;
 using ServiceBackendConfigurationPlugin.Scheduler.Jobs;
 
 namespace ServiceBackendConfigurationPlugin
@@ -88,7 +92,7 @@ namespace ServiceBackendConfigurationPlugin
 
         public void eFormProcessed(object sender, EventArgs args)
         {
-            var trigger = (CaseDto)sender;
+            var trigger = (CaseDto) sender;
 
             if (trigger.MicrotingUId != null)
             {
@@ -114,7 +118,7 @@ namespace ServiceBackendConfigurationPlugin
 
         public void CaseCompleted(object sender, EventArgs args)
         {
-            var trigger = (CaseDto)sender;
+            var trigger = (CaseDto) sender;
 
             if (trigger.MicrotingUId != null)
             {
@@ -160,7 +164,7 @@ namespace ServiceBackendConfigurationPlugin
 
                     var contextFactory = new BackendConfigurationPnContextFactory();
 
-                    _dbContext = contextFactory.CreateDbContext(new[] { connectionString });
+                    _dbContext = contextFactory.CreateDbContext(new[] {connectionString});
                     _dbContext.Database.Migrate();
                     _backendConfigurationBackendConfigurationDbContextHelper =
                         new BackendConfigurationDbContextHelper(connectionString);
@@ -170,7 +174,7 @@ namespace ServiceBackendConfigurationPlugin
                     var itemContextFactory = new ItemsPlanningPnContextFactory();
 
                     _itemsPlanningDbContext =
-                        itemContextFactory.CreateDbContext(new[] { itemsPlanningConnectionString });
+                        itemContextFactory.CreateDbContext(new[] {itemsPlanningConnectionString});
                     _itemsPlanningDbContextHelper = new ItemsPlanningDbContextHelper(itemsPlanningConnectionString);
 
 
@@ -181,7 +185,7 @@ namespace ServiceBackendConfigurationPlugin
 
                     var angularDbName = $"Database={dbPrefix}_Angular;";
                     var angularConnectionString = sdkConnectionString.Replace(dbNameSection, angularDbName);
-                    _baseDbContext = new BaseDbContextFactory().CreateDbContext(new []{angularConnectionString});
+                    _baseDbContext = new BaseDbContextFactory().CreateDbContext(new[] {angularConnectionString});
 
 
                     pluginDbName = $"Database={dbPrefix}_eform-angular-case-template-plugin;";
@@ -190,12 +194,13 @@ namespace ServiceBackendConfigurationPlugin
                     var caseTemplateContextFactory = new CaseTemplatePnContextFactory();
 
                     _chemicalsDbContext =
-                        chemicalContextFactory.CreateDbContext(new[] { chemicalConnectionString });
+                        chemicalContextFactory.CreateDbContext(new[] {chemicalConnectionString});
                     _chemicalDbContextHelper = new ChemicalDbContextHelper(chemicalConnectionString);
 
                     _caseTemplateDbContextHelper = new CaseTemplateDbContextHelper(caseTemplateConnectionString);
 
-                    var caseTemplateDbContext = caseTemplateContextFactory.CreateDbContext(new[] { caseTemplateConnectionString });
+                    var caseTemplateDbContext =
+                        caseTemplateContextFactory.CreateDbContext(new[] {caseTemplateConnectionString});
                     caseTemplateDbContext.Database.Migrate();
 
                     _coreAvailable = true;
@@ -234,6 +239,7 @@ namespace ServiceBackendConfigurationPlugin
                     _bus = _container.Resolve<IBus>();
 
                     ConfigureScheduler();
+                    ReplaceCreateTask().GetAwaiter().GetResult();
                 }
 
                 Console.WriteLine("ServiceBackendConfigurationPlugin started");
@@ -286,11 +292,11 @@ namespace ServiceBackendConfigurationPlugin
         private void CheckComplianceIntegrity(string connectionStringBackend, string connectionStringItemsPlanning)
         {
             var contextFactory = new BackendConfigurationPnContextFactory();
-            var backendConfigurationPnDbContext = contextFactory.CreateDbContext(new[] { connectionStringBackend });
+            var backendConfigurationPnDbContext = contextFactory.CreateDbContext(new[] {connectionStringBackend});
 
             var contextFactoryItemsPlanning = new ItemsPlanningPnContextFactory();
             var itemsPlanningPnDbContext =
-                contextFactoryItemsPlanning.CreateDbContext(new[] { connectionStringItemsPlanning });
+                contextFactoryItemsPlanning.CreateDbContext(new[] {connectionStringItemsPlanning});
 
             var properties = backendConfigurationPnDbContext.Properties
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
@@ -340,8 +346,8 @@ namespace ServiceBackendConfigurationPlugin
                             {
                                 PlanningId = planning.Id,
                                 AreaId = areaRulePlanning.AreaId,
-                                Deadline = (DateTime)planning.NextExecutionTime!,
-                                StartDate = (DateTime)planning.LastExecutedTime!,
+                                Deadline = (DateTime) planning.NextExecutionTime!,
+                                StartDate = (DateTime) planning.LastExecutedTime!,
                                 MicrotingSdkCaseId = planningCase.MicrotingSdkCaseId,
                                 MicrotingSdkeFormId = planning.RelatedEFormId,
                                 PropertyId = property.Id
@@ -397,6 +403,145 @@ namespace ServiceBackendConfigurationPlugin
             }
 
             _scheduleTimer = new Timer(Callback, null, TimeSpan.Zero, TimeSpan.FromMinutes(60));
+        }
+
+        private async Task ReplaceCreateTask()
+        {
+            await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+            await using var
+                itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
+            await using var backendConfigurationPnDbContext =
+                _backendConfigurationBackendConfigurationDbContextHelper.GetDbContext();
+
+            var properties = await backendConfigurationPnDbContext.Properties.Where(x => x.WorkorderEnable)
+                .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                .ToListAsync();
+
+            var eformId = await sdkDbContext.CheckLists
+                .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                .Where(x => x.OriginalId == "142663new2")
+                .Select(x => x.Id)
+                .FirstAsync().ConfigureAwait(false);
+
+            foreach (var property in properties)
+            {
+                var propertyWorkers = await backendConfigurationPnDbContext.PropertyWorkers
+                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                    .Where(x => x.PropertyId == property.Id).ToListAsync();
+                var areasGroupUid = await sdkDbContext.EntityGroups
+                    .Where(x => x.Id == property.EntitySelectListAreas)
+                    .Select(x => x.MicrotingUid)
+                    .SingleAsync().ConfigureAwait(false);
+
+                var deviceUsersGroupUid = await sdkDbContext.EntityGroups
+                    .Where(x => x.Id == property.EntitySelectListDeviceUsers)
+                    .Select(x => x.MicrotingUid)
+                    .SingleAsync().ConfigureAwait(false);
+
+                foreach (var propertyWorker in propertyWorkers)
+                {
+                    var workorderCase = await backendConfigurationPnDbContext.WorkorderCases
+                        .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                        .Where(x => x.PropertyWorkerId == propertyWorker.Id)
+                        .Where(x => x.CaseStatusesEnum == CaseStatusesEnum.NewTask)
+                        .FirstOrDefaultAsync().ConfigureAwait(false);
+                    if (workorderCase != null)
+                    {
+
+                        var dbCase =
+                            await sdkDbContext.CheckListSites.FirstAsync(x => x.MicrotingUid == workorderCase.CaseId);
+
+                        if (dbCase.CheckListId != eformId)
+                        {
+                            try
+                            {
+                                await _sdkCore.CaseDelete(workorderCase.CaseId).ConfigureAwait(false);
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine(e);
+                                // throw;
+                            }
+
+                            await workorderCase.Delete(backendConfigurationPnDbContext).ConfigureAwait(false);
+
+                            await DeployEform(propertyWorker, eformId, property,
+                                $"<strong>{Translations.Location}:</strong> {property.Name}",
+                                int.Parse(areasGroupUid), int.Parse(deviceUsersGroupUid)).ConfigureAwait(false);
+                        }
+                    }
+
+                }
+
+            }
+        }
+
+        private async Task DeployEform(PropertyWorker propertyWorker, int eformId,
+            Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities.Property property,
+            string description, int? areasGroupUid, int? deviceUsersGroupId)
+        {
+            // var core = await co.GetCore().ConfigureAwait(false);
+            var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+            // await using var _ = sdkDbContext.ConfigureAwait(false);
+            await using var _backendConfigurationPnDbContext =
+                _backendConfigurationBackendConfigurationDbContextHelper.GetDbContext();
+            if (_backendConfigurationPnDbContext.WorkorderCases.Any(x =>
+                    x.PropertyWorkerId == propertyWorker.Id
+                    && x.CaseStatusesEnum == CaseStatusesEnum.NewTask
+                    && x.WorkflowState != Constants.WorkflowStates.Removed))
+            {
+                return;
+            }
+
+            var site = await sdkDbContext.Sites.SingleAsync(x => x.Id == propertyWorker.WorkerId).ConfigureAwait(false);
+            var language = await sdkDbContext.Languages.SingleAsync(x => x.Id == site.LanguageId).ConfigureAwait(false);
+            var mainElement = await _sdkCore.ReadeForm(eformId, language).ConfigureAwait(false);
+            mainElement.Repeated = 0;
+            mainElement.ElementList[0].QuickSyncEnabled = true;
+            mainElement.ElementList[0].Description.InderValue = description;
+            mainElement.ElementList[0].Label = "Ny opgave";
+            mainElement.Label = "Ny opgave";
+            mainElement.EnableQuickSync = true;
+            if (property.FolderIdForNewTasks != null)
+            {
+                mainElement.CheckListFolderName = await sdkDbContext.Folders
+                    .Where(x => x.Id == property.FolderIdForNewTasks)
+                    .Select(x => x.MicrotingUid.ToString())
+                    .FirstOrDefaultAsync().ConfigureAwait(false);
+            }
+
+            if (!string.IsNullOrEmpty(description))
+            {
+                ((DataElement) mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description;
+                ((DataElement) mainElement.ElementList[0]).DataItemList[0].Label = " ";
+            }
+
+            if (areasGroupUid != null && deviceUsersGroupId != null)
+            {
+                ((EntitySelect) ((DataElement) mainElement.ElementList[0]).DataItemList[2]).Source =
+                    (int) areasGroupUid;
+                ((EntitySelect) ((DataElement) mainElement.ElementList[0]).DataItemList[6]).Source =
+                    (int) deviceUsersGroupId;
+            }
+            // else if (areasGroupUid == null && deviceUsersGroupId != null)
+            // {
+            //     ((EntitySelect)((DataElement)mainElement.ElementList[0]).DataItemList[4]).Source =
+            //         (int)deviceUsersGroupId;
+            // }
+
+            mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
+            mainElement.StartDate = DateTime.Now.ToUniversalTime();
+            var caseId = await _sdkCore
+                .CaseCreate(mainElement, "", (int) site.MicrotingUid, property.FolderIdForNewTasks)
+                .ConfigureAwait(false);
+            await new WorkorderCase
+            {
+                CaseId = (int) caseId,
+                PropertyWorkerId = propertyWorker.Id,
+                CaseStatusesEnum = CaseStatusesEnum.NewTask,
+                // CreatedByUserId = _userService.UserId,
+                // UpdatedByUserId = _userService.UserId,
+            }.Create(_backendConfigurationPnDbContext).ConfigureAwait(false);
         }
     }
 }
