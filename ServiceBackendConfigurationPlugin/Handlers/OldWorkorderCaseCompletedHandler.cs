@@ -76,7 +76,7 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
                          .AsNoTracking()
                          .FirstOrDefaultAsync(x => x.Id == message.CaseId) ??
                      await sdkDbContext.Cases
-                         .FirstOrDefaultAsync(x => x.MicrotingCheckUid == message.CheckId);
+                         .FirstAsync(x => x.MicrotingCheckUid == message.CheckId);
 
         var workOrderCase = await backendConfigurationPnDbContext.WorkorderCases
             .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
