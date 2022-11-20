@@ -239,7 +239,7 @@ namespace ServiceBackendConfigurationPlugin
                     _bus = _container.Resolve<IBus>();
 
                     ConfigureScheduler();
-                    ReplaceCreateTask().GetAwaiter().GetResult();
+                    ReplaceCreateTask(connectionString, sdkConnectionString).GetAwaiter().GetResult();
                 }
 
                 Console.WriteLine("ServiceBackendConfigurationPlugin started");
@@ -405,13 +405,17 @@ namespace ServiceBackendConfigurationPlugin
             _scheduleTimer = new Timer(Callback, null, TimeSpan.Zero, TimeSpan.FromMinutes(60));
         }
 
-        private async Task ReplaceCreateTask()
+        private async Task ReplaceCreateTask(string connectionStringBackend, string sdkConnectionString)
         {
-            await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
-            await using var
-                itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
-            await using var backendConfigurationPnDbContext =
-                _backendConfigurationBackendConfigurationDbContextHelper.GetDbContext();
+            var sdkCore = new eFormCore.Core();
+
+            sdkCore.StartSqlOnly(sdkConnectionString).GetAwaiter().GetResult();
+
+            await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
+
+            var contextFactory = new BackendConfigurationPnContextFactory();
+            var backendConfigurationPnDbContext = contextFactory.CreateDbContext(new[] {connectionStringBackend});
+
 
             var properties = await backendConfigurationPnDbContext.Properties.Where(x => x.WorkorderEnable)
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
