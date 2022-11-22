@@ -84,6 +84,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
             var propertyWorkers = property.PropertyWorkers
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                .Where(x => x.TaskManagementEnabled == true || x.TaskManagementEnabled == null)
                 .ToList();
 
             var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == dbCase.SiteId);
@@ -251,6 +252,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
             var propertyWorkers = property.PropertyWorkers
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                .Where(x => x.TaskManagementEnabled == true || x.TaskManagementEnabled == null)
                 .ToList();
 
             var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == dbCase.SiteId);
