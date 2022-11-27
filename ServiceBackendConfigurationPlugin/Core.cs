@@ -455,7 +455,7 @@ namespace ServiceBackendConfigurationPlugin
                         var dbCase =
                             await sdkDbContext.CheckListSites.FirstAsync(x => x.MicrotingUid == workorderCase.CaseId);
 
-                        if (dbCase.CheckListId != eformId)
+                        if (dbCase.CheckListId != eformId || dbCase.FolderId != property.FolderIdForNewTasks)
                         {
                             try
                             {
@@ -474,9 +474,7 @@ namespace ServiceBackendConfigurationPlugin
                                 int.Parse(areasGroupUid), int.Parse(deviceUsersGroupUid)).ConfigureAwait(false);
                         }
                     }
-
                 }
-
             }
         }
 
