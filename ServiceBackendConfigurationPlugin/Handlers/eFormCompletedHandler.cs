@@ -226,7 +226,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     var areaRulePlanning = await
                         backendConfigurationPnDbContext.AreaRulePlannings.FirstOrDefaultAsync(x =>
                             x.ItemPlanningId == planning.Id);
-                    var checkListTranslation = await sdkDbContext.CheckListTranslations.FirstAsync(x =>
+                    var checkListTranslation = await sdkDbContext.CheckListTranslations.AsNoTracking().FirstAsync(x =>
                         x.Text == "25.01 Registrer produkter" && x.WorkflowState != Constants.WorkflowStates.Removed);
                     var areaRule =
                         await backendConfigurationPnDbContext.AreaRules.Where(x =>
@@ -247,7 +247,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     }
                     else
                     {
-                        checkListTranslation = await sdkDbContext.CheckListTranslations.FirstAsync(x =>
+                        checkListTranslation = await sdkDbContext.CheckListTranslations.AsNoTracking().FirstAsync(x =>
                             x.Text == "25.02 Vis kemisk produkt");
                         if (planningCaseSite.MicrotingSdkeFormId == checkListTranslation.CheckListId)
                         {
