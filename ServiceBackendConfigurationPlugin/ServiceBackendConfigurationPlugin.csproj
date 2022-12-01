@@ -11,7 +11,7 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ChemicalsBase" Version="1.0.10" />
+    <PackageReference Include="ChemicalsBase" Version="7.0.0" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="2.18.0" />
     <PackageReference Include="Magick.NET-Q16-x64" Version="12.2.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="6.0.0" />
