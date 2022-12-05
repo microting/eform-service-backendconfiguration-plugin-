@@ -345,7 +345,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
             var hash = await GeneratePdf(picturesOfTasks, site.Id);
 
-            var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>";
+            var description = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>";
 
             var pushMessageTitle = !string.IsNullOrEmpty(workOrderCase.SelectedAreaName) ? $"{property.Name}; {workOrderCase.SelectedAreaName}" : $"{property.Name}";
             var pushMessageBody = $"{commentFieldValue.Value}";
@@ -372,7 +372,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                         priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br><br>";
                         break;
                 }
-                label += $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+                description += $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
                          (!string.IsNullOrEmpty(workOrderCase.SelectedAreaName)
                              ? $"<strong>{Translations.Area}:</strong> {workOrderCase.SelectedAreaName}<br>"
                              : "") +
@@ -389,7 +389,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 // retract eform
                 await RetractEform(workOrderCase);
                 // deploy eform to ongoing status
-                await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, property, label,  workOrderCase.CaseStatusesEnum, workOrderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
+                await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, property, description,  workOrderCase.CaseStatusesEnum, workOrderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
             }
             else
             {
@@ -418,6 +418,8 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
         await using var backendConfigurationPnDbContext =
             _backendConfigurationDbContextHelper.GetDbContext();
         var i = 0;
+        DateTime startDate = new DateTime(2020, 1, 1);
+        var displayOrder = (int)(DateTime.UtcNow - startDate).TotalSeconds;
         foreach (var propertyWorker in propertyWorkers)
         {
             var priorityText = "";
@@ -426,15 +428,19 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             switch (workorderCase.Priority)
             {
                 case "1":
+                    displayOrder = 100_000_000 + displayOrder;
                     priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Urgent}<br>";
                     break;
                 case "2":
+                    displayOrder = 200_000_000 + displayOrder;
                     priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.High}<br>";
                     break;
                 case "3":
+                    displayOrder = 300_000_000 + displayOrder;
                     priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br>";
                     break;
                 case "4":
+                    displayOrder = 400_000_000 + displayOrder;
                     priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br>";
                     break;
             }
@@ -476,11 +482,12 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             mainElement.EnableQuickSync = true;
             mainElement.ElementList[0].Label = " ";
             mainElement.ElementList[0].Description.InderValue = outerDescription.Replace("\n", "<br>");
-            if (status == CaseStatusesEnum.Completed || site.Name == siteName)
-            {
-                DateTime startDate = new DateTime(2020, 1, 1);
-                mainElement.DisplayOrder = (int)(startDate - DateTime.UtcNow).TotalSeconds;
-            }
+
+            mainElement.DisplayOrder = displayOrder; // Lowest value is the top of the list
+
+            // if (status == CaseStatusesEnum.Completed || site.Name == siteName)
+            // {
+            // }
             if (site.Name == siteName)
             {
                 mainElement.CheckListFolderName = sdkDbContext.Folders.First(x => x.Id == (workorderCase.Priority != "1" ? property.FolderIdForOngoingTasks : property.FolderIdForTasks))
