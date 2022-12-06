@@ -425,6 +425,8 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             var priorityText = "";
 
             var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == propertyWorker.WorkerId);
+            var siteLanguage = await sdkDbContext.Languages.SingleAsync(x => x.Id == site.LanguageId).ConfigureAwait(false);
+            Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo(siteLanguage.LanguageCode);
             switch (workorderCase.Priority)
             {
                 case "1":
@@ -475,7 +477,6 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                                    priorityText +
                                    assignedTo +
                                    $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
-            var siteLanguage = await sdkDbContext.Languages.FirstAsync(x => x.Id == site.LanguageId);
             var mainElement = await _sdkCore.ReadeForm(eformId, siteLanguage);
             mainElement.Label = " ";
             mainElement.ElementList[0].QuickSyncEnabled = true;
@@ -537,10 +538,15 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             }
 
             mainElement.StartDate = DateTime.Now.ToUniversalTime();
-            var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, folderId);
+            // var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, folderId);
+            int caseId = 0;
+            if (workorderCase.CaseStatusesEnum != CaseStatusesEnum.Completed)
+            {
+                caseId = (int)await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, folderId);
+            }
             await new WorkorderCase
             {
-                CaseId = (int)caseId,
+                CaseId = caseId,
                 PropertyWorkerId = propertyWorker.Id,
                 CaseStatusesEnum = status,
                 ParentWorkorderCaseId = workorderCase.Id,
