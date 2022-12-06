@@ -418,7 +418,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
         await using var backendConfigurationPnDbContext =
             _backendConfigurationDbContextHelper.GetDbContext();
         var i = 0;
-        DateTime startDate = new DateTime(2020, 1, 1);
+        DateTime startDate = new DateTime(2022, 12, 5);
         var displayOrder = (int)(DateTime.UtcNow - startDate).TotalSeconds;
         foreach (var propertyWorker in propertyWorkers)
         {
