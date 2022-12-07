@@ -920,7 +920,12 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
                     var client = new SendGridClient(sendGridKey.Value);
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com");
-                    var msg = MailHelper.CreateSingleEmail(fromEmailAddress, new EmailAddress(email.To), email.Subject, "", email.Body);
+                    var toEmailAddresses = new List<EmailAddress>();
+                    if (!string.IsNullOrEmpty(email.To))
+                    {
+                        toEmailAddresses.AddRange(email.To.Split(";").Select(s => new EmailAddress(s)));
+                    }
+                    var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress, toEmailAddresses, email.Subject, "", email.Body);
 
                     var emailAttachments = await _backendConfigurationDbContext.EmailAttachments
                         .Where(x => x.EmailId == email.Id).ToListAsync();
