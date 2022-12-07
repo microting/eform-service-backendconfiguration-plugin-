@@ -834,8 +834,12 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         newHtml = newHtml.Replace("{{dato}}", DateTime.Now.ToString("dd-MM-yyyy"));
                         newHtml = newHtml.Replace("{{emailaddresses}}", property.MainMailAddress);
 
-                        var documentProperties = await caseTemplateDbContext.DocumentProperties.Where(x =>
-                            x.WorkflowState != Constants.WorkflowStates.Removed && x.PropertyId == property.Id).OrderBy(x => x.ExpireDate).ToListAsync();
+                        var documentProperties = await caseTemplateDbContext
+                            .DocumentProperties.Where(x =>
+                                x.WorkflowState != Constants.WorkflowStates.Removed
+                                && x.PropertyId == property.Id)
+                            .OrderBy(x => x.ExpireDate)
+                            .ToListAsync();
                         var expiredProducts = new List<DocumentProperty>();
                         var expiringIn1Month = new List<DocumentProperty>();
                         var expiringIn3Months = new List<DocumentProperty>();
@@ -845,8 +849,9 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
 
                         foreach (var documentProperty in documentProperties)
                         {
-                            var document = await caseTemplateDbContext.Documents.FirstAsync(x =>
-                                x.Id == documentProperty.DocumentId);
+                            var document = await caseTemplateDbContext.Documents
+                                .Where(x => x.Status == true)
+                                .FirstAsync(x => x.Id == documentProperty.DocumentId);
 
                             if (document.EndAt < DateTime.Now)
                             {
@@ -1366,7 +1371,6 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 var document = await caseTemplatePnDbContext.Documents
                     .Include(x => x.DocumentTranslations)
                     .Include(x => x.DocumentProperties)
-                    .Where(x => x.Status == true)
                     .FirstOrDefaultAsync(x => x.Id == documentProperty.DocumentId);
 
                 if (document == null)
