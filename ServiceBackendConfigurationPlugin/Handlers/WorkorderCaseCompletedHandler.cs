@@ -194,7 +194,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 var workOrderCaseImage = new WorkorderCaseImage
                 {
                     WorkorderCaseId = newWorkOrderCase.Id,
-                    UploadedDataId = (int) pictureFieldValue.UploadedDataId!
+                    UploadedDataId = (int)pictureFieldValue.UploadedDataId!
                 };
 
                 picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
@@ -246,7 +246,8 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 property, label, CaseStatusesEnum.Ongoing, newWorkOrderCase,
                 commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
                 assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
-        }else if (eformIdForOngoingTasks == dbCase.CheckListId && workOrderCase != null)
+        }
+        else if (eformIdForOngoingTasks == dbCase.CheckListId && workOrderCase != null)
         {
             var property = workOrderCase.PropertyWorker.Property;
 
@@ -265,12 +266,16 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 .FirstAsync(x => x.Id == property.EntitySelectListDeviceUsers);
 
             var pictureField =
-                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 2);
-            var pictureFieldValues = await sdkDbContext.FieldValues.Where(x => x.FieldId == pictureField.Id && x.CaseId == dbCase.Id).ToListAsync();
+                await sdkDbContext.Fields.FirstAsync(x =>
+                    x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 2);
+            var pictureFieldValues = await sdkDbContext.FieldValues
+                .Where(x => x.FieldId == pictureField.Id && x.CaseId == dbCase.Id).ToListAsync();
 
             var commentField =
-                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 3);
-            var commentFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
+                await sdkDbContext.Fields.FirstAsync(x =>
+                    x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 3);
+            var commentFieldValue =
+                await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
 
             var priorityFiled =
                 await sdkDbContext.Fields.FirstAsync(x =>
@@ -280,14 +285,20 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                     x.FieldId == priorityFiled.Id && x.CaseId == dbCase.Id);
 
             var assignToSelectField =
-                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 5);
-            var assignedToSelectFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
+                await sdkDbContext.Fields.FirstAsync(x =>
+                    x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 5);
+            var assignedToSelectFieldValue =
+                await sdkDbContext.FieldValues.FirstAsync(x =>
+                    x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
 
             var statusField =
-                await sdkDbContext.Fields.FirstAsync(x => x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 6);
-            var statusFieldValue = await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
+                await sdkDbContext.Fields.FirstAsync(x =>
+                    x.CheckListId == eformIdForOngoingTasks + 1 && x.DisplayIndex == 6);
+            var statusFieldValue =
+                await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
 
-            var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x => x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
+            var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x =>
+                x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
             var textStatus = "";
 
             workOrderCase.Priority = priorityFieldValue.Value;
@@ -311,6 +322,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                     workOrderCase.CaseStatusesEnum = CaseStatusesEnum.Awaiting;
                     break;
             }
+
             var updatedByName = site.Name;
 
             var picturesOfTasks = new List<string>();
@@ -318,22 +330,26 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             {
                 if (pictureFieldValue.UploadedDataId != null)
                 {
-                    var uploadedData = await sdkDbContext.UploadedDatas.FirstAsync(x => x.Id == pictureFieldValue.UploadedDataId);
+                    var uploadedData =
+                        await sdkDbContext.UploadedDatas.FirstAsync(x => x.Id == pictureFieldValue.UploadedDataId);
                     var workOrderCaseImage = new WorkorderCaseImage
                     {
                         WorkorderCaseId = workOrderCase.Id,
-                        UploadedDataId = (int) pictureFieldValue.UploadedDataId!
+                        UploadedDataId = (int)pictureFieldValue.UploadedDataId!
                     };
 
                     picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
                     await workOrderCaseImage.Create(backendConfigurationPnDbContext);
                 }
             }
-            var parentCaseImages = await backendConfigurationPnDbContext.WorkorderCaseImages.Where(x => x.WorkorderCaseId == workOrderCase.ParentWorkorderCaseId).ToListAsync();
+
+            var parentCaseImages = await backendConfigurationPnDbContext.WorkorderCaseImages
+                .Where(x => x.WorkorderCaseId == workOrderCase.ParentWorkorderCaseId).ToListAsync();
 
             foreach (var workorderCaseImage in parentCaseImages)
             {
-                var uploadedData = await sdkDbContext.UploadedDatas.FirstAsync(x => x.Id == workorderCaseImage.UploadedDataId);
+                var uploadedData =
+                    await sdkDbContext.UploadedDatas.FirstAsync(x => x.Id == workorderCaseImage.UploadedDataId);
                 picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
                 var workOrderCaseImage = new WorkorderCaseImage
                 {
@@ -347,54 +363,53 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
             var description = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>";
 
-            var pushMessageTitle = !string.IsNullOrEmpty(workOrderCase.SelectedAreaName) ? $"{property.Name}; {workOrderCase.SelectedAreaName}" : $"{property.Name}";
+            var pushMessageTitle = !string.IsNullOrEmpty(workOrderCase.SelectedAreaName)
+                ? $"{property.Name}; {workOrderCase.SelectedAreaName}"
+                : $"{property.Name}";
             var pushMessageBody = $"{commentFieldValue.Value}";
             var deviceUsersGroupUid = await sdkDbContext.EntityGroups
                 .Where(x => x.Id == property.EntitySelectListDeviceUsers)
                 .Select(x => x.MicrotingUid)
                 .FirstAsync();
-            if (textStatus != "Afsluttet")
-            {
-                var priorityText = "";
 
-                switch (workOrderCase.Priority)
-                {
-                    case "1":
-                        priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Urgent}<br><br>";
-                        break;
-                    case "2":
-                        priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.High}<br><br>";
-                        break;
-                    case "3":
-                        priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br><br>";
-                        break;
-                    case "4":
-                        priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br><br>";
-                        break;
-                }
-                description += $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
-                         (!string.IsNullOrEmpty(workOrderCase.SelectedAreaName)
-                             ? $"<strong>{Translations.Area}:</strong> {workOrderCase.SelectedAreaName}<br>"
-                             : "") +
-                         $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br>" +
-                         priorityText +
-                         $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByName}<br>" +
-                         (!string.IsNullOrEmpty(workOrderCase.CreatedByText)
-                             ? $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByText}<br>"
-                             : "") +
-                         $"<strong>{Translations.CreatedDate}:</strong> {workOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                         $"<strong>{Translations.LastUpdatedBy}:</strong> {site.Name}<br>" +
-                         $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                         $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
-                // retract eform
-                await RetractEform(workOrderCase);
-                // deploy eform to ongoing status
-                await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, property, description,  workOrderCase.CaseStatusesEnum, workOrderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid), hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
-            }
-            else
+            var priorityText = "";
+
+            switch (workOrderCase.Priority)
             {
-                await RetractEform(workOrderCase);
+                case "1":
+                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Urgent}<br><br>";
+                    break;
+                case "2":
+                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.High}<br><br>";
+                    break;
+                case "3":
+                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br><br>";
+                    break;
+                case "4":
+                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br><br>";
+                    break;
             }
+
+            description += $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+                           (!string.IsNullOrEmpty(workOrderCase.SelectedAreaName)
+                               ? $"<strong>{Translations.Area}:</strong> {workOrderCase.SelectedAreaName}<br>"
+                               : "") +
+                           $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br>" +
+                           priorityText +
+                           $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByName}<br>" +
+                           (!string.IsNullOrEmpty(workOrderCase.CreatedByText)
+                               ? $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByText}<br>"
+                               : "") +
+                           $"<strong>{Translations.CreatedDate}:</strong> {workOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
+                           $"<strong>{Translations.LastUpdatedBy}:</strong> {site.Name}<br>" +
+                           $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
+                           $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
+            // retract eform
+            await RetractEform(workOrderCase);
+            // deploy eform to ongoing status
+            await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, property, description,
+                workOrderCase.CaseStatusesEnum, workOrderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid),
+                hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
         }
     }
 
