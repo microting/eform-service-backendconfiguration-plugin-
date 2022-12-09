@@ -414,7 +414,7 @@ namespace ServiceBackendConfigurationPlugin
             await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
 
             var contextFactory = new BackendConfigurationPnContextFactory();
-            var backendConfigurationPnDbContext = contextFactory.CreateDbContext(new[] {connectionStringBackend});
+            var backendConfigurationPnDbContext = contextFactory.CreateDbContext(new[] { connectionStringBackend });
 
 
             var properties = await backendConfigurationPnDbContext.Properties.Where(x => x.WorkorderEnable)
@@ -424,54 +424,57 @@ namespace ServiceBackendConfigurationPlugin
             var eformId = await sdkDbContext.CheckLists
                 .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                 .Where(x => x.OriginalId == "142663new2")
-                .Select(x => x.Id)
-                .FirstAsync().ConfigureAwait(false);
+                .FirstOrDefaultAsync().ConfigureAwait(false);
 
-            foreach (var property in properties)
+            if (eformId != null)
             {
-                var propertyWorkers = await backendConfigurationPnDbContext.PropertyWorkers
-                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-                    .Where(x => x.PropertyId == property.Id).ToListAsync();
-                var areasGroupUid = await sdkDbContext.EntityGroups
-                    .Where(x => x.Id == property.EntitySelectListAreas)
-                    .Select(x => x.MicrotingUid)
-                    .SingleAsync().ConfigureAwait(false);
-
-                var deviceUsersGroupUid = await sdkDbContext.EntityGroups
-                    .Where(x => x.Id == property.EntitySelectListDeviceUsers)
-                    .Select(x => x.MicrotingUid)
-                    .SingleAsync().ConfigureAwait(false);
-
-                foreach (var propertyWorker in propertyWorkers)
+                foreach (var property in properties)
                 {
-                    var workorderCase = await backendConfigurationPnDbContext.WorkorderCases
+                    var propertyWorkers = await backendConfigurationPnDbContext.PropertyWorkers
                         .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-                        .Where(x => x.PropertyWorkerId == propertyWorker.Id)
-                        .Where(x => x.CaseStatusesEnum == CaseStatusesEnum.NewTask)
-                        .FirstOrDefaultAsync().ConfigureAwait(false);
-                    if (workorderCase != null)
+                        .Where(x => x.PropertyId == property.Id).ToListAsync();
+                    var areasGroupUid = await sdkDbContext.EntityGroups
+                        .Where(x => x.Id == property.EntitySelectListAreas)
+                        .Select(x => x.MicrotingUid)
+                        .SingleAsync().ConfigureAwait(false);
+
+                    var deviceUsersGroupUid = await sdkDbContext.EntityGroups
+                        .Where(x => x.Id == property.EntitySelectListDeviceUsers)
+                        .Select(x => x.MicrotingUid)
+                        .SingleAsync().ConfigureAwait(false);
+
+                    foreach (var propertyWorker in propertyWorkers)
                     {
-
-                        var dbCase =
-                            await sdkDbContext.CheckListSites.FirstAsync(x => x.MicrotingUid == workorderCase.CaseId);
-
-                        if (dbCase.CheckListId != eformId || dbCase.FolderId != property.FolderIdForNewTasks)
+                        var workorderCase = await backendConfigurationPnDbContext.WorkorderCases
+                            .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                            .Where(x => x.PropertyWorkerId == propertyWorker.Id)
+                            .Where(x => x.CaseStatusesEnum == CaseStatusesEnum.NewTask)
+                            .FirstOrDefaultAsync().ConfigureAwait(false);
+                        if (workorderCase != null)
                         {
-                            try
-                            {
-                                await _sdkCore.CaseDelete(workorderCase.CaseId).ConfigureAwait(false);
-                            }
-                            catch (Exception e)
-                            {
-                                Console.WriteLine(e);
-                                // throw;
-                            }
 
-                            await workorderCase.Delete(backendConfigurationPnDbContext).ConfigureAwait(false);
+                            var dbCase =
+                                await sdkDbContext.CheckListSites.FirstAsync(
+                                    x => x.MicrotingUid == workorderCase.CaseId);
 
-                            await DeployEform(propertyWorker, eformId, property,
-                                $"<strong>{Translations.Location}:</strong> {property.Name}",
-                                int.Parse(areasGroupUid), int.Parse(deviceUsersGroupUid)).ConfigureAwait(false);
+                            if (dbCase.CheckListId != eformId.Id || dbCase.FolderId != property.FolderIdForNewTasks)
+                            {
+                                try
+                                {
+                                    await _sdkCore.CaseDelete(workorderCase.CaseId).ConfigureAwait(false);
+                                }
+                                catch (Exception e)
+                                {
+                                    Console.WriteLine(e);
+                                    // throw;
+                                }
+
+                                await workorderCase.Delete(backendConfigurationPnDbContext).ConfigureAwait(false);
+
+                                await DeployEform(propertyWorker, eformId.Id, property,
+                                    $"<strong>{Translations.Location}:</strong> {property.Name}",
+                                    int.Parse(areasGroupUid), int.Parse(deviceUsersGroupUid)).ConfigureAwait(false);
+                            }
                         }
                     }
                 }
