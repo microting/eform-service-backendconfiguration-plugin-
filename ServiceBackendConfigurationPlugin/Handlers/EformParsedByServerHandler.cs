@@ -92,17 +92,22 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 return;
             }
 
-            var backendPlannings = await backendConfigurationPnDbContext.AreaRulePlannings
+            var areaRulePlanning = await backendConfigurationPnDbContext.AreaRulePlannings
                 .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId)
                 .Where(x => x.ComplianceEnabled)
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
 
-            if (backendPlannings != null)
+            if (areaRulePlanning != null)
             {
-                var property = await backendConfigurationPnDbContext.Properties.FirstAsync(x => x.Id == backendPlannings.PropertyId);
+                var property = await backendConfigurationPnDbContext.Properties.FirstAsync(x => x.Id == areaRulePlanning.PropertyId);
 
                 var planning = await itemsPlanningPnDbContext.Plannings.AsNoTracking().FirstAsync(x => x.Id == planningCaseSite.PlanningId);
+
+                var planningSite = await backendConfigurationPnDbContext.PlanningSites.FirstAsync(x => x.SiteId == planningCaseSite.MicrotingSdkSiteId && x.AreaRulePlanningsId == areaRulePlanning.Id);
+
+                planningSite.Status = 77;
+                await planningSite.Update(backendConfigurationPnDbContext);
 
                 if (planning.RepeatEvery == 0 && planning.RepeatType == RepeatType.Day) { }
                 else
@@ -159,7 +164,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         {
                             PropertyId = property.Id,
                             PlanningId = planningCaseSite.PlanningId,
-                            AreaId = backendPlannings.AreaId,
+                            AreaId = areaRulePlanning.AreaId,
                             Deadline = new DateTime(deadLine.Year, deadLine.Month, deadLine.Day, 0, 0, 0),
                             StartDate = (DateTime)planning.LastExecutedTime!,
                             MicrotingSdkeFormId = planning.RelatedEFormId,

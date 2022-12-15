@@ -314,17 +314,23 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 await dbCompliance.Delete(backendConfigurationPnDbContext);
                             }
 
-                            var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.AsNoTracking()
+                            var areaRulePlanning = await backendConfigurationPnDbContext.AreaRulePlannings.AsNoTracking()
                                 .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId).FirstOrDefaultAsync();
 
                             var property =
                                 await backendConfigurationPnDbContext.Properties.FirstOrDefaultAsync(x =>
-                                    x.Id == backendPlanning.PropertyId);
+                                    x.Id == areaRulePlanning.PropertyId);
 
                             if (property == null)
                             {
                                 return;
                             }
+
+                            var planningSite = await backendConfigurationPnDbContext.PlanningSites.FirstAsync(x => x.SiteId == planningCaseSite.MicrotingSdkSiteId && x.AreaRulePlanningsId == areaRulePlanning.Id);
+
+                            planningSite.Status = 100;
+                            await planningSite.Update(backendConfigurationPnDbContext);
+
 
                             if (backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
                                     x.Deadline < DateTime.UtcNow && x.PropertyId == property.Id &&
