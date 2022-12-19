@@ -147,9 +147,6 @@ namespace ServiceBackendConfigurationPlugin
 
                 var pluginDbName = $"Database={dbPrefix}_eform-backend-configuration-plugin;";
                 var connectionString = sdkConnectionString.Replace(dbNameSection, pluginDbName);
-                var rabbitmqHost = connectionString.Contains("frontend")
-                    ? $"frontend-{dbPrefix}-rabbitmq"
-                    : "localhost";
 
                 if (!_coreAvailable && !_coreStatChanging)
                 {
@@ -207,6 +204,12 @@ namespace ServiceBackendConfigurationPlugin
                     _coreStatChanging = false;
 
                     StartSdkCoreSqlOnly(sdkConnectionString);
+
+                    var rabbitmqHost = _sdkCore.GetSdkSetting(Settings.rabbitMqHost).GetAwaiter().GetResult();
+
+                    // var rabbitmqHost = connectionString.Contains("frontend")
+                    //     ? $"frontend-{dbPrefix}-rabbitmq"
+                    //     : "localhost";
 
                     var temp = _dbContext.PluginConfigurationValues
                         .SingleOrDefault(x => x.Name == "BackendConfigurationBaseSettings:MaxParallelism")?.Value;
