@@ -204,8 +204,10 @@ namespace ServiceBackendConfigurationPlugin
                     _coreStatChanging = false;
 
                     StartSdkCoreSqlOnly(sdkConnectionString);
+                    Console.WriteLine($"Connection string: {sdkConnectionString}");
 
                     var rabbitmqHost = _sdkCore.GetSdkSetting(Settings.rabbitMqHost).GetAwaiter().GetResult();
+                    Console.WriteLine($"rabbitmqHost: {rabbitmqHost}");
 
                     // var rabbitmqHost = connectionString.Contains("frontend")
                     //     ? $"frontend-{dbPrefix}-rabbitmq"
