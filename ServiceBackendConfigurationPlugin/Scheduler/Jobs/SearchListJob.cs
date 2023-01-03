@@ -660,6 +660,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         var expiringIn6Months = new List<ChemicalProductProperty>();
                         var expiringIn12Months = new List<ChemicalProductProperty>();
                         var otherProducts = new List<ChemicalProductProperty>();
+                        var hasProducts = false;
 
                         foreach (ChemicalProductProperty chemicalProductProperty in chemicals)
                         {
@@ -668,30 +669,36 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                             if (expireDate < DateTime.Now)
                             {
                                 expiredProducts.Add(chemicalProductProperty);
+                                hasProducts = true;
                             }
                             else if (expireDate < DateTime.Now.AddMonths(1))
                             {
                                 expiringIn1Month.Add(chemicalProductProperty);
+                                hasProducts = true;
                             }
                             else if (expireDate < DateTime.Now.AddMonths(3))
                             {
                                 expiringIn3Months.Add(chemicalProductProperty);
+                                hasProducts = true;
                             }
                             else if (expireDate < DateTime.Now.AddMonths(6))
                             {
                                 expiringIn6Months.Add(chemicalProductProperty);
+                                hasProducts = true;
                             }
                             else if (expireDate < DateTime.Now.AddMonths(12))
                             {
                                 expiringIn12Months.Add(chemicalProductProperty);
+                                hasProducts = true;
                             }
                             else
                             {
                                 otherProducts.Add(chemicalProductProperty);
+                                hasProducts = true;
                             }
                         }
                         if ((expiringIn1Month.Count > 0 && DateTime.Now.DayOfWeek == DayOfWeek.Thursday) || expiredProducts.Count > 0 ||
-                            (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && DateTime.Now.Day < 8))
+                            (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && DateTime.Now.Day < 8 && hasProducts))
                         {
 
                             newHtml = newHtml.Replace("{{expiredProducts}}",
@@ -846,6 +853,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         var expiringIn6Months = new List<DocumentProperty>();
                         var expiringIn12Months = new List<DocumentProperty>();
                         var otherProducts = new List<DocumentProperty>();
+                        var hasDocuments = false;
 
                         foreach (var documentProperty in documentProperties)
                         {
@@ -856,32 +864,38 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                             if (document.EndAt < DateTime.Now)
                             {
                                 expiredProducts.Add(documentProperty);
+                                hasDocuments = true;
                             }
                             else if (document.EndAt < DateTime.Now.AddMonths(1))
                             {
                                 expiringIn1Month.Add(documentProperty);
+                                hasDocuments = true;
                             }
                             else if (document.EndAt < DateTime.Now.AddMonths(3))
                             {
                                 expiringIn3Months.Add(documentProperty);
+                                hasDocuments = true;
                             }
                             else if (document.EndAt < DateTime.Now.AddMonths(6))
                             {
                                 expiringIn6Months.Add(documentProperty);
+                                hasDocuments = true;
                             }
                             else if (document.EndAt < DateTime.Now.AddMonths(12))
                             {
                                 expiringIn12Months.Add(documentProperty);
+                                hasDocuments = true;
                             }
                             else
                             {
                                 otherProducts.Add(documentProperty);
+                                hasDocuments = true;
                             }
                         }
 
                         if ((expiringIn1Month.Count > 0 && DateTime.Now.DayOfWeek == DayOfWeek.Thursday) ||
                             expiredProducts.Count > 0 ||
-                            (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && DateTime.Now.Day < 8))
+                            (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && DateTime.Now.Day < 8 && hasDocuments))
                         {
                             newHtml = newHtml.Replace("{{expiredProducts}}",
                                 await GenerateDocumentList(expiredProducts, caseTemplateDbContext, _backendConfigurationDbContext));
