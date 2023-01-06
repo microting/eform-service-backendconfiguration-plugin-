@@ -94,7 +94,6 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
             var areaRulePlanning = await backendConfigurationPnDbContext.AreaRulePlannings
                 .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId)
-                .Where(x => x.ComplianceEnabled)
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
 
@@ -106,8 +105,13 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 var planningSite = await backendConfigurationPnDbContext.PlanningSites.FirstAsync(x => x.SiteId == planningCaseSite.MicrotingSdkSiteId && x.AreaRulePlanningsId == areaRulePlanning.Id);
 
-                planningSite.Status = 77;
+                planningSite.Status = 70;
                 await planningSite.Update(backendConfigurationPnDbContext);
+
+                if (!areaRulePlanning.ComplianceEnabled)
+                {
+                    return;
+                }
 
                 if (planning.RepeatEvery == 0 && planning.RepeatType == RepeatType.Day) { }
                 else

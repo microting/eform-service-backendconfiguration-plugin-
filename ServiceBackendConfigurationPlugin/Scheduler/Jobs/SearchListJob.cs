@@ -801,14 +801,15 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
                 var properties = await _backendConfigurationDbContext.Properties
+                    .Where(x => x.MainMailAddress != null && x.MainMailAddress != "")
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
 
                 var caseTemplateDbContext = _caseTemplateDbContextHelper.GetDbContext();
+                var sendGridKey =
+                    _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
 
                 foreach (var property in properties)
                 {
-                    var sendGridKey =
-                        _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
 
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
                         $"DokumentKontrol for : {property.Name}");
@@ -859,37 +860,40 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         {
                             var document = await caseTemplateDbContext.Documents
                                 .Where(x => x.Status == true)
-                                .FirstAsync(x => x.Id == documentProperty.DocumentId);
+                                .FirstOrDefaultAsync(x => x.Id == documentProperty.DocumentId);
 
-                            if (document.EndAt < DateTime.Now)
+                            if (document != null)
                             {
-                                expiredProducts.Add(documentProperty);
-                                hasDocuments = true;
-                            }
-                            else if (document.EndAt < DateTime.Now.AddMonths(1))
-                            {
-                                expiringIn1Month.Add(documentProperty);
-                                hasDocuments = true;
-                            }
-                            else if (document.EndAt < DateTime.Now.AddMonths(3))
-                            {
-                                expiringIn3Months.Add(documentProperty);
-                                hasDocuments = true;
-                            }
-                            else if (document.EndAt < DateTime.Now.AddMonths(6))
-                            {
-                                expiringIn6Months.Add(documentProperty);
-                                hasDocuments = true;
-                            }
-                            else if (document.EndAt < DateTime.Now.AddMonths(12))
-                            {
-                                expiringIn12Months.Add(documentProperty);
-                                hasDocuments = true;
-                            }
-                            else
-                            {
-                                otherProducts.Add(documentProperty);
-                                hasDocuments = true;
+                                if (document.EndAt < DateTime.Now)
+                                {
+                                    expiredProducts.Add(documentProperty);
+                                    hasDocuments = true;
+                                }
+                                else if (document.EndAt < DateTime.Now.AddMonths(1))
+                                {
+                                    expiringIn1Month.Add(documentProperty);
+                                    hasDocuments = true;
+                                }
+                                else if (document.EndAt < DateTime.Now.AddMonths(3))
+                                {
+                                    expiringIn3Months.Add(documentProperty);
+                                    hasDocuments = true;
+                                }
+                                else if (document.EndAt < DateTime.Now.AddMonths(6))
+                                {
+                                    expiringIn6Months.Add(documentProperty);
+                                    hasDocuments = true;
+                                }
+                                else if (document.EndAt < DateTime.Now.AddMonths(12))
+                                {
+                                    expiringIn12Months.Add(documentProperty);
+                                    hasDocuments = true;
+                                }
+                                else
+                                {
+                                    otherProducts.Add(documentProperty);
+                                    hasDocuments = true;
+                                }
                             }
                         }
 

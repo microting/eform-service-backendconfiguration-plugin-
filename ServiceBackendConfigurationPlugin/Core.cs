@@ -110,10 +110,10 @@ namespace ServiceBackendConfigurationPlugin
 
         public void eFormRetrived(object sender, EventArgs args)
         {
-            // CaseDto trigger = (CaseDto)sender;
-            //
-            // int? caseId = trigger.MicrotingUId;
-            // if (caseId != null) _bus.SendLocal(new eFormRetrieved((int) caseId));
+            CaseDto trigger = (CaseDto)sender;
+
+            int? caseId = trigger.MicrotingUId;
+            if (caseId != null) _bus.SendLocal(new eFormRetrieved((int) caseId));
         }
 
         public void CaseCompleted(object sender, EventArgs args)
