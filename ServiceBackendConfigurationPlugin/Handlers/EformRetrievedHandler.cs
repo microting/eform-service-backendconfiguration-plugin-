@@ -32,7 +32,8 @@ public class EformRetrievedHandler : IHandleMessages<eFormRetrieved>
         await using BackendConfigurationPnDbContext backendConfigurationPnDbContext =
             _backendConfigurationDbContextHelper.GetDbContext();
 
-        var theCase = await sdkDbContext.Cases.FirstOrDefaultAsync(x => x.MicrotingUid == message.CaseId);
+        var theCase = await sdkDbContext.Cases.FirstOrDefaultAsync(x => x.Id == message.CaseId);
+
         if (theCase != null)
         {
             var planningCaseSite =
@@ -53,11 +54,6 @@ public class EformRetrievedHandler : IHandleMessages<eFormRetrieved>
                         .AsNoTracking()
                         .FirstOrDefaultAsync(x =>
                             x.MicrotingCheckListSitId == checkListSite.Id);
-            }
-
-            if (planningCaseSite == null)
-            {
-                return;
             }
 
             var areaRulePlanning = await backendConfigurationPnDbContext.AreaRulePlannings

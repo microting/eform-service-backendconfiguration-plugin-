@@ -160,7 +160,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                     if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
                             x.Deadline == (DateTime)planning.NextExecutionTime &&
                             x.PlanningId == planningCaseSite.PlanningId &&
-                            x.PlanningCaseSiteId == planningCaseSite.Id &&
+                            // x.PlanningCaseSiteId == planningCaseSite.Id &&
                             x.WorkflowState != Constants.WorkflowStates.Removed))
                     {
                         var deadLine = (DateTime)planning.NextExecutionTime!;
@@ -172,7 +172,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                             Deadline = new DateTime(deadLine.Year, deadLine.Month, deadLine.Day, 0, 0, 0),
                             StartDate = (DateTime)planning.LastExecutedTime!,
                             MicrotingSdkeFormId = planning.RelatedEFormId,
-                            PlanningCaseSiteId = planningCaseSite.Id,
+                            // PlanningCaseSiteId = planningCaseSite.Id,
                             MicrotingSdkCaseId = (int) message.CaseId!
                         };
 

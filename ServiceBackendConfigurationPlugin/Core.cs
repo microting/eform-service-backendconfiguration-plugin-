@@ -112,8 +112,8 @@ namespace ServiceBackendConfigurationPlugin
         {
             CaseDto trigger = (CaseDto)sender;
 
-            int? caseId = trigger.MicrotingUId;
-            if (caseId != null) _bus.SendLocal(new eFormRetrieved((int) caseId));
+            // int? caseId = trigger.MicrotingUId;
+            if (trigger.CaseId != null) _bus.SendLocal(new eFormRetrieved((int) trigger.CaseId));
         }
 
         public void CaseCompleted(object sender, EventArgs args)
