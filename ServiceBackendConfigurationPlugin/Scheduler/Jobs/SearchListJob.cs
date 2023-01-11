@@ -812,7 +812,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 {
 
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
-                        $"DokumentKontrol for : {property.Name}");
+                        $"Dokumenter : {property.Name}");
                     var toEmailAddress = new List<EmailAddress>();
                     if (!string.IsNullOrEmpty(property.MainMailAddress))
                     {
@@ -1396,9 +1396,9 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     continue;
                 }
 
-                var folders = await caseTemplatePnDbContext.FolderTranslations
+                var folderName = await caseTemplatePnDbContext.FolderTranslations
                     .Where(y => y.LanguageId == 1)
-                    .Where(x => x.Id == document.FolderId).Select(x => x.Name).ToListAsync();
+                    .Where(x => x.FolderId == document.FolderId).Select(x => x.Name).FirstAsync();
 
                 var properties = await backendConfigurationPnDbContext.Properties
                     .Where(x => document.DocumentProperties.Select(y => y.PropertyId).Contains(x.Id))
@@ -1418,7 +1418,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                           "<td width=\"99\"" +
                           "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
                           "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
-                          $"<span>{string.Join("<br>", folders)}</span></p>" +
+                          $"<span>{folderName}</span></p>" +
                           "</td>" +
                           "<td width=\"99\"" +
                           "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
