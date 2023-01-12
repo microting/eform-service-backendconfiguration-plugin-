@@ -95,7 +95,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
             var eformIdForNewTasks = await sdkDbContext.CheckLists
                 .Where(x => x.OriginalId == "142663new2")
                 .Select(x => x.Id)
-                .FirstAsync();
+                .FirstOrDefaultAsync();
 
             var eformIdForNewTasksOld = await eformQuery
                 .Where(x => x.Text == "01. New task")
