@@ -208,6 +208,10 @@ namespace ServiceBackendConfigurationPlugin
 
                     var rabbitmqHost = _sdkCore.GetSdkSetting(Settings.rabbitMqHost).GetAwaiter().GetResult();
                     Console.WriteLine($"rabbitmqHost: {rabbitmqHost}");
+                    var rabbitMqUser = _sdkCore.GetSdkSetting(Settings.rabbitMqUser).GetAwaiter().GetResult();
+                    Console.WriteLine($"rabbitMqUser: {rabbitMqUser}");
+                    var rabbitMqPassword = _sdkCore.GetSdkSetting(Settings.rabbitMqPassword).GetAwaiter().GetResult();
+                    Console.WriteLine($"rabbitMqPassword: {rabbitMqPassword}");
 
                     // var rabbitmqHost = connectionString.Contains("frontend")
                     //     ? $"frontend-{dbPrefix}-rabbitmq"
@@ -237,7 +241,7 @@ namespace ServiceBackendConfigurationPlugin
                     _container.Register(Component.For<BaseDbContext>().Instance(_baseDbContext));
                     _container.Install(
                         new RebusHandlerInstaller()
-                        , new RebusInstaller(connectionString, _maxParallelism, _numberOfWorkers, "admin", "password", rabbitmqHost)
+                        , new RebusInstaller(dbPrefix, connectionString, _maxParallelism, _numberOfWorkers, rabbitMqUser, rabbitMqPassword, rabbitmqHost)
                     );
                     _container.Register(Component.For<SearchListJob>());
 
