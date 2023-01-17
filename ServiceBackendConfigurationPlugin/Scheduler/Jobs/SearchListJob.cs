@@ -915,7 +915,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 await GenerateDocumentList(otherProducts, caseTemplateDbContext, _backendConfigurationDbContext));
 
                             var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress, toEmailAddress,
-                                $"DokumentKontrol for: {property.Name}", null, newHtml);
+                                $"Dokumenter: {property.Name}", null, newHtml);
 
                             var responseMessage = await sendGridClient.SendEmailAsync(msg);
                             if ((int) responseMessage.StatusCode < 200 ||
