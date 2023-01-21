@@ -103,6 +103,14 @@
     </EmbeddedResource>
     <None Remove="Resources\Regeloverholdelse_email_edit.png" />
     <None Remove="Resources\Regeloverholdelse_email_list.png" />
+    <None Remove="Resources\Compliance_list.png" />
+    <EmbeddedResource Include="Resources\Compliance_list.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Resources\Compliance_edit.png" />
+    <EmbeddedResource Include="Resources\Compliance_edit.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Infrastructure\Constants" />

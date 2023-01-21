@@ -718,7 +718,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 await GenerateProductList(otherProducts, property, chemicalsDbContext));
 
                             var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress, toEmailAddress,
-                                $"KemiKontrol for: {property.Name}", null, newHtml);
+                                $"KemiKontrol: {customerNo} {property.Name}", null, newHtml);
 
                             List<Attachment> attachments = new List<Attachment>();
 
@@ -815,7 +815,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 {
 
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
-                        $"Dokumenter : {customerNo} {property.Name}");
+                        $"Dokumenter: {customerNo} {property.Name}");
                     var toEmailAddress = new List<EmailAddress>();
                     if (!string.IsNullOrEmpty(property.MainMailAddress))
                     {
@@ -918,7 +918,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 await GenerateDocumentList(otherProducts, caseTemplateDbContext, _backendConfigurationDbContext));
 
                             var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress, toEmailAddress,
-                                $"Dokumenter: {property.Name}", null, newHtml);
+                                $"Dokumenter: {customerNo} {property.Name}", null, newHtml);
 
                             var responseMessage = await sendGridClient.SendEmailAsync(msg);
                             if ((int) responseMessage.StatusCode < 200 ||
@@ -946,7 +946,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 foreach (var property in properties)
                 {
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
-                        $"Dokumenter : {property.Name}");
+                        $"Regeloverholdelse: {customerNo} {property.Name}");
                     var toEmailAddress = new List<EmailAddress>();
                     if (!string.IsNullOrEmpty(property.MainMailAddress))
                     {
@@ -1681,6 +1681,12 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
             foreach (var complianceModel in complianceModels.OrderBy(x => x.Deadline))
             {
 
+                var responsible = "";
+                foreach (var keyValuePair in complianceModel.Responsible)
+                {
+                    responsible += keyValuePair.Value + "<br>";
+                }
+
                 result += "<tr valign=\"top\">" +
                           "<td width=\"99\"" +
                           "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
@@ -1704,7 +1710,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                           "</td><td width=\"99\"" +
                           "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
                           "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
-                          $"<span>{string.Join("<br>", complianceModel.Responsible)}</span></p>" +
+                          $"<span>{responsible}</span></p>" +
                           "</td>" +
                           "<td width=\"99\"" +
                           "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
