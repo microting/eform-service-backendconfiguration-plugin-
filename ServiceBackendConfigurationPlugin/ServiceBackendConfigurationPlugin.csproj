@@ -39,6 +39,9 @@
       <LastGenOutput>Translations.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Remove="Resources\Templates\file.docx" />
+    <EmbeddedResource Include="Resources\Compliance_report.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS01ExplodingBomb.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
@@ -98,6 +101,8 @@
     <EmbeddedResource Include="Resources\Flydelagskontrol_1.0_Libre.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Resources\Regeloverholdelse_email_edit.png" />
+    <None Remove="Resources\Regeloverholdelse_email_list.png" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Infrastructure\Constants" />

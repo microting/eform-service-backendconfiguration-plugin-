@@ -55,6 +55,7 @@ using Rebus.Bus;
 using SendGrid;
 using SendGrid.Helpers.Mail;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
+using ServiceBackendConfigurationPlugin.Infrastructure.Models;
 using ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules;
 using PlanningSite = Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities.PlanningSite;
 
@@ -94,11 +95,13 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
 
         private async Task ExecuteUpdateProperties()
         {
+            var customerNo = _sdkDbContext.Settings.First(x => x.Name == "customerNo").Value;
+
             if (DateTime.UtcNow.Hour == 2)
             {
                 try
                 {
-                    Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
+                    Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 2am - chemicalbase updates");
                     var url = "https://chemicalbase.microting.com/get-all-chemicals";
                     var client = new HttpClient();
                     var response = await client.GetAsync(url).ConfigureAwait(false);
@@ -258,7 +261,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
 
             if (DateTime.UtcNow.Hour == 3)
             {
-                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
+                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 3am - Chemical entities");
 
                 var sdkDbContext = _core.DbContextHelper.GetDbContext();
                 var entityGroupBarcodeId =
@@ -322,7 +325,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
 
             if (DateTime.UtcNow.Hour == 4)
             {
-                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
+                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 4:00 - Chemicalss");
                 var properties = await _backendConfigurationDbContext.Properties
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
 
@@ -623,7 +626,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                         _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
 
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
-                        $"KemiKontrol for : {property.Name}");
+                        $"KemiKontrol: {customerNo} {property.Name}");
                     var toEmailAddress = new List<EmailAddress>();
                     if (!string.IsNullOrEmpty(property.MainMailAddress))
                     {
@@ -799,7 +802,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
 
             if (DateTime.UtcNow.Hour == 5)
             {
-                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called");
+                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 5:00 - Documents");
                 var properties = await _backendConfigurationDbContext.Properties
                     .Where(x => x.MainMailAddress != null && x.MainMailAddress != "")
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
@@ -812,7 +815,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                 {
 
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
-                        $"Dokumenter : {property.Name}");
+                        $"Dokumenter : {customerNo} {property.Name}");
                     var toEmailAddress = new List<EmailAddress>();
                     if (!string.IsNullOrEmpty(property.MainMailAddress))
                     {
@@ -928,6 +931,237 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
 
                 }
 
+            }
+
+            if (DateTime.UtcNow.Hour == 6)
+            {
+                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 6:00 - Compliance");
+                var properties = await _backendConfigurationDbContext.Properties
+                    .Where(x => x.MainMailAddress != null && x.MainMailAddress != "")
+                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
+
+                var sendGridKey =
+                    _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
+
+                foreach (var property in properties)
+                {
+                    var fromEmailAddress = new EmailAddress("no-reply@microting.com",
+                        $"Dokumenter : {property.Name}");
+                    var toEmailAddress = new List<EmailAddress>();
+                    if (!string.IsNullOrEmpty(property.MainMailAddress))
+                    {
+                        toEmailAddress.AddRange(property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
+                    }
+
+                    if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
+                    {
+
+                        var complianceList = await _backendConfigurationDbContext.Compliances
+                            .Where(x => x.PropertyId == property.Id)
+                            .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                            .AsNoTracking()
+                            .OrderBy(x => x.Deadline)
+                            .ToListAsync();
+
+                        var entities = new List<ComplianceModel>();
+
+                        foreach (var compliance in complianceList)
+                        {
+                            var language = await _sdkDbContext.Languages.FirstAsync(x => x.Name == "Danish")
+                                .ConfigureAwait(false);
+                            var planningNameTranslation = await _itemsPlanningPnDbContext.PlanningNameTranslation
+                                .SingleOrDefaultAsync(x =>
+                                    x.PlanningId == compliance.PlanningId && x.LanguageId == language.Id)
+                                .ConfigureAwait(false);
+
+                            if (planningNameTranslation == null)
+                            {
+                                continue;
+                            }
+
+                            var areaTranslation = await _backendConfigurationDbContext.AreaTranslations
+                                .SingleOrDefaultAsync(x => x.AreaId == compliance.AreaId && x.LanguageId == language.Id)
+                                .ConfigureAwait(false);
+
+                            if (areaTranslation == null)
+                            {
+                                continue;
+                            }
+
+                            var planningSites = await _itemsPlanningPnDbContext.PlanningSites
+                                .Where(x => x.PlanningId == compliance.PlanningId)
+                                .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+                                .Select(x => x.SiteId)
+                                .Distinct()
+                                .ToListAsync().ConfigureAwait(false);
+
+                            var sitesList = await _sdkDbContext.Sites.Where(x => planningSites.Contains(x.Id))
+                                .ToListAsync()
+                                .ConfigureAwait(false);
+
+                            var responsible = sitesList
+                                .Select(site => new KeyValuePair<int, string>(site.Id, site.Name))
+                                .ToList();
+
+                            var complianceModel = new ComplianceModel
+                            {
+                                CaseId = compliance.MicrotingSdkCaseId,
+                                CreatedAt = compliance.CreatedAt,
+                                Deadline = compliance.Deadline.AddDays(-1),
+                                ComplianceTypeId = null,
+                                ControlArea = areaTranslation.Name,
+                                EformId = compliance.MicrotingSdkeFormId,
+                                Id = compliance.Id,
+                                ItemName = planningNameTranslation.Name,
+                                PlanningId = compliance.PlanningId,
+                                Responsible = responsible,
+                            };
+
+                            entities.Add(complianceModel);
+                        }
+
+                        var expiredComplianceModels = new List<ComplianceModel>();
+                        var expiringIn1Month = new List<ComplianceModel>();
+                        var expiringIn3Months = new List<ComplianceModel>();
+                        var expiringIn6Months = new List<ComplianceModel>();
+                        var expiringIn12Months = new List<ComplianceModel>();
+                        var otherProducts = new List<ComplianceModel>();
+                        var hasCompliances = false;
+
+                        foreach (var complianceModel in entities)
+                        {
+                            if (complianceModel.Deadline < DateTime.Now)
+                            {
+                                expiredComplianceModels.Add(complianceModel);
+                                hasCompliances = true;
+                            }
+                            else if (complianceModel.Deadline < DateTime.Now.AddMonths(1))
+                            {
+                                expiringIn1Month.Add(complianceModel);
+                                hasCompliances = true;
+                            }
+                            else if (complianceModel.Deadline < DateTime.Now.AddMonths(3))
+                            {
+                                expiringIn3Months.Add(complianceModel);
+                                hasCompliances = true;
+                            }
+                            else if (complianceModel.Deadline < DateTime.Now.AddMonths(6))
+                            {
+                                expiringIn6Months.Add(complianceModel);
+                                hasCompliances = true;
+                            }
+                            else if (complianceModel.Deadline < DateTime.Now.AddMonths(12))
+                            {
+                                expiringIn12Months.Add(complianceModel);
+                                hasCompliances = true;
+                            }
+                            else
+                            {
+                                otherProducts.Add(complianceModel);
+                                hasCompliances = true;
+                            }
+                        }
+
+                        var sendGridClient = new SendGridClient(sendGridKey.Value);
+                        var assembly = Assembly.GetExecutingAssembly();
+                        var assemblyName = assembly.GetName().Name;
+
+                        var stream =
+                            assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_report.html");
+                        string html;
+                        if (stream == null)
+                        {
+                            throw new InvalidOperationException("Resource not found");
+                        }
+
+                        using (var reader = new StreamReader(stream, Encoding.UTF8))
+                        {
+                            html = await reader.ReadToEndAsync();
+                        }
+
+
+                        var newHtml = html;
+                        newHtml = newHtml.Replace("{{propertyName}}", property.Name);
+                        newHtml = newHtml.Replace("{{dato}}", DateTime.Now.ToString("dd-MM-yyyy"));
+                        newHtml = newHtml.Replace("{{emailaddresses}}", property.MainMailAddress);
+
+                        if ((expiringIn1Month.Count > 0 && DateTime.Now.DayOfWeek == DayOfWeek.Thursday) ||
+                            expiredComplianceModels.Count > 0 ||
+                            (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && DateTime.Now.Day < 8 && hasCompliances))
+                        {
+                            newHtml = newHtml.Replace("{{expiredProducts}}",
+                                await GenerateComplianceList(expiredComplianceModels, property.Name));
+                            newHtml = newHtml.Replace("{{expiringIn1Month}}",
+                                await GenerateComplianceList(expiringIn1Month, property.Name));
+                            newHtml = newHtml.Replace("{{expiringIn3Months}}",
+                                await GenerateComplianceList(expiringIn3Months, property.Name));
+                            newHtml = newHtml.Replace("{{expiringIn6Months}}",
+                                await GenerateComplianceList(expiringIn6Months, property.Name));
+                            newHtml = newHtml.Replace("{{expiringIn12Months}}",
+                                await GenerateComplianceList(expiringIn12Months, property.Name));
+                            newHtml = newHtml.Replace("{{otherProducts}}",
+                                await GenerateComplianceList(otherProducts, property.Name));
+
+                            List<Attachment> attachments = new List<Attachment>();
+
+                            newHtml = newHtml.Replace("{{customerNo}}", customerNo);
+
+                            stream =
+                                assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_list.png");
+                            if (stream == null)
+                            {
+                                throw new InvalidOperationException("Resource not found");
+                            }
+                            byte[] bytes;
+                            using (var memoryStream = new MemoryStream())
+                            {
+                                await stream.CopyToAsync(memoryStream);
+                                bytes = memoryStream.ToArray();
+                            }
+                            var attachment1 = new Attachment
+                            {
+                                Filename = "Compliance_list.png",
+                                Content = Convert.ToBase64String(bytes),
+                                ContentId = "list",
+                                Disposition = "inline"
+                            };
+                            attachments.Add(attachment1);
+
+                            stream =
+                                assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_edit.png");
+
+                            if (stream == null)
+                            {
+                                throw new InvalidOperationException("Resource not found");
+                            }
+
+                            using (var memoryStream = new MemoryStream())
+                            {
+                                await stream.CopyToAsync(memoryStream);
+                                bytes = memoryStream.ToArray();
+                            }
+                            var attachment2 = new Attachment
+                            {
+                                Filename = "Compliance_edit.png",
+                                Content = Convert.ToBase64String(bytes),
+                                ContentId = "edit",
+                                Disposition = "inline"
+                            };
+                            attachments.Add(attachment2);
+
+                            var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress, toEmailAddress,
+                                $"Regeloverholdelse: {customerNo} {property.Name}", null, newHtml);
+                            msg.AddAttachments(attachments);
+
+                            var responseMessage = await sendGridClient.SendEmailAsync(msg);
+                            if ((int)responseMessage.StatusCode < 200 ||
+                                (int)responseMessage.StatusCode >= 300)
+                            {
+                                throw new Exception($"Status: {responseMessage.StatusCode}");
+                            }
+                        }
+                    }
+                }
             }
 
             try
@@ -1433,6 +1667,49 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                           "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
                           "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
                           $"<span>{document.EndAt:dd-MM-yyyy}</span></p>" +
+                          "</td>" +
+                          "</tr>";
+            }
+
+            return result;
+        }
+
+        private async Task<string> GenerateComplianceList(List<ComplianceModel> complianceModels, string propertyName)
+        {
+            string result = "";
+
+            foreach (var complianceModel in complianceModels.OrderBy(x => x.Deadline))
+            {
+
+                result += "<tr valign=\"top\">" +
+                          "<td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{complianceModel.Id}</span></p>" +
+                          "</td>" +
+                          "<td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{propertyName}</span></p>" +
+                          "</td>" +
+                          "<td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{complianceModel.ControlArea}</span></p>" +
+                          "</td>" +
+                          "<td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{complianceModel.ItemName}</span></p>" +
+                          "</td><td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{string.Join("<br>", complianceModel.Responsible)}</span></p>" +
+                          "</td>" +
+                          "<td width=\"99\"" +
+                          "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
+                          "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
+                          $"<span>{complianceModel.Deadline:dd-MM-yyyy}</span></p>" +
                           "</td>" +
                           "</tr>";
             }
