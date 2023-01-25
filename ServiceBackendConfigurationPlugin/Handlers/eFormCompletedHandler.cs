@@ -326,7 +326,11 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                 return;
                             }
 
-                            var planningSite = await backendConfigurationPnDbContext.PlanningSites.FirstAsync(x => x.SiteId == planningCaseSite.MicrotingSdkSiteId && x.AreaRulePlanningsId == areaRulePlanning.Id);
+                            var planningSite = await backendConfigurationPnDbContext.PlanningSites
+                                .Where(x =>
+                                    x.WorkflowState != ChemicalsBase.Infrastructure.Constants.Constants.WorkflowStates.Removed)
+                                .FirstAsync(x =>
+                                    x.SiteId == planningCaseSite.MicrotingSdkSiteId && x.AreaRulePlanningsId == areaRulePlanning.Id);
 
                             planningSite.Status = 100;
                             await planningSite.Update(backendConfigurationPnDbContext);

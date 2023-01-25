@@ -103,7 +103,9 @@ namespace ServiceBackendConfigurationPlugin.Handlers
 
                 var planning = await itemsPlanningPnDbContext.Plannings.AsNoTracking().FirstAsync(x => x.Id == planningCaseSite.PlanningId);
 
-                var planningSite = await backendConfigurationPnDbContext.PlanningSites.FirstAsync(x => x.SiteId == planningCaseSite.MicrotingSdkSiteId && x.AreaRulePlanningsId == areaRulePlanning.Id);
+                var planningSite = await backendConfigurationPnDbContext.PlanningSites
+                    .Where(x => x.WorkflowState != ChemicalsBase.Infrastructure.Constants.Constants.WorkflowStates.Removed)
+                    .FirstAsync(x => x.SiteId == planningCaseSite.MicrotingSdkSiteId && x.AreaRulePlanningsId == areaRulePlanning.Id);
 
                 planningSite.Status = 70;
                 await planningSite.Update(backendConfigurationPnDbContext);
