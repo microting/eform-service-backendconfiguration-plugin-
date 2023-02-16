@@ -57,6 +57,7 @@ using SendGrid.Helpers.Mail;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 using ServiceBackendConfigurationPlugin.Infrastructure.Models;
 using ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules;
+using File = System.IO.File;
 using PlanningSite = Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities.PlanningSite;
 
 namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs

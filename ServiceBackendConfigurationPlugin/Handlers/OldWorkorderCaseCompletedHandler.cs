@@ -18,6 +18,7 @@ using Rebus.Handlers;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 using ServiceBackendConfigurationPlugin.Messages;
 using ServiceBackendConfigurationPlugin.Resources;
+using File = System.IO.File;
 using KeyValuePair = Microting.eForm.Dto.KeyValuePair;
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
