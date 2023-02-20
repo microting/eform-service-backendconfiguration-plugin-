@@ -182,7 +182,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 Description = commentFieldValue.Value,
                 CaseInitiated = DateTime.UtcNow,
                 LeadingCase = false,
-                Priority = priorityFieldValue != null ? priorityFieldValue.Value : "4",
+                Priority = priorityFieldValue != null ? priorityFieldValue.Value : "4"
             };
             await newWorkOrderCase.Create(backendConfigurationPnDbContext);
 

@@ -552,7 +552,7 @@ namespace ServiceBackendConfigurationPlugin
             {
                 CaseId = (int) caseId,
                 PropertyWorkerId = propertyWorker.Id,
-                CaseStatusesEnum = CaseStatusesEnum.NewTask,
+                CaseStatusesEnum = CaseStatusesEnum.NewTask
                 // CreatedByUserId = _userService.UserId,
                 // UpdatedByUserId = _userService.UserId,
             }.Create(_backendConfigurationPnDbContext).ConfigureAwait(false);

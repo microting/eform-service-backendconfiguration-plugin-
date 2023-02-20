@@ -111,7 +111,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     JsonSerializerOptions options = new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true,
-                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
                     };
                     List<Chemical> chemicals = JsonSerializer.Deserialize<List<Chemical>>(result, options);
 
@@ -1015,7 +1015,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                                 Id = compliance.Id,
                                 ItemName = planningNameTranslation.Name,
                                 PlanningId = compliance.PlanningId,
-                                Responsible = responsible,
+                                Responsible = responsible
                             };
 
                             entities.Add(complianceModel);
@@ -1475,13 +1475,13 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     .Select(x =>
                         new Microting.ItemsPlanningBase.Infrastructure.Data.Entities.PlanningSite
                         {
-                            SiteId = x.SiteId,
+                            SiteId = x.SiteId
                         })
                     .ToList(),
                 PlanningsTags = new List<PlanningsTags>
                 {
-                    new() {PlanningTagId = areaRule.Area.ItemPlanningTagId,},
-                    new() {PlanningTagId = propertyItemPlanningTagId,},
+                    new() {PlanningTagId = areaRule.Area.ItemPlanningTagId},
+                    new() {PlanningTagId = propertyItemPlanningTagId}
                 }
             };
         }
@@ -1509,7 +1509,7 @@ namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
                     AreaId = areaRule.AreaId,
                     AreaRuleId = areaRule.Id
                 }).ToList(),
-                ComplianceEnabled = areaRulePlanningModel.ComplianceEnabled,
+                ComplianceEnabled = areaRulePlanningModel.ComplianceEnabled
             };
             if (areaRulePlanningModel.TypeSpecificFields != null)
             {

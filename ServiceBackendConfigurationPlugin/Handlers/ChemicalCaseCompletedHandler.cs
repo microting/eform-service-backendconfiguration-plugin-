@@ -886,13 +886,13 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                 .Select(x =>
                     new Microting.ItemsPlanningBase.Infrastructure.Data.Entities.PlanningSite
                     {
-                        SiteId = x.SiteId,
+                        SiteId = x.SiteId
                     })
                 .ToList(),
             PlanningsTags = new List<PlanningsTags>
             {
-                new() {PlanningTagId = areaRule.Area.ItemPlanningTagId,},
-                new() {PlanningTagId = propertyItemPlanningTagId,},
+                new() {PlanningTagId = areaRule.Area.ItemPlanningTagId},
+                new() {PlanningTagId = propertyItemPlanningTagId}
             }
         };
     }
@@ -920,7 +920,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                 AreaId = areaRule.AreaId,
                 AreaRuleId = areaRule.Id
             }).ToList(),
-            ComplianceEnabled = areaRulePlanningModel.ComplianceEnabled,
+            ComplianceEnabled = areaRulePlanningModel.ComplianceEnabled
         };
         if (areaRulePlanningModel.TypeSpecificFields != null)
         {

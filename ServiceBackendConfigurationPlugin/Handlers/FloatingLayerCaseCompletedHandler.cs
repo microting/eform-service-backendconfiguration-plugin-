@@ -99,7 +99,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
             // "Moved to another slurry tank", // en
             "Modtaget biogas-gylle", // da
             // "Biogas slurry received", // en
-            "", // Blank
+            "" // Blank
         };
         if (checkBoxFloatingLayerOk == false && listWithStatuses.Contains(statusOrActivity))
         {
@@ -305,7 +305,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                     {
                         EmailId = email.Id,
                         CidName = "eform-logo",
-                        ResourceName = "KemiKontrol_rapport_1.0_Libre_html_5d7c0d01f9da8102.png",
+                        ResourceName = "KemiKontrol_rapport_1.0_Libre_html_5d7c0d01f9da8102.png"
                     };
                     await emailAttachment.Create(backendConfigurationDbContext).ConfigureAwait(false);
                 }

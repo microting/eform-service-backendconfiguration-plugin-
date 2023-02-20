@@ -121,7 +121,7 @@ public class MorningTourCaseCompletedHandler : IHandleMessages<MorningTourCaseCo
                             {
                                 "Danish" => "Ikke afkrydset",
                                 "English" => "Not checked",
-                                _ => "Nicht ausgewählt",
+                                _ => "Nicht ausgewählt"
                             };
                         }
                         else if (fieldValue.ValueReadable == "checked")
@@ -130,7 +130,7 @@ public class MorningTourCaseCompletedHandler : IHandleMessages<MorningTourCaseCo
                             {
                                 "Danish" => "Afkrydset",
                                 "English" => "Checked",
-                                _ => "Ausgewählt",
+                                _ => "Ausgewählt"
                             };
                         }
 
@@ -141,7 +141,7 @@ public class MorningTourCaseCompletedHandler : IHandleMessages<MorningTourCaseCo
                             "English" =>
                                 $"<br>Last submitted:<br><strong>{fieldValue.ValueReadable}</strong>",
                             _ =>
-                                $"<br>Zuletzt eingereicht:<br><strong>{fieldValue.ValueReadable}</strong>",
+                                $"<br>Zuletzt eingereicht:<br><strong>{fieldValue.ValueReadable}</strong>"
                         };
                     }
                 }
@@ -207,7 +207,7 @@ public class MorningTourCaseCompletedHandler : IHandleMessages<MorningTourCaseCo
                 Status = 66,
                 PlanningId = planning.Id,
                 PlanningCaseId = planningCase.Id,
-                MicrotingSdkCaseId = dbCaseId.Id,
+                MicrotingSdkCaseId = dbCaseId.Id
                 // MicrotingCheckListSitId = checkListSite.Id
             };
 

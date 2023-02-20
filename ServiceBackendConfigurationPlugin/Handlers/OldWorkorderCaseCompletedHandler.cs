@@ -185,7 +185,7 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
                 Description = commentFieldValue.Value,
                 CaseInitiated = DateTime.UtcNow,
                 LeadingCase = false,
-                Priority = "3",
+                Priority = "3"
             };
             await newWorkOrderCase.Create(backendConfigurationPnDbContext);
 
