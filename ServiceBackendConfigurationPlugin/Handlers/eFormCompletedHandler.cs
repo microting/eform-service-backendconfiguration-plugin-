@@ -268,14 +268,14 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                 }
                 else
                 {
-                    if (planning.RepeatType == RepeatType.Week && planning.RepeatEvery == 1)
-                    {
-                        // PoolCaseCompletedHandler will handle this case
-                        await _bus.SendLocal(new PoolHourCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
-                            message.SiteUId));
-                    }
-                    else
-                    {
+                    // if (planning.RepeatType == RepeatType.Week && planning.RepeatEvery == 1)
+                    // {
+                    //     // PoolCaseCompletedHandler will handle this case
+                    //     await _bus.SendLocal(new PoolHourCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
+                    //         message.SiteUId));
+                    // }
+                    // else
+                    // {
                         while (planningCaseSite.Status != 100)
                         {
                             Thread.Sleep(1000);
@@ -372,7 +372,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         }
 
 
-                    }
+                    // }
                 }
             }
         }
