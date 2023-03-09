@@ -293,15 +293,20 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         Console.WriteLine($"planningCaseSite {planningCaseSite.Id} is completed");
                         Thread.Sleep(10000);
 
+                        Console.WriteLine($"planning.NextExecutionTime: {planning.NextExecutionTime}");
 
-                        var bla = ((DateTime) planning.NextExecutionTime).ToUniversalTime().AddDays(1);
+
+                        var deadline = ((DateTime) planning.NextExecutionTime);
+                        Console.WriteLine($"Deadline: {deadline}");
                         // backendConfigurationPnDbContext.Database.Log = Console.Write;
 
                         var complianceList = await backendConfigurationPnDbContext.Compliances
-                            .Where(x => x.Deadline == new DateTime(bla.Year, bla.Month, bla.Day, 0, 0, 0))
+                            .Where(x => x.Deadline == new DateTime(deadline.Year, deadline.Month, deadline.Day, 0, 0, 0))
                             .AsNoTracking()
                             .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
                             .Where(x => x.PlanningId == planningCaseSite.PlanningId).ToListAsync();
+
+                        Console.WriteLine($"complianceList.Count: {complianceList.Count}");
 
                         foreach (var compliance in complianceList)
                         {
@@ -312,6 +317,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     await backendConfigurationPnDbContext.Compliances.FirstAsync(
                                         x => x.Id == compliance.Id);
                                 await dbCompliance.Delete(backendConfigurationPnDbContext);
+                                Console.WriteLine($"Deleted compliance {compliance.Id}");
                             }
 
                             var areaRulePlanning = await backendConfigurationPnDbContext.AreaRulePlannings.AsNoTracking()
@@ -333,6 +339,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     x.SiteId == planningCaseSite.MicrotingSdkSiteId && x.AreaRulePlanningsId == areaRulePlanning.Id);
 
                             planningSite.Status = 100;
+                            Console.WriteLine($"Updated planningSite {planningSite.Id} to completed");
                             await planningSite.Update(backendConfigurationPnDbContext);
 
 
@@ -341,6 +348,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                     x.WorkflowState != Constants.WorkflowStates.Removed))
                             {
                                 property.ComplianceStatus = 2;
+                                Console.WriteLine($"Updated property {property.Id} to complianceStatus 2");
                                 property.ComplianceStatusThirty = 2;
                                 await property.Update(backendConfigurationPnDbContext);
                             }
@@ -359,6 +367,7 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                                         x.WorkflowState != Constants.WorkflowStates.Removed))
                                 {
                                     property.ComplianceStatus = 0;
+                                    Console.WriteLine($"Updated property {property.Id} to complianceStatus 0");
                                     await property.Update(backendConfigurationPnDbContext);
                                 }
                             }
