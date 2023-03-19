@@ -56,6 +56,8 @@ public class EformRetrievedHandler : IHandleMessages<eFormRetrieved>
                             x.MicrotingCheckListSitId == checkListSite.Id);
             }
 
+            if (planningCaseSite == null) return;
+
             var areaRulePlanning = await backendConfigurationPnDbContext.AreaRulePlannings
                 .Where(x => x.ItemPlanningId == planningCaseSite.PlanningId)
                 .AsNoTracking()
