@@ -293,10 +293,10 @@ namespace ServiceBackendConfigurationPlugin.Handlers
                         Console.WriteLine($"planningCaseSite {planningCaseSite.Id} is completed");
                         Thread.Sleep(10000);
 
-                        Console.Write($"planning.NextExecutionTime: {planning.NextExecutionTime}");
+                        Console.WriteLine($"planning.NextExecutionTime: {planning.NextExecutionTime}");
 
 
-                        var deadline = ((DateTime) planning.NextExecutionTime).ToUniversalTime().AddDays(1);
+                        var deadline = ((DateTime) planning.NextExecutionTime);
                         Console.WriteLine($"Deadline: {deadline}");
                         // backendConfigurationPnDbContext.Database.Log = Console.Write;
 
