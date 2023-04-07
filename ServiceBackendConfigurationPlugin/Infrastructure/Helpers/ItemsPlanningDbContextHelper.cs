@@ -25,22 +25,21 @@ SOFTWARE.
 using Microting.ItemsPlanningBase.Infrastructure.Data;
 using Microting.ItemsPlanningBase.Infrastructure.Data.Factories;
 
-namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers
+namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
+
+public sealed class ItemsPlanningDbContextHelper
 {
-    public sealed class ItemsPlanningDbContextHelper
+    private string ConnectionString { get;}
+
+    public ItemsPlanningDbContextHelper(string connectionString)
     {
-        private string ConnectionString { get;}
+        ConnectionString = connectionString;
+    }
 
-        public ItemsPlanningDbContextHelper(string connectionString)
-        {
-            ConnectionString = connectionString;
-        }
+    public ItemsPlanningPnDbContext GetDbContext()
+    {
+        ItemsPlanningPnContextFactory contextFactory = new ItemsPlanningPnContextFactory();
 
-        public ItemsPlanningPnDbContext GetDbContext()
-        {
-            ItemsPlanningPnContextFactory contextFactory = new ItemsPlanningPnContextFactory();
-
-            return contextFactory.CreateDbContext(new[] { ConnectionString });
-        }
+        return contextFactory.CreateDbContext(new[] { ConnectionString });
     }
 }

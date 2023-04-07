@@ -24,10 +24,9 @@ SOFTWARE.
 
 using System.Threading.Tasks;
 
-namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs
+namespace ServiceBackendConfigurationPlugin.Scheduler.Jobs;
+
+public interface IJob
 {
-    public interface IJob
-    {
-        Task Execute();
-    }
+    Task Execute();
 }

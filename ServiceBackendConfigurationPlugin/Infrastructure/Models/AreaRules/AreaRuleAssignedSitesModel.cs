@@ -22,12 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-namespace ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules
-{
-    public sealed class AreaRuleAssignedSitesModel
-    {
-        public int SiteId { get; set; }
+namespace ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules;
 
-        public bool Checked { get; set; }
-    }
+public sealed class AreaRuleAssignedSitesModel
+{
+    public int SiteId { get; set; }
+
+    public bool Checked { get; set; }
 }

@@ -22,17 +22,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-using System;
+namespace ServiceBackendConfigurationPlugin.Messages;
 
-namespace ServiceBackendConfigurationPlugin.Messages
+public sealed class EformParsingError
 {
-    public sealed class EformParsingError
-    {
-        public int CaseId { get; }
+    public int CaseId { get; }
 
-        public EformParsingError(int caseId)
-        {
-            CaseId = caseId;
-        }
+    public EformParsingError(int caseId)
+    {
+        CaseId = caseId;
     }
 }

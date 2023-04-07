@@ -25,27 +25,26 @@ SOFTWARE.
 using System;
 using System.Collections.Generic;
 
-namespace ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules
+namespace ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules;
+
+public sealed class AreaRulePlanningModel
 {
-    public sealed class AreaRulePlanningModel
-    {
-        public int? Id { get; set; }
+    public int? Id { get; set; }
 
-        public int RuleId { get; set; }
+    public int RuleId { get; set; }
 
-        public bool Status { get; set; }
+    public bool Status { get; set; }
 
-        public bool SendNotifications { get; set; }
+    public bool SendNotifications { get; set; }
 
-        public DateTime StartDate { get; set; }
+    public DateTime StartDate { get; set; }
 
-        public int PropertyId { get; set; }
+    public int PropertyId { get; set; }
 
-        public AreaRuleTypePlanningModel TypeSpecificFields { get; set; }
+    public AreaRuleTypePlanningModel TypeSpecificFields { get; set; }
 
-        public List<AreaRuleAssignedSitesModel> AssignedSites { get; set; }
-            = new ();
+    public List<AreaRuleAssignedSitesModel> AssignedSites { get; set; }
+        = new ();
 
-        public bool ComplianceEnabled { get; set; }
-    }
+    public bool ComplianceEnabled { get; set; }
 }

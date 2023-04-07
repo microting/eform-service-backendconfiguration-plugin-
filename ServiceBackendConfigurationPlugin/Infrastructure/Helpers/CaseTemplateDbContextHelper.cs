@@ -22,27 +22,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-using ChemicalsBase.Infrastructure;
-using ChemicalsBase.Infrastructure.Data.Factories;
 using Microting.eFormCaseTemplateBase.Infrastructure.Data;
 using Microting.eFormCaseTemplateBase.Infrastructure.Data.Factories;
 
-namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers
+namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
+
+public sealed class CaseTemplateDbContextHelper
 {
-    public sealed class CaseTemplateDbContextHelper
+    private string ConnectionString { get;}
+
+    public CaseTemplateDbContextHelper(string connectionString)
     {
-        private string ConnectionString { get;}
+        ConnectionString = connectionString;
+    }
 
-        public CaseTemplateDbContextHelper(string connectionString)
-        {
-            ConnectionString = connectionString;
-        }
+    public CaseTemplatePnDbContext GetDbContext()
+    {
+        CaseTemplatePnContextFactory contextFactory = new CaseTemplatePnContextFactory();
 
-        public CaseTemplatePnDbContext GetDbContext()
-        {
-            CaseTemplatePnContextFactory contextFactory = new CaseTemplatePnContextFactory();
-
-            return contextFactory.CreateDbContext(new[] { ConnectionString });
-        }
+        return contextFactory.CreateDbContext(new[] { ConnectionString });
     }
 }

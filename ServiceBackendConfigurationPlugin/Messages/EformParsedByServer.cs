@@ -22,21 +22,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-using System;
+namespace ServiceBackendConfigurationPlugin.Messages;
 
-namespace ServiceBackendConfigurationPlugin.Messages
+public sealed class EformParsedByServer
 {
-    public sealed class EformParsedByServer
-    {
-        public int? CaseId { get; }
-        public int? MicrotingUId { get; }
-        public int? CheckId { get; }
+    public int? CaseId { get; }
+    public int? MicrotingUId { get; }
+    public int? CheckId { get; }
 
-        public EformParsedByServer(int? caseId, int? MicrotingUId, int? checkId)
-        {
-            this.CaseId = caseId;
-            this.MicrotingUId = MicrotingUId;
-            this.CheckId = checkId;
-        }
+    public EformParsedByServer(int? caseId, int? MicrotingUId, int? checkId)
+    {
+        this.CaseId = caseId;
+        this.MicrotingUId = MicrotingUId;
+        this.CheckId = checkId;
     }
 }

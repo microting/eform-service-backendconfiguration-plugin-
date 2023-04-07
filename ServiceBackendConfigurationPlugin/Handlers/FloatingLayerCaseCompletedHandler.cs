@@ -10,7 +10,6 @@ using Microting.eForm.Infrastructure;
 using Microting.eForm.Infrastructure.Constants;
 using Microting.eForm.Infrastructure.Data.Entities;
 using Microting.eForm.Infrastructure.Models;
-using Microting.EformAngularFrontendBase.Infrastructure.Data;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
 using Microting.ItemsPlanningBase.Infrastructure.Data.Entities;
 using Rebus.Handlers;

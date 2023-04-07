@@ -25,28 +25,27 @@ SOFTWARE.
 using System;
 using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
 
-namespace ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules
+namespace ServiceBackendConfigurationPlugin.Infrastructure.Models.AreaRules;
+
+public sealed class AreaRuleTypePlanningModel
 {
-    public sealed class AreaRuleTypePlanningModel
-    {
-        public int? RepeatEvery { get; set; }
+    public int? RepeatEvery { get; set; }
 
-        public int? RepeatType { get; set; }
+    public int? RepeatType { get; set; }
 
-        public AreaRuleT2TypesEnum Type { get; set; }
+    public AreaRuleT2TypesEnum Type { get; set; }
 
-        public AreaRuleT2AlarmsEnum Alarm { get; set; }
+    public AreaRuleT2AlarmsEnum Alarm { get; set; }
 
-        public DateTime? EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
 
-        public int DayOfWeek { get; set; }
+    public int DayOfWeek { get; set; }
 
-        public int DayOfMonth { get; set; }
+    public int DayOfMonth { get; set; }
 
-        //public bool? ChecklistStable { get; set; }
+    //public bool? ChecklistStable { get; set; }
 
-        //public bool? TailBite { get; set; }
+    //public bool? TailBite { get; set; }
 
-        public bool HoursAndEnergyEnabled { get; set; }
-    }
+    public bool HoursAndEnergyEnabled { get; set; }
 }

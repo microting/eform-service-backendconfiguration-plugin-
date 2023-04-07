@@ -21,15 +21,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-namespace ServiceBackendConfigurationPlugin.Messages
-{
-    public class eFormRetrieved
-    {
-        public int CaseId { get; protected set; }
+namespace ServiceBackendConfigurationPlugin.Messages;
 
-        public eFormRetrieved(int caseId)
-        {
-            this.CaseId = caseId;
-        }
+public class eFormRetrieved
+{
+    public int CaseId { get; protected set; }
+
+    public eFormRetrieved(int caseId)
+    {
+        this.CaseId = caseId;
     }
 }

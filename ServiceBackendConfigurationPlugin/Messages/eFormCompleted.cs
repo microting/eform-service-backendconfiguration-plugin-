@@ -21,21 +21,20 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-namespace ServiceBackendConfigurationPlugin.Messages
-{
-    public sealed class eFormCompleted
-    {
-        public int? CaseId { get;}
-        public int? MicrotingUId { get; }
-        public int? CheckId { get; }
-        public int? SiteUId { get; }
+namespace ServiceBackendConfigurationPlugin.Messages;
 
-        public eFormCompleted(int? caseId, int? microtingUId, int? checkId, int? siteUId)
-        {
-            CaseId = caseId;
-            MicrotingUId = microtingUId;
-            CheckId = checkId;
-            SiteUId = siteUId;
-        }
+public sealed class eFormCompleted
+{
+    public int? CaseId { get;}
+    public int? MicrotingUId { get; }
+    public int? CheckId { get; }
+    public int? SiteUId { get; }
+
+    public eFormCompleted(int? caseId, int? microtingUId, int? checkId, int? siteUId)
+    {
+        CaseId = caseId;
+        MicrotingUId = microtingUId;
+        CheckId = checkId;
+        SiteUId = siteUId;
     }
 }

@@ -30,21 +30,20 @@ using Rebus.Handlers;
 using ServiceBackendConfigurationPlugin.Handlers;
 using ServiceBackendConfigurationPlugin.Messages;
 
-namespace ServiceBackendConfigurationPlugin.Installers
+namespace ServiceBackendConfigurationPlugin.Installers;
+
+public sealed class RebusHandlerInstaller : IWindsorInstaller
 {
-    public sealed class RebusHandlerInstaller : IWindsorInstaller
+    public void Install(IWindsorContainer container, IConfigurationStore store)
     {
-        public void Install(IWindsorContainer container, IConfigurationStore store)
-        {
-            container.Register(Component.For<IHandleMessages<eFormCompleted>>().ImplementedBy<EFormCompletedHandler>().LifestyleTransient());
-            container.Register(Component.For<IHandleMessages<EformParsedByServer>>().ImplementedBy<EformParsedByServerHandler>().LifestyleTransient());
-            container.Register(Component.For<IHandleMessages<eFormRetrieved>>().ImplementedBy<EformRetrievedHandler>().LifestyleTransient());
-            container.Register(Component.For<IHandleMessages<WorkOrderCaseCompleted>>().ImplementedBy<WorkOrderCaseCompletedHandler>().LifestyleTransient());
-            container.Register(Component.For<IHandleMessages<OldWorkOrderCaseCompleted>>().ImplementedBy<OldWorkOrderCaseCompletedHandler>().LifestyleTransient());
-            container.Register(Component.For<IHandleMessages<ChemicalCaseCompleted>>().ImplementedBy<ChemicalCaseCompletedHandler>().LifestyleTransient());
-            container.Register(Component.For<IHandleMessages<MorningTourCaseCompleted>>().ImplementedBy<MorningTourCaseCompletedHandler>().LifestyleTransient());
-            container.Register(Component.For<IHandleMessages<PoolHourCaseCompleted>>().ImplementedBy<PoolHourCaseCompletedHandler>().LifestyleTransient());
-            container.Register(Component.For<IHandleMessages<FloatingLayerCaseCompleted>>().ImplementedBy<FloatingLayerCaseCompletedHandler>().LifestyleTransient());
-        }
+        container.Register(Component.For<IHandleMessages<eFormCompleted>>().ImplementedBy<EFormCompletedHandler>().LifestyleTransient());
+        container.Register(Component.For<IHandleMessages<EformParsedByServer>>().ImplementedBy<EformParsedByServerHandler>().LifestyleTransient());
+        container.Register(Component.For<IHandleMessages<eFormRetrieved>>().ImplementedBy<EformRetrievedHandler>().LifestyleTransient());
+        container.Register(Component.For<IHandleMessages<WorkOrderCaseCompleted>>().ImplementedBy<WorkOrderCaseCompletedHandler>().LifestyleTransient());
+        container.Register(Component.For<IHandleMessages<OldWorkOrderCaseCompleted>>().ImplementedBy<OldWorkOrderCaseCompletedHandler>().LifestyleTransient());
+        container.Register(Component.For<IHandleMessages<ChemicalCaseCompleted>>().ImplementedBy<ChemicalCaseCompletedHandler>().LifestyleTransient());
+        container.Register(Component.For<IHandleMessages<MorningTourCaseCompleted>>().ImplementedBy<MorningTourCaseCompletedHandler>().LifestyleTransient());
+        container.Register(Component.For<IHandleMessages<PoolHourCaseCompleted>>().ImplementedBy<PoolHourCaseCompletedHandler>().LifestyleTransient());
+        container.Register(Component.For<IHandleMessages<FloatingLayerCaseCompleted>>().ImplementedBy<FloatingLayerCaseCompletedHandler>().LifestyleTransient());
     }
 }

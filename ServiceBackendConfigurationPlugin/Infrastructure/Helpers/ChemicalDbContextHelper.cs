@@ -25,22 +25,21 @@ SOFTWARE.
 using ChemicalsBase.Infrastructure;
 using ChemicalsBase.Infrastructure.Data.Factories;
 
-namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers
+namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
+
+public sealed class ChemicalDbContextHelper
 {
-    public sealed class ChemicalDbContextHelper
+    private string ConnectionString { get;}
+
+    public ChemicalDbContextHelper(string connectionString)
     {
-        private string ConnectionString { get;}
+        ConnectionString = connectionString;
+    }
 
-        public ChemicalDbContextHelper(string connectionString)
-        {
-            ConnectionString = connectionString;
-        }
+    public ChemicalsDbContext GetDbContext()
+    {
+        ChemicalsContextFactory contextFactory = new ChemicalsContextFactory();
 
-        public ChemicalsDbContext GetDbContext()
-        {
-            ChemicalsContextFactory contextFactory = new ChemicalsContextFactory();
-
-            return contextFactory.CreateDbContext(new[] { ConnectionString });
-        }
+        return contextFactory.CreateDbContext(new[] { ConnectionString });
     }
 }

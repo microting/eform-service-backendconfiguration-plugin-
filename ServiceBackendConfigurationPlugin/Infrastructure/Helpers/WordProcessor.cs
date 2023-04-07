@@ -28,46 +28,45 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using HtmlToOpenXml;
 
-namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers
+namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
+
+public sealed class WordProcessor : IDisposable
 {
-    public sealed class WordProcessor : IDisposable
+    // Document
+    private readonly WordprocessingDocument _wordProcessingDocument;
+
+    public WordProcessor(string filepath)
     {
-        // Document
-        private readonly WordprocessingDocument _wordProcessingDocument;
+        _wordProcessingDocument = WordprocessingDocument.Open(filepath, true);
+    }
 
-        public WordProcessor(string filepath)
+    public WordProcessor(Stream stream)
+    {
+        _wordProcessingDocument = WordprocessingDocument.Open(stream, true);
+    }
+
+    /// <summary>
+    /// Adds the HTML.
+    /// </summary>
+    /// <param name="html">The HTML.</param>
+    public void AddHtml(string html)
+    {
+        var mainPart = _wordProcessingDocument.MainDocumentPart;
+        if (mainPart == null)
         {
-            _wordProcessingDocument = WordprocessingDocument.Open(filepath, true);
+            mainPart = _wordProcessingDocument.AddMainDocumentPart();
+            new Document(new Body()).Save(mainPart);
         }
 
-        public WordProcessor(Stream stream)
-        {
-            _wordProcessingDocument = WordprocessingDocument.Open(stream, true);
-        }
+        var converter = new HtmlConverter(mainPart);
+        converter.ParseHtml(html);
+        mainPart.Document.Save();
+    }
 
-        /// <summary>
-        /// Adds the HTML.
-        /// </summary>
-        /// <param name="html">The HTML.</param>
-        public void AddHtml(string html)
-        {
-            var mainPart = _wordProcessingDocument.MainDocumentPart;
-            if (mainPart == null)
-            {
-                mainPart = _wordProcessingDocument.AddMainDocumentPart();
-                new Document(new Body()).Save(mainPart);
-            }
-
-            var converter = new HtmlConverter(mainPart);
-            converter.ParseHtml(html);
-            mainPart.Document.Save();
-        }
-
-        public void Dispose()
-        {
-            _wordProcessingDocument.Save();
-            _wordProcessingDocument.Close();
-            _wordProcessingDocument.Dispose();
-        }
+    public void Dispose()
+    {
+        _wordProcessingDocument.Save();
+        _wordProcessingDocument.Close();
+        _wordProcessingDocument.Dispose();
     }
 }
