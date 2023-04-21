@@ -151,8 +151,9 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             var deviceUsersGroup = await sdkDbContext.EntityGroups
                 .FirstAsync(x => x.Id == property.EntitySelectListDeviceUsers);
 
-            var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x =>
+            var assignedToEntityItem = await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
                 x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
+            var assignedToName = assignedToEntityItem?.Name ?? "";
             var areaName = "";
             if (areaFieldValue != null)
             {
@@ -230,7 +231,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                     break;
             }
 
-            var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>" +
+            var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedToName}<br>" +
                         $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
                         (!string.IsNullOrEmpty(areaName)
                             ? $"<strong>{Translations.Area}:</strong> {areaName}<br>"
@@ -254,7 +255,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks,
                 property, label, CaseStatusesEnum.Ongoing, newWorkOrderCase,
                 commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
-                assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
+                assignedToName, pushMessageBody, pushMessageTitle, updatedByName);
         }
         else if (eformIdForOngoingTasks == dbCase.CheckListId && workOrderCase != null)
         {
