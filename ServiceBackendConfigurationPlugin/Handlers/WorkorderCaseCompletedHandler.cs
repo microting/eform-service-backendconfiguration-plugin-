@@ -151,6 +151,11 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             var deviceUsersGroup = await sdkDbContext.EntityGroups
                 .FirstAsync(x => x.Id == property.EntitySelectListDeviceUsers);
 
+            if (assignedToSelectFieldValue.Value == "null" || assignedToSelectFieldValue.Value == null)
+            {
+                assignedToSelectFieldValue.Value = "0";
+            }
+
             var assignedToEntityItem = await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
                 x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
             var assignedToName = assignedToEntityItem?.Name ?? "";
