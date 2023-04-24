@@ -206,6 +206,10 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
                 var areaRulePlanning = await
                     backendConfigurationPnDbContext.AreaRulePlannings.FirstOrDefaultAsync(x =>
                         x.ItemPlanningId == planning.Id);
+                if (areaRulePlanning == null)
+                {
+                    return;
+                }
                 var checkListTranslation = await sdkDbContext.CheckListTranslations.AsNoTracking().FirstAsync(x =>
                     x.Text == "25.01 Registrer produkter" && x.WorkflowState != Constants.WorkflowStates.Removed);
                 var areaRule =
