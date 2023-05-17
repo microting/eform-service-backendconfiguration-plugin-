@@ -89,6 +89,7 @@ public class EformParsedByServerHandler : IHandleMessages<EformParsedByServer>
 
         if (planningCaseSite == null)
         {
+            Console.WriteLine($"No planningCaseSite found for caseId : {message.CaseId}");
             return;
         }
 
@@ -112,12 +113,14 @@ public class EformParsedByServerHandler : IHandleMessages<EformParsedByServer>
 
             if (!areaRulePlanning.ComplianceEnabled)
             {
+                Console.WriteLine($"Compliance not enabled for areaRulePlanning.Id : {areaRulePlanning.Id}");
                 return;
             }
 
             if (planning.RepeatEvery == 0 && planning.RepeatType == RepeatType.Day) { }
             else
             {
+                Console.WriteLine($"Compliance is enabled for areaRulePlanning.Id : {areaRulePlanning.Id}");
                 if (planning.NextExecutionTime == null)
                 {
                     var now = DateTime.UtcNow;
@@ -165,6 +168,8 @@ public class EformParsedByServerHandler : IHandleMessages<EformParsedByServer>
                         // x.PlanningCaseSiteId == planningCaseSite.Id &&
                         x.WorkflowState != Constants.WorkflowStates.Removed))
                 {
+
+                    Console.WriteLine($"We did not find a compliance for {planningCaseSite.PlanningId}, so we create one");
                     var deadLine = (DateTime)planning.NextExecutionTime!;
                     Compliance compliance = new Compliance
                     {
@@ -179,6 +184,7 @@ public class EformParsedByServerHandler : IHandleMessages<EformParsedByServer>
                     };
 
                     await compliance.Create(backendConfigurationPnDbContext);
+                    Console.WriteLine("We created a compliance");
                 }
 
                 // if (property is {ComplianceStatus: 0})
