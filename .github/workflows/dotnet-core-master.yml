@@ -24,7 +24,7 @@ jobs:
     - name: Start rabbitmq
       run: |
         docker pull rabbitmq:latest
-        docker run -d --hostname my-rabbit --name some-rabbit --network data -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=password rabbitmq:latest
+        docker run -d --hostname my-rabbit --name some-rabbit --network data -p 5672:5672 -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=password rabbitmq:latest
     - name: 'Preparing Debian Service checkout'
       uses: actions/checkout@v3
       with:
@@ -94,26 +94,23 @@ jobs:
     - name: Sleep 75 seconds for letting the container start and generate some output we can
       run: sleep 75
     - name: Get standard output
-      run: echo main/docker_run_log
-    - name: Stop the newly build Docker container
-      run: docker stop my-container
-    - name: Get standard output
+      run: cat docker_run_log
+    - name: Check for correct startup of service
       run: |
         cat docker_run_log
         result=`cat docker_run_log | grep "No messages for us right now!" -m 1 | wc -l`
-        if [ $result -ne 1 ];then exit 1; fi      
+        if [ $result -ne 1 ];then exit 1; fi
+    - name: Compile eformparsed test program
+      run: |
+        dotnet build --configuration Release eform-service-backendconfiguration-plugin/ci/eformparsed/
+    - name: run eformparsed test program
+      run: |
+        dotnet eform-service-backendconfiguration-plugin/ci/eformparsed/bin/Release/net7.0/eformparsed.dll
+    - name: Stop the newly build Docker container
+      run: docker stop my-container
+    - name: Get standard output
+      run: cat docker_run_log
     - name: The job has failed
       if: ${{ failure() }}
       run: |
-        cat dotnet_log
-        cat eform-angular-frontend/eform-client/npm_log
-    - name: Notify slack fail
-      if: ${{ failure() }}
-      env:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-      uses: voxmedia/github-action-slack-notify-build@v1
-      with:
-        message_id: ${{ steps.slack.outputs.message_id }}
-        channel_id: C02EQEMCB08
-        status: FAILED
-        color: danger
+        cat docker_run_log
