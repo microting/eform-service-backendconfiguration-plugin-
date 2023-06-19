@@ -243,9 +243,10 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
                     {
                         if (areaRule.SecondaryeFormId != 0 && (areaRule.SecondaryeFormName == "Morgenrundtur" || areaRule.SecondaryeFormName == "Morning tour"))
                         {
+                            // Disabling this for now, as it is not used
                             // MorningTourCaseCompletedHandler will handle this case
-                            await _bus.SendLocal(new MorningTourCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
-                                message.SiteUId));
+                            //await _bus.SendLocal(new MorningTourCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
+                            //    message.SiteUId));
                         }
                     }
                 }
