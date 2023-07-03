@@ -247,7 +247,7 @@ public class Core : ISdkEventHandler
                 _bus = _container.Resolve<IBus>();
 
                 ConfigureScheduler();
-                ReplaceCreateTask(connectionString, sdkConnectionString).GetAwaiter().GetResult();
+                //ReplaceCreateTask(connectionString, sdkConnectionString).GetAwaiter().GetResult();
             }
 
             Console.WriteLine("ServiceBackendConfigurationPlugin started");
