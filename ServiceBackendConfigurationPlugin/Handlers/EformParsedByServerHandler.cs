@@ -171,36 +171,38 @@ public class EformParsedByServerHandler : IHandleMessages<EformParsedByServer>
 
                     Console.WriteLine($"We did not find a compliance for {planningCaseSite.PlanningId}, so we create one");
                     var deadLine = (DateTime)planning.NextExecutionTime!;
-                    Compliance compliance = new Compliance
+                    try
                     {
-                        PropertyId = property.Id,
-                        PlanningId = planningCaseSite.PlanningId,
-                        AreaId = areaRulePlanning.AreaId,
-                        Deadline = new DateTime(deadLine.Year, deadLine.Month, deadLine.Day, 0, 0, 0),
-                        StartDate = (DateTime)planning.LastExecutedTime!,
-                        MicrotingSdkeFormId = planning.RelatedEFormId,
-                        // PlanningCaseSiteId = planningCaseSite.Id,
-                        MicrotingSdkCaseId = (int) message.CaseId!
-                    };
+                        var compliance = new Compliance
+                        {
+                            PropertyId = property.Id,
+                            PlanningId = planningCaseSite.PlanningId,
+                            AreaId = areaRulePlanning.AreaId,
+                            Deadline = new DateTime(deadLine.Year, deadLine.Month, deadLine.Day, 0, 0, 0),
+                            StartDate = (DateTime)planning.LastExecutedTime!,
+                            MicrotingSdkeFormId = planning.RelatedEFormId,
+                            // PlanningCaseSiteId = planningCaseSite.Id,
+                            MicrotingSdkCaseId = (int) message.CaseId!
+                        };
 
-                    await compliance.Create(backendConfigurationPnDbContext);
-                    Console.WriteLine("We created a compliance");
+                        await compliance.Create(backendConfigurationPnDbContext);
+                        Console.WriteLine("We created a compliance");
+
+                    } catch (Exception ex)
+                    {
+                        // Code that will handle the situation where a compliance entry has already been created for a planning and deadline and db throws and duplicated key exception.
+                        // That is completely fine and we just skip it, otherwise we throw the exception.
+                        if (ex.InnerException is {HResult: -2147467259})
+                        {
+                            Console.WriteLine("We did not create a compliance, since it already exists");
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
                 }
 
-                // if (property is {ComplianceStatus: 0})
-                // {
-                //     property.ComplianceStatus = 1;
-                //     await property.Update(backendConfigurationPnDbContext);
-                // }
-                //
-                // if (property is {ComplianceStatusThirty: 0})
-                // {
-                //     if (backendConfigurationPnDbContext.Compliances.Any(x => x.Deadline < DateTime.UtcNow.AddDays(30) && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
-                //     {
-                //         property.ComplianceStatusThirty = 1;
-                //         await property.Update(backendConfigurationPnDbContext);
-                //     }
-                // }
                 var today = new DateTime(DateTime.Now.AddDays(1).Year, DateTime.Now.AddDays(1).Month, DateTime.Now.AddDays(1).Day, 0, 0, 0);
 
                 if (backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x => x.Deadline < today && x.PropertyId == property.Id && x.WorkflowState != Constants.WorkflowStates.Removed))
