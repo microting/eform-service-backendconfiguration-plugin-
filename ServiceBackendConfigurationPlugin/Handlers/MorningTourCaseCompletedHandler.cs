@@ -27,6 +27,8 @@ public class MorningTourCaseCompletedHandler : IHandleMessages<MorningTourCaseCo
 
     public async Task Handle(MorningTourCaseCompleted message)
     {
+        return;
+
         await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
         await using var
             itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
