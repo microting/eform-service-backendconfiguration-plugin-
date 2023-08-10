@@ -8,9 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microting.eForm" Version="7.0.59" />
-    <PackageReference Include="Microting.EformBackendConfigurationBase" Version="7.0.55" />
-    <PackageReference Include="Microting.ItemsPlanningBase" Version="7.0.50" />
+    <PackageReference Include="Microting.eForm" Version="7.0.61" />
+    <PackageReference Include="Microting.EformBackendConfigurationBase" Version="7.0.57" />
+    <PackageReference Include="Microting.ItemsPlanningBase" Version="7.0.51" />
     <PackageReference Include="Microting.Rebus" Version="8.0.0" />
     <PackageReference Include="Microting.Rebus.Castle.Windsor" Version="8.0.1" />
     <PackageReference Include="Microting.Rebus.RabbitMq" Version="8.5.0" />
