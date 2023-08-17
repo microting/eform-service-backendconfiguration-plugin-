@@ -1013,7 +1013,7 @@ public class SearchListJob : IJob
 
                         foreach (var compliance in complianceList)
                         {
-                            var language = await _sdkDbContext.Languages.FirstAsync(x => x.Name == "Danish")
+                            var language = await _sdkDbContext.Languages.FirstAsync(x => x.LanguageCode == "da")
                                 .ConfigureAwait(false);
                             var planningNameTranslation = await _itemsPlanningPnDbContext.PlanningNameTranslation
                                 .SingleOrDefaultAsync(x =>
