@@ -164,9 +164,12 @@ public class EformParsedByServerHandler : IHandleMessages<EformParsedByServer>
 
                 if (!backendConfigurationPnDbContext.Compliances.AsNoTracking().Any(x =>
                         x.Deadline == (DateTime)planning.NextExecutionTime &&
-                        x.PlanningId == planningCaseSite.PlanningId &&
+                        x.PlanningId == planningCaseSite.PlanningId
+                        // &&
                         // x.PlanningCaseSiteId == planningCaseSite.Id &&
-                        x.WorkflowState != Constants.WorkflowStates.Removed))
+                        // x.WorkflowState != Constants.WorkflowStates.Removed
+                        )
+                    )
                 {
 
                     Console.WriteLine($"We did not find a compliance for {planningCaseSite.PlanningId}, so we create one");
@@ -201,6 +204,21 @@ public class EformParsedByServerHandler : IHandleMessages<EformParsedByServer>
                             throw;
                         }
                     }
+                }
+                else
+                {
+                    var complianceEntry = await backendConfigurationPnDbContext.Compliances.FirstAsync(
+                        x =>
+                            x.Deadline == (DateTime) planning.NextExecutionTime &&
+                            x.PlanningId == planningCaseSite.PlanningId
+                        // &&
+                        // x.PlanningCaseSiteId == planningCaseSite.Id &&
+                        // x.WorkflowState != Constants.WorkflowStates.Removed
+                    );
+                    complianceEntry.StartDate = (DateTime)planning.LastExecutedTime!;
+                    complianceEntry.MicrotingSdkCaseId = (int)message.CaseId!;
+                    complianceEntry.WorkflowState = Constants.WorkflowStates.Created;
+                    await complianceEntry.Update(backendConfigurationPnDbContext);
                 }
 
                 var today = new DateTime(DateTime.Now.AddDays(1).Year, DateTime.Now.AddDays(1).Month, DateTime.Now.AddDays(1).Day, 0, 0, 0);
