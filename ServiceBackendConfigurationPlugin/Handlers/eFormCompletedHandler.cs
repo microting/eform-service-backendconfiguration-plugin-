@@ -68,27 +68,29 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
         await using var backendConfigurationPnDbContext =
             _backendConfigurationDbContextHelper.GetDbContext();
 
-        var eformQuery = sdkDbContext.CheckListTranslations
-            .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
-            .AsQueryable();
+        // var eformQuery = sdkDbContext.CheckListTranslations
+        //     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
+        //     .AsQueryable();
 
         var eformIdForNewTasks = await sdkDbContext.CheckLists
             .Where(x => x.OriginalId == "142663new2")
+            .Where(x => x.ParentId == null)
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
 
-        var eformIdForNewTasksOld = await eformQuery
-            .Where(x => x.Text == "01. New task")
-            .Select(x => x.CheckListId)
-            .FirstOrDefaultAsync();
-
-        var eformIdForOngoingTasksOld = await eformQuery
-            .Where(x => x.Text == "02. Ongoing task")
-            .Select(x => x.CheckListId)
-            .FirstOrDefaultAsync();
+        // var eformIdForNewTasksOld = await eformQuery
+        //     .Where(x => x.Text == "01. New task")
+        //     .Select(x => x.CheckListId)
+        //     .FirstOrDefaultAsync();
+        //
+        // var eformIdForOngoingTasksOld = await eformQuery
+        //     .Where(x => x.Text == "02. Ongoing task")
+        //     .Select(x => x.CheckListId)
+        //     .FirstOrDefaultAsync();
 
         var eformIdForOngoingTasks = await sdkDbContext.CheckLists
             .Where(x => x.OriginalId == "142664new2")
+            .Where(x => x.ParentId == null)
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
 
@@ -104,27 +106,27 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
             return;
         }
 
-        var eformIdForCompletedTasks = await eformQuery
-            .Where(x => x.Text == "03. Completed task")
-            .Select(x => x.CheckListId)
-            .FirstOrDefaultAsync();
+        // var eformIdForCompletedTasks = await eformQuery
+        //     .Where(x => x.Text == "03. Completed task")
+        //     .Select(x => x.CheckListId)
+        //     .FirstOrDefaultAsync();
+        //
+        // if (eformIdForCompletedTasks == 0)
+        // {
+        //     Console.WriteLine("eformIdForCompletedTasks is 0");
+        //     return;
+        // }
 
-        if (eformIdForCompletedTasks == 0)
-        {
-            Console.WriteLine("eformIdForCompletedTasks is 0");
-            return;
-        }
-
-        var eformIdForControlFloatingLayer = await eformQuery
-            .Where(x => x.Text == "03. Control floating layer")
-            .Select(x => x.CheckListId)
-            .FirstOrDefaultAsync();
-
-        if (eformIdForControlFloatingLayer == 0)
-        {
-            Console.WriteLine("eformIdForControlFloatingLayer is 0");
-            return;
-        }
+        // var eformIdForControlFloatingLayer = await eformQuery
+        //     .Where(x => x.Text == "03. Control floating layer")
+        //     .Select(x => x.CheckListId)
+        //     .FirstOrDefaultAsync();
+        //
+        // if (eformIdForControlFloatingLayer == 0)
+        // {
+        //     Console.WriteLine("eformIdForControlFloatingLayer is 0");
+        //     return;
+        // }
 
         var dbCase = await sdkDbContext.Cases
                          .AsNoTracking()
@@ -146,7 +148,10 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
             .ThenInclude(x => x.PropertyWorkers)
             .ThenInclude(x => x.WorkorderCases)
             .FirstOrDefaultAsync();
-
+        if (workorderCase != null)
+        {
+            Console.WriteLine($"found workorderCase: {workorderCase.Id}");
+        }
 
         if (eformIdForNewTasks == dbCase.CheckListId && workorderCase != null)
         {
@@ -160,18 +165,18 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
                 message.SiteUId));
             // WorkorderCaseCompletedHandler will handle this case
         }
-        else if (eformIdForNewTasksOld == dbCase.CheckListId && workorderCase != null)
-        {
-            await _bus.SendLocal(new OldWorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
-                message.SiteUId));
-            // WorkorderCaseCompletedHandler will handle this case
-        }
-        else if (eformIdForOngoingTasksOld == dbCase.CheckListId && workorderCase != null)
-        {
-            await _bus.SendLocal(new OldWorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
-                message.SiteUId));
-            // WorkorderCaseCompletedHandler will handle this case
-        }
+        // else if (eformIdForNewTasksOld == dbCase.CheckListId && workorderCase != null)
+        // {
+        //     await _bus.SendLocal(new OldWorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
+        //         message.SiteUId));
+        //     // WorkorderCaseCompletedHandler will handle this case
+        // }
+        // else if (eformIdForOngoingTasksOld == dbCase.CheckListId && workorderCase != null)
+        // {
+        //     await _bus.SendLocal(new OldWorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
+        //         message.SiteUId));
+        //     // WorkorderCaseCompletedHandler will handle this case
+        // }
         else
         {
             var planningCaseSite =
@@ -358,12 +363,12 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
                     }
                 }
 
-                if (eformIdForControlFloatingLayer == dbCase.CheckListId)
-                {
-                    // FloatingLayerCaseCompletedHandler will handle this case
-                    await _bus.SendLocal(new FloatingLayerCaseCompleted(message.CaseId, message.MicrotingUId,
-                        message.CheckId, message.SiteUId));
-                }
+                // if (eformIdForControlFloatingLayer == dbCase.CheckListId)
+                // {
+                //     // FloatingLayerCaseCompletedHandler will handle this case
+                //     await _bus.SendLocal(new FloatingLayerCaseCompleted(message.CaseId, message.MicrotingUId,
+                //         message.CheckId, message.SiteUId));
+                // }
 
 
                 // }
