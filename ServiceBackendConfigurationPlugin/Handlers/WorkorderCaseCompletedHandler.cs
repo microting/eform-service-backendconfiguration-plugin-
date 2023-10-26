@@ -38,7 +38,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
     public async Task Handle(WorkOrderCaseCompleted message)
     {
-        Console.WriteLine("EFormCompletedHandler .Handle called");
+        Console.WriteLine("WorkOrderCaseCompletedHandler .Handle called");
         Console.WriteLine($"message.CaseId: {message.CaseId}");
         Console.WriteLine($"message.MicrotingUId: {message.MicrotingUId}");
         Console.WriteLine($"message.CheckId: {message.CheckId}");
@@ -55,6 +55,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
         var eformIdForNewTasks = await sdkDbContext.CheckLists
             .Where(x => x.OriginalId == "142663new2")
+            .Where(x => x.ParentId == null)
             .Select(x => x.Id)
             .FirstAsync();
 
@@ -64,6 +65,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
         var eformIdForOngoingTasks = await sdkDbContext.CheckLists
             .Where(x => x.OriginalId == "142664new2")
+            .Where(x => x.ParentId == null)
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
 
@@ -89,6 +91,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
         if (eformIdForNewTasks == dbCase.CheckListId && workOrderCase != null)
         {
+            Console.WriteLine($"It's a new task");
             var property = workOrderCase.PropertyWorker.Property;
 
             var propertyWorkers = property.PropertyWorkers
@@ -105,41 +108,41 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
             var priorityFiled =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckListNewTask.Id && x.DisplayIndex == 1);
+                    x.CheckListId == subCheckListNewTask.Id && x.OriginalId == "376935");
             var priorityFieldValue =
                 await sdkDbContext.FieldValues.FirstOrDefaultAsync(x =>
                     x.FieldId == priorityFiled.Id && x.CaseId == dbCase.Id);
 
             var areaField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckListNewTask.Id && x.DisplayIndex == 2);
+                    x.CheckListId == subCheckListNewTask.Id && x.OriginalId == "375723");
             var areaFieldValue =
                 await sdkDbContext.FieldValues.FirstOrDefaultAsync(x =>
                     x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
 
             var pictureField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckListNewTask.Id && x.DisplayIndex == 3);
+                    x.CheckListId == subCheckListNewTask.Id && x.OriginalId == "375724");
             var pictureFieldValues = await sdkDbContext.FieldValues
                 .Where(x => x.FieldId == pictureField.Id && x.CaseId == dbCase.Id).ToListAsync();
 
             var commentField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckListNewTask.Id && x.DisplayIndex == 4);
+                    x.CheckListId == subCheckListNewTask.Id && x.OriginalId == "375725");
             var commentFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(
                     x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
 
             var assignToTexField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckListNewTask.Id && x.DisplayIndex == 5);
+                    x.CheckListId == subCheckListNewTask.Id && x.OriginalId == "375726");
             var assignedToFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x =>
                     x.FieldId == assignToTexField.Id && x.CaseId == dbCase.Id);
 
             var assignToSelectField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckListNewTask.Id && x.DisplayIndex == 6);
+                    x.CheckListId == subCheckListNewTask.Id && x.OriginalId == "375727");
             var assignedToSelectFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x =>
                     x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
@@ -264,6 +267,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
         }
         else if (eformIdForOngoingTasks == dbCase.CheckListId && workOrderCase != null)
         {
+            Console.WriteLine($"It's an ongoing task");
             var property = workOrderCase.PropertyWorker.Property;
 
             var propertyWorkers = property.PropertyWorkers
@@ -282,33 +286,33 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
             var pictureField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckList.Id && x.DisplayIndex == 2);
+                    x.CheckListId == subCheckList.Id && x.OriginalId == "375731");
             var pictureFieldValues = await sdkDbContext.FieldValues
                 .Where(x => x.FieldId == pictureField.Id && x.CaseId == dbCase.Id).ToListAsync();
 
             var commentField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckList.Id && x.DisplayIndex == 3);
+                    x.CheckListId == subCheckList.Id && x.OriginalId == "375732");
             var commentFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
 
             var priorityFiled =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckList.Id && x.DisplayIndex == 4);
+                    x.CheckListId == subCheckList.Id && x.OriginalId == "376935");
             var priorityFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x =>
                     x.FieldId == priorityFiled.Id && x.CaseId == dbCase.Id);
 
             var assignToSelectField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckList.Id && x.DisplayIndex == 5);
+                    x.CheckListId == subCheckList.Id && x.OriginalId == "375733");
             var assignedToSelectFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x =>
                     x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
 
             var statusField =
                 await sdkDbContext.Fields.FirstAsync(x =>
-                    x.CheckListId == subCheckList.Id && x.DisplayIndex == 6);
+                    x.CheckListId == subCheckList.Id && x.OriginalId == "375734");
             var statusFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
 
@@ -443,6 +447,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
         string pushMessageTitle,
         string updatedByName)
     {
+        Console.WriteLine($"Deploying eform to {propertyWorkers.Count} workers");
         int? folderId = null;
         await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
@@ -452,6 +457,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
         var displayOrder = (int)(DateTime.UtcNow - startDate).TotalSeconds;
         foreach (var propertyWorker in propertyWorkers)
         {
+            Console.WriteLine($"Deploying to worker {propertyWorker.WorkerId}");
             var priorityText = "";
 
             var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == propertyWorker.WorkerId);
