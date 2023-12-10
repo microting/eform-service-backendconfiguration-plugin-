@@ -31,6 +31,7 @@ using Microting.EformAngularFrontendBase.Infrastructure.Data;
 using Microting.EformAngularFrontendBase.Infrastructure.Data.Factories;
 using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
 using Microting.eFormCaseTemplateBase.Infrastructure.Data.Factories;
+using QuestPDF.Infrastructure;
 using ServiceBackendConfigurationPlugin.Resources;
 using ServiceBackendConfigurationPlugin.Scheduler.Jobs;
 
@@ -138,6 +139,8 @@ public class Core : ISdkEventHandler
 
     public bool Start(string sdkConnectionString, string serviceLocation)
     {
+        QuestPDF.Settings.License = LicenseType.Community;
+
         Console.WriteLine("ServiceBackendConfigurationPlugin start called");
         try
         {

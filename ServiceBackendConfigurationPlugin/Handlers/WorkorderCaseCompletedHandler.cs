@@ -14,6 +14,8 @@ using Microting.eForm.Infrastructure.Models;
 using Microting.eFormApi.BasePn.Infrastructure.Consts;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
 using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
+using QuestPDF.Fluent;
+using QuestPDF.Infrastructure;
 using Rebus.Handlers;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 using ServiceBackendConfigurationPlugin.Messages;
@@ -641,59 +643,36 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
     private async Task<string> GeneratePdf(List<string> picturesOfTasks, int sitId)
     {
-        var resourceString = "ServiceBackendConfigurationPlugin.Resources.Templates.page.html";
-        var assembly = Assembly.GetExecutingAssembly();
-        string html;
-        await using (var resourceStream = assembly.GetManifestResourceStream(resourceString))
-        {
-            using var reader = new StreamReader(resourceStream ?? throw new InvalidOperationException($"{nameof(resourceStream)} is null"));
-            html = await reader.ReadToEndAsync();
-        }
-
-        // Read docx stream
-        resourceString = "ServiceBackendConfigurationPlugin.Resources.Templates.file.docx";
-        var docxFileResourceStream = assembly.GetManifestResourceStream(resourceString);
-        if (docxFileResourceStream == null)
-        {
-            throw new InvalidOperationException($"{nameof(docxFileResourceStream)} is null");
-        }
-
-        var docxFileStream = new MemoryStream();
-        await docxFileResourceStream.CopyToAsync(docxFileStream);
-        await docxFileResourceStream.DisposeAsync();
-        string basePicturePath = Path.Combine(Path.GetTempPath(), "pictures", "workorders");
-        Directory.CreateDirectory(basePicturePath);
-        var word = new WordProcessor(docxFileStream);
-        string imagesHtml = "";
         picturesOfTasks.Reverse();
-
-        foreach (var imagesName in picturesOfTasks)
-        {
-            Console.WriteLine($"Trying to insert image into document : {imagesName}");
-            imagesHtml = await InsertImageToPdf(imagesName, imagesHtml, 700, 650, basePicturePath);
-        }
-
-        html = html.Replace("{%Content%}", imagesHtml);
-
-        word.AddHtml(html);
-        word.Dispose();
-        docxFileStream.Position = 0;
-
-        // Build docx
         string downloadPath = Path.Combine(Path.GetTempPath(), "reports", "results");
         Directory.CreateDirectory(downloadPath);
         string timeStamp = DateTime.UtcNow.ToString("yyyyMMdd") + "_" + DateTime.UtcNow.ToString("hhmmss");
-        string docxFileName = $"{timeStamp}{sitId}_temp.docx";
         string tempPDFFileName = $"{timeStamp}{sitId}_temp.pdf";
         string tempPDFFilePath = Path.Combine(downloadPath, tempPDFFileName);
-        await using (var docxFile = new FileStream(Path.Combine(Path.GetTempPath(), "reports", "results", docxFileName), FileMode.Create, FileAccess.Write))
+        var document = Document.Create(container =>
         {
-            docxFileStream.WriteTo(docxFile);
-        }
+            container.Page(page =>
+            {
+                page.Content()
+                    .Padding(2, Unit.Centimetre)
+                    .Column(x =>
+                    {
+                        x.Spacing(20);
+                        // loop over all images and add them to the document
+                        foreach (var imageName in picturesOfTasks)
+                        {
+                            var storageResult = _sdkCore.GetFileFromS3Storage(imageName).GetAwaiter().GetResult();
+                            x.Item().Image(storageResult.ResponseStream)
+                                .FitWidth();
+                        }
+                    });
+            });
+        }).GeneratePdf();
 
-        // Convert to PDF
-        ReportHelper.ConvertToPdf(Path.Combine(Path.GetTempPath(), "reports", "results", docxFileName), downloadPath);
-        File.Delete(docxFileName);
+        await using var fileStream = new FileStream(tempPDFFilePath, FileMode.Create, FileAccess.Write);
+        // save the byte[] to a file.
+        await fileStream.WriteAsync(document, 0, document.Length);
+        await fileStream.FlushAsync();
 
         // Upload PDF
         // string pdfFileName = null;
@@ -706,72 +685,11 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             fileInfo.Delete();
             await _sdkCore.PutFileToStorageSystem(Path.Combine(downloadPath, $"{hash}.pdf"), $"{hash}.pdf");
 
+            // delete local file
+            File.Delete(downloadPath + "/" + hash + ".pdf");
             // TODO Remove from file storage?
-
-
         }
 
         return hash;
-    }
-
-    private async Task<string> InsertImageToPdf(string imageName, string itemsHtml, int imageSize, int imageWidth, string basePicturePath)
-    {
-        if (imageName.Contains("GH"))
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            var resourceString = $"ServiceBackendConfigurationPlugin.Resources.GHSHazardPictogram.{imageName}.jpg";
-            // using var FileStream FileStream = new FileStream()
-            await using var resourceStream = assembly.GetManifestResourceStream(resourceString);
-            // using var reader = new StreamReader(resourceStream ?? throw new InvalidOperationException($"{nameof(resourceStream)} is null"));
-            // html = await reader.ReadToEndAsync();
-            // MemoryStream memoryStream = new MemoryStream();
-            // await resourceStream.CopyToAsync(memoryStream);
-            using var image = new MagickImage(resourceStream);
-            var profile = image.GetExifProfile();
-            // Write all values to the console
-            try
-            {
-                foreach (var value in profile.Values)
-                {
-                    Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
-                }
-            } catch (Exception)
-            {
-                // Console.WriteLine(e);
-            }
-            // image.Rotate(90);
-            var base64String = image.ToBase64();
-            itemsHtml +=
-                $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
-
-            // await stream.DisposeAsync();
-        }
-        else
-        {
-            var storageResult = await _sdkCore.GetFileFromS3Storage(imageName);
-            var stream = storageResult.ResponseStream;
-
-            using var image = new MagickImage(stream);
-            var profile = image.GetExifProfile();
-            // Write all values to the console
-            try
-            {
-                foreach (var value in profile.Values)
-                {
-                    Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
-                }
-            } catch (Exception)
-            {
-                // Console.WriteLine(e);
-            }
-            //image.Rotate(90);
-            var base64String = image.ToBase64();
-            itemsHtml +=
-                $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
-
-            await stream.DisposeAsync();
-        }
-
-        return itemsHtml;
     }
 }
