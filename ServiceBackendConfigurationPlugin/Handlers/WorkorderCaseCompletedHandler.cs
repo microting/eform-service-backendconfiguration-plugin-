@@ -665,6 +665,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
         Directory.CreateDirectory(basePicturePath);
         var word = new WordProcessor(docxFileStream);
         string imagesHtml = "";
+        picturesOfTasks.Reverse();
 
         foreach (var imagesName in picturesOfTasks)
         {
@@ -763,7 +764,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             {
                 // Console.WriteLine(e);
             }
-            image.Rotate(90);
+            //image.Rotate(90);
             var base64String = image.ToBase64();
             itemsHtml +=
                 $@"<p><img src=""data:image/png;base64,{base64String}"" width=""{imageWidth}px"" alt="""" /></p>";
