@@ -7,21 +7,23 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using ImageMagick;
+using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using Microting.eForm.Helpers;
 using Microting.eForm.Infrastructure.Constants;
+using Microting.eForm.Infrastructure.Data.Entities;
 using Microting.eForm.Infrastructure.Models;
 using Microting.eFormApi.BasePn.Infrastructure.Consts;
 using Microting.EformBackendConfigurationBase.Infrastructure.Data.Entities;
 using Microting.EformBackendConfigurationBase.Infrastructure.Enum;
 using QuestPDF.Fluent;
-using QuestPDF.Infrastructure;
 using Rebus.Handlers;
 using ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 using ServiceBackendConfigurationPlugin.Messages;
 using ServiceBackendConfigurationPlugin.Resources;
 using File = System.IO.File;
 using KeyValuePair = Microting.eForm.Dto.KeyValuePair;
+using Unit = QuestPDF.Infrastructure.Unit;
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
 
@@ -101,8 +103,8 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 .Where(x => x.TaskManagementEnabled == true || x.TaskManagementEnabled == null)
                 .ToList();
 
-            var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == dbCase.SiteId);
-            var language = await sdkDbContext.Languages.FirstOrDefaultAsync(x => x.Id == site.LanguageId) ??
+            var createdBySite = await sdkDbContext.Sites.FirstAsync(x => x.Id == dbCase.SiteId);
+            var language = await sdkDbContext.Languages.FirstOrDefaultAsync(x => x.Id == createdBySite.LanguageId) ??
                            await sdkDbContext.Languages.FirstOrDefaultAsync(x =>
                                x.LanguageCode == LocaleNames.Danish);
 
@@ -135,12 +137,12 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 await sdkDbContext.FieldValues.FirstAsync(
                     x => x.FieldId == commentField.Id && x.CaseId == dbCase.Id);
 
-            var assignToTexField =
+            var createdByTexField =
                 await sdkDbContext.Fields.FirstAsync(x =>
                     x.CheckListId == subCheckListNewTask.Id && x.OriginalId == "375726");
-            var assignedToFieldValue =
+            var createdByTextFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x =>
-                    x.FieldId == assignToTexField.Id && x.CaseId == dbCase.Id);
+                    x.FieldId == createdByTexField.Id && x.CaseId == dbCase.Id);
 
             var assignToSelectField =
                 await sdkDbContext.Fields.FirstAsync(x =>
@@ -149,7 +151,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 await sdkDbContext.FieldValues.FirstAsync(x =>
                     x.FieldId == assignToSelectField.Id && x.CaseId == dbCase.Id);
 
-            var updatedByName = site.Name;
+            var updatedByName = createdBySite.Name;
 
             var areasGroup = await sdkDbContext.EntityGroups
                 .FirstAsync(x => x.Id == property.EntitySelectListAreas);
@@ -161,8 +163,11 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 assignedToSelectFieldValue.Value = "0";
             }
 
-            var assignedToEntityItem = await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
+            var assignedToEntityItem = await sdkDbContext.EntityItems.FirstAsync(x =>
                 x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
+            var propertyWorker = await backendConfigurationPnDbContext.PropertyWorkers.Where(x => x.EntityItemId == assignedToEntityItem.Id).FirstOrDefaultAsync();
+
+            var assignedSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == propertyWorker.WorkerId);
             var assignedToName = assignedToEntityItem?.Name ?? "";
             var areaName = "";
             if (areaFieldValue != null)
@@ -181,8 +186,8 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                     && x.CaseId == dbCase.MicrotingUid
                     && x.PropertyWorkerId == workOrderCase.PropertyWorkerId
                     && x.SelectedAreaName == areaName
-                    && x.CreatedByName == site.Name
-                    && x.CreatedByText == assignedToFieldValue.Value
+                    && x.CreatedByName == assignedSite.Name
+                    && x.CreatedByText == createdByTextFieldValue.Value
                     && x.CaseStatusesEnum == CaseStatusesEnum.Ongoing
                     && x.Description == commentFieldValue.Value))
             {
@@ -195,8 +200,12 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 CaseId = 0,
                 PropertyWorkerId = workOrderCase.PropertyWorkerId,
                 SelectedAreaName = areaName,
-                CreatedByName = site.Name,
-                CreatedByText = assignedToFieldValue.Value,
+                CreatedByName = createdBySite.Name,
+                CreatedBySdkSiteId = createdBySite.Id,
+                UpdatedBySdkSiteId = createdBySite.Id,
+                AssignedToSdkSiteId = assignedSite.Id,
+                LastAssignedToName = assignedSite.Name,
+                CreatedByText = createdByTextFieldValue.Value,
                 CaseStatusesEnum = CaseStatusesEnum.Ongoing,
                 Description = commentFieldValue.Value,
                 CaseInitiated = DateTime.UtcNow,
@@ -221,7 +230,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 await workOrderCaseImage.Create(backendConfigurationPnDbContext);
             }
 
-            var hash = await GeneratePdf(picturesOfTasks, site.Id!);
+            var hash = await GeneratePdf(picturesOfTasks, assignedSite.Id!);
 
             var priorityText = "";
 
@@ -248,9 +257,9 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                             : "") +
                         $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br>" +
                         priorityText +
-                        $"<strong>{Translations.CreatedBy}:</strong> {site.Name}<br>" +
-                        (!string.IsNullOrEmpty(assignedToFieldValue.Value)
-                            ? $"<strong>{Translations.CreatedBy}:</strong> {assignedToFieldValue.Value}<br>"
+                        $"<strong>{Translations.CreatedBy}:</strong> {assignedSite.Name}<br>" +
+                        (!string.IsNullOrEmpty(createdByTextFieldValue.Value)
+                            ? $"<strong>{Translations.CreatedBy}:</strong> {createdByTextFieldValue.Value}<br>"
                             : "") +
                         $"<strong>{Translations.CreatedDate}:</strong> {newWorkOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
                         $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}<br><br>";
@@ -265,7 +274,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks,
                 property, label, CaseStatusesEnum.Ongoing, newWorkOrderCase,
                 commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
-                assignedToName, pushMessageBody, pushMessageTitle, updatedByName);
+                assignedSite, pushMessageBody, pushMessageTitle, updatedByName);
         }
         else if (eformIdForOngoingTasks == dbCase.CheckListId && workOrderCase != null)
         {
@@ -277,8 +286,8 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 .Where(x => x.TaskManagementEnabled == true || x.TaskManagementEnabled == null)
                 .ToList();
 
-            var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == dbCase.SiteId);
-            var language = await sdkDbContext.Languages.FirstOrDefaultAsync(x => x.Id == site.LanguageId) ??
+            var createdBySite = await sdkDbContext.Sites.FirstAsync(x => x.Id == dbCase.SiteId);
+            var language = await sdkDbContext.Languages.FirstOrDefaultAsync(x => x.Id == createdBySite.LanguageId) ??
                            await sdkDbContext.Languages.FirstAsync(x => x.LanguageCode == LocaleNames.Danish);
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(language.LanguageCode);
@@ -318,8 +327,14 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             var statusFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
 
-            var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x =>
+            // var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x =>
+            //     x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
+            var assignedToEntityItem = await sdkDbContext.EntityItems.FirstAsync(x =>
                 x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
+            var propertyWorker = await backendConfigurationPnDbContext.PropertyWorkers.Where(x => x.EntityItemId == assignedToEntityItem.Id).FirstOrDefaultAsync();
+
+            var assignedSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == propertyWorker.WorkerId);
+            //var assignedToName = assignedToEntityItem?.Name ?? "";
             var textStatus = "";
 
             workOrderCase.Priority = priorityFieldValue.Value;
@@ -344,7 +359,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                     break;
             }
 
-            var updatedByName = site.Name;
+            var updatedByName = createdBySite.Name;
 
             var picturesOfTasks = new List<string>();
             foreach (var pictureFieldValue in pictureFieldValues)
@@ -380,9 +395,9 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 await workOrderCaseImage.Create(backendConfigurationPnDbContext);
             }
 
-            var hash = await GeneratePdf(picturesOfTasks, site.Id);
+            var hash = await GeneratePdf(picturesOfTasks, createdBySite.Id);
 
-            var description = $"<strong>{Translations.AssignedTo}:</strong> {assignedTo.Name}<br>";
+            var description = $"<strong>{Translations.AssignedTo}:</strong> {assignedSite.Name}<br>";
 
             var pushMessageTitle = !string.IsNullOrEmpty(workOrderCase.SelectedAreaName)
                 ? $"{property.Name}; {workOrderCase.SelectedAreaName}"
@@ -422,7 +437,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                                ? $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByText}<br>"
                                : "") +
                            $"<strong>{Translations.CreatedDate}:</strong> {workOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                           $"<strong>{Translations.LastUpdatedBy}:</strong> {site.Name}<br>" +
+                           $"<strong>{Translations.LastUpdatedBy}:</strong> {createdBySite.Name}<br>" +
                            $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
                            $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
             // retract eform
@@ -430,7 +445,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             // deploy eform to ongoing status
             await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, property, description,
                 workOrderCase.CaseStatusesEnum, workOrderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid),
-                hash, assignedTo.Name, pushMessageBody, pushMessageTitle, updatedByName);
+                hash, assignedSite, pushMessageBody, pushMessageTitle, updatedByName);
         }
     }
 
@@ -444,7 +459,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
         string newDescription,
         int? deviceUsersGroupId,
         string pdfHash,
-        string siteName,
+        Site assignedSite,
         string pushMessageBody,
         string pushMessageTitle,
         string updatedByName)
@@ -503,31 +518,20 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                     break;
             }
 
-            var assignedTo = site.Name == siteName ? "" : $"<strong>{Translations.AssignedTo}:</strong> {siteName}<br>";
-
-            var areaName = !string.IsNullOrEmpty(workorderCase.SelectedAreaName)
-                ? $"<strong>{Translations.Area}:</strong> {workorderCase.SelectedAreaName}<br>"
-                : "";
-
-            var outerDescription = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
-                                   areaName +
-                                   $"<strong>{Translations.Description}:</strong> {newDescription}<br>" +
-                                   priorityText +
-                                   assignedTo +
-                                   $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
+            var assignedTo = "";
             var mainElement = await _sdkCore.ReadeForm(eformId, siteLanguage);
             mainElement.Label = " ";
             mainElement.ElementList[0].QuickSyncEnabled = true;
             mainElement.EnableQuickSync = true;
             mainElement.ElementList[0].Label = " ";
-            mainElement.ElementList[0].Description.InderValue = outerDescription.Replace("\n", "<br>");
 
             mainElement.DisplayOrder = displayOrder; // Lowest value is the top of the list
 
             // if (status == CaseStatusesEnum.Completed || site.Name == siteName)
             // {
             // }
-            if (site.Name == siteName)
+            assignedTo = site.Name == assignedSite.Name ? "" : $"<strong>{Translations.AssignedTo}:</strong> {assignedSite.Name}<br>";
+            if (site.Name == assignedSite.Name)
             {
                 mainElement.CheckListFolderName = sdkDbContext.Folders.First(x => x.Id == (workorderCase.Priority != "1" ? property.FolderIdForOngoingTasks : property.FolderIdForTasks))
                     .MicrotingUid.ToString();
@@ -541,6 +545,20 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 mainElement.CheckListFolderName = sdkDbContext.Folders.First(x => x.Id == property.FolderIdForCompletedTasks)
                     .MicrotingUid.ToString();
             }
+
+            //var assignedTo = site.Name == assignedSite.Name ? "" : $"<strong>{Translations.AssignedTo}:</strong> {assignedSite.Name}<br>";
+
+            var areaName = !string.IsNullOrEmpty(workorderCase.SelectedAreaName)
+                ? $"<strong>{Translations.Area}:</strong> {workorderCase.SelectedAreaName}<br>"
+                : "";
+
+            var outerDescription = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+                                   areaName +
+                                   $"<strong>{Translations.Description}:</strong> {newDescription}<br>" +
+                                   priorityText +
+                                   assignedTo +
+                                   $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
+            mainElement.ElementList[0].Description.InderValue = outerDescription.Replace("\n", "<br>");
             // TODO uncomment when new app has been released.
             ((DataElement)mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description.Replace("\n", "<br>");
             ((DataElement)mainElement.ElementList[0]).DataItemList[0].Label = " ";
@@ -590,10 +608,13 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 ParentWorkorderCaseId = workorderCase.Id,
                 SelectedAreaName = workorderCase.SelectedAreaName,
                 CreatedByName = workorderCase.CreatedByName,
+                CreatedBySdkSiteId = workorderCase.CreatedBySdkSiteId,
+                UpdatedBySdkSiteId = workorderCase.UpdatedBySdkSiteId,
                 CreatedByText = workorderCase.CreatedByText,
                 Description = newDescription,
                 CaseInitiated = workorderCase.CaseInitiated,
-                LastAssignedToName = siteName,
+                LastAssignedToName = assignedSite.Name,
+                AssignedToSdkSiteId = assignedSite.Id,
                 LastUpdatedByName = updatedByName,
                 LeadingCase = i == 0,
                 Priority = workorderCase.Priority
