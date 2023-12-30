@@ -201,6 +201,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 PropertyWorkerId = workOrderCase.PropertyWorkerId,
                 SelectedAreaName = areaName,
                 CreatedByName = createdBySite.Name,
+                LastUpdatedByName = createdBySite.Name,
                 CreatedBySdkSiteId = createdBySite.Id,
                 UpdatedBySdkSiteId = createdBySite.Id,
                 AssignedToSdkSiteId = assignedSite.Id,
@@ -286,8 +287,8 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 .Where(x => x.TaskManagementEnabled == true || x.TaskManagementEnabled == null)
                 .ToList();
 
-            var createdBySite = await sdkDbContext.Sites.FirstAsync(x => x.Id == dbCase.SiteId);
-            var language = await sdkDbContext.Languages.FirstOrDefaultAsync(x => x.Id == createdBySite.LanguageId) ??
+            var updatedBySite = await sdkDbContext.Sites.FirstAsync(x => x.Id == dbCase.SiteId);
+            var language = await sdkDbContext.Languages.FirstOrDefaultAsync(x => x.Id == updatedBySite.LanguageId) ??
                            await sdkDbContext.Languages.FirstAsync(x => x.LanguageCode == LocaleNames.Danish);
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(language.LanguageCode);
@@ -338,6 +339,8 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             var textStatus = "";
 
             workOrderCase.Priority = priorityFieldValue.Value;
+            workOrderCase.UpdatedBySdkSiteId = updatedBySite.Id;
+            workOrderCase.LastUpdatedByName = updatedBySite.Name;
 
             switch (statusFieldValue.Value)
             {
@@ -359,7 +362,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                     break;
             }
 
-            var updatedByName = createdBySite.Name;
+            var updatedByName = updatedBySite.Name;
 
             var picturesOfTasks = new List<string>();
             foreach (var pictureFieldValue in pictureFieldValues)
@@ -395,7 +398,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                 await workOrderCaseImage.Create(backendConfigurationPnDbContext);
             }
 
-            var hash = await GeneratePdf(picturesOfTasks, createdBySite.Id);
+            var hash = await GeneratePdf(picturesOfTasks, updatedBySite.Id);
 
             var description = $"<strong>{Translations.AssignedTo}:</strong> {assignedSite.Name}<br>";
 
@@ -437,7 +440,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                                ? $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByText}<br>"
                                : "") +
                            $"<strong>{Translations.CreatedDate}:</strong> {workOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                           $"<strong>{Translations.LastUpdatedBy}:</strong> {createdBySite.Name}<br>" +
+                           $"<strong>{Translations.LastUpdatedBy}:</strong> {updatedBySite.Name}<br>" +
                            $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
                            $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
             // retract eform
