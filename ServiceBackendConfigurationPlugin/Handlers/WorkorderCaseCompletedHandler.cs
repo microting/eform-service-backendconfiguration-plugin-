@@ -186,7 +186,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                     && x.CaseId == dbCase.MicrotingUid
                     && x.PropertyWorkerId == workOrderCase.PropertyWorkerId
                     && x.SelectedAreaName == areaName
-                    && x.CreatedByName == assignedSite.Name
+                    && x.CreatedByName == createdBySite.Name
                     && x.CreatedByText == createdByTextFieldValue.Value
                     && x.CaseStatusesEnum == CaseStatusesEnum.Ongoing
                     && x.Description == commentFieldValue.Value))
@@ -335,6 +335,12 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             var propertyWorker = await backendConfigurationPnDbContext.PropertyWorkers.Where(x => x.EntityItemId == assignedToEntityItem.Id).FirstOrDefaultAsync();
 
             var assignedSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == propertyWorker.WorkerId);
+            var createdBySite =
+                await sdkDbContext.Sites.FirstOrDefaultAsync(x => x.Id == workOrderCase.CreatedBySdkSiteId);
+            if (createdBySite != null)
+            {
+                workOrderCase.CreatedByName = createdBySite.Name;
+            }
             //var assignedToName = assignedToEntityItem?.Name ?? "";
             var textStatus = "";
 
