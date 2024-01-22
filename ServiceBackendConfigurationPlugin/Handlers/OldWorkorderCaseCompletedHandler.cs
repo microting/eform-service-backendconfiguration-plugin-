@@ -640,7 +640,7 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
             {
                 foreach (var value in profile.Values)
                 {
-                    Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
+                    Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value);
                 }
             } catch (Exception)
             {
@@ -665,7 +665,7 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
             {
                 foreach (var value in profile.Values)
                 {
-                    Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value.ToString());
+                    Console.WriteLine("{0}({1}): {2}", value.Tag, value.DataType, value);
                 }
             } catch (Exception)
             {

@@ -216,6 +216,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             await newWorkOrderCase.Create(backendConfigurationPnDbContext);
 
             var picturesOfTasks = new List<string>();
+            bool hasImages = false;
             foreach (var pictureFieldValue in pictureFieldValues.Where(pictureFieldValue =>
                          pictureFieldValue.UploadedDataId != null))
             {
@@ -229,6 +230,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
                 picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
                 await workOrderCaseImage.Create(backendConfigurationPnDbContext);
+                hasImages = true;
             }
 
             var hash = await GeneratePdf(picturesOfTasks, assignedSite.Id!);
@@ -258,7 +260,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                             : "") +
                         $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br>" +
                         priorityText +
-                        $"<strong>{Translations.CreatedBy}:</strong> {assignedSite.Name}<br>" +
+                        $"<strong>{Translations.CreatedBy}:</strong> {createdBySite.Name}<br>" +
                         (!string.IsNullOrEmpty(createdByTextFieldValue.Value)
                             ? $"<strong>{Translations.CreatedBy}:</strong> {createdByTextFieldValue.Value}<br>"
                             : "") +
@@ -275,7 +277,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks,
                 property, label, CaseStatusesEnum.Ongoing, newWorkOrderCase,
                 commentFieldValue.Value, int.Parse(deviceUsersGroup.MicrotingUid), hash,
-                assignedSite, pushMessageBody, pushMessageTitle, updatedByName);
+                assignedSite, pushMessageBody, pushMessageTitle, updatedByName, hasImages);
         }
         else if (eformIdForOngoingTasks == dbCase.CheckListId && workOrderCase != null)
         {
@@ -371,6 +373,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             var updatedByName = updatedBySite.Name;
 
             var picturesOfTasks = new List<string>();
+            bool hasImages = false;
             foreach (var pictureFieldValue in pictureFieldValues)
             {
                 if (pictureFieldValue.UploadedDataId != null)
@@ -385,6 +388,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
                     picturesOfTasks.Add($"{uploadedData.Id}_700_{uploadedData.Checksum}{uploadedData.Extension}");
                     await workOrderCaseImage.Create(backendConfigurationPnDbContext);
+                    hasImages = true;
                 }
             }
 
@@ -402,6 +406,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                     UploadedDataId = (int)uploadedData.Id
                 };
                 await workOrderCaseImage.Create(backendConfigurationPnDbContext);
+                hasImages = true;
             }
 
             var hash = await GeneratePdf(picturesOfTasks, updatedBySite.Id);
@@ -454,7 +459,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             // deploy eform to ongoing status
             await DeployWorkOrderEform(propertyWorkers, eformIdForOngoingTasks, property, description,
                 workOrderCase.CaseStatusesEnum, workOrderCase, commentFieldValue.Value, int.Parse(deviceUsersGroupUid),
-                hash, assignedSite, pushMessageBody, pushMessageTitle, updatedByName);
+                hash, assignedSite, pushMessageBody, pushMessageTitle, updatedByName, hasImages);
         }
     }
 
@@ -471,7 +476,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
         Site assignedSite,
         string pushMessageBody,
         string pushMessageTitle,
-        string updatedByName)
+        string updatedByName, bool hasImages)
     {
         Console.WriteLine($"Deploying eform to {propertyWorkers.Count} workers");
         int? folderId = null;
@@ -603,6 +608,10 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             }
 
             mainElement.StartDate = DateTime.Now.ToUniversalTime();
+            if (hasImages == false)
+            {
+                ((DataElement) mainElement.ElementList[0]).DataItemList.RemoveAt(1);
+            }
             // var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, folderId);
             int caseId = 0;
             if (workorderCase.CaseStatusesEnum != CaseStatusesEnum.Completed)
