@@ -117,11 +117,11 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
         //     return;
         // }
 
-        // var eformIdForControlFloatingLayer = await eformQuery
-        //     .Where(x => x.Text == "03. Control floating layer")
-        //     .Select(x => x.CheckListId)
-        //     .FirstOrDefaultAsync();
-        //
+        var eformIdForControlFloatingLayer = await sdkDbContext.CheckLists
+            .Where(x => x.OriginalId == "142142new1")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync();
+
         // if (eformIdForControlFloatingLayer == 0)
         // {
         //     Console.WriteLine("eformIdForControlFloatingLayer is 0");
@@ -363,12 +363,12 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
                     }
                 }
 
-                // if (eformIdForControlFloatingLayer == dbCase.CheckListId)
-                // {
-                //     // FloatingLayerCaseCompletedHandler will handle this case
-                //     await _bus.SendLocal(new FloatingLayerCaseCompleted(message.CaseId, message.MicrotingUId,
-                //         message.CheckId, message.SiteUId));
-                // }
+                if (eformIdForControlFloatingLayer == dbCase.CheckListId)
+                {
+                    // FloatingLayerCaseCompletedHandler will handle this case
+                    await _bus.SendLocal(new FloatingLayerCaseCompleted(message.CaseId, message.MicrotingUId,
+                        message.CheckId, message.SiteUId));
+                }
 
 
                 // }

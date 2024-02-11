@@ -41,13 +41,13 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
         await using var backendConfigurationPnDbContext =
             _backendConfigurationDbContextHelper.GetDbContext();
 
-        var eformQuery = sdkDbContext.CheckListTranslations
+        var eformQuery = sdkDbContext.CheckLists
             .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
             .AsQueryable();
 
         var eformIdForControlFloatingLayer = await eformQuery
-            .Where(x => x.Text == "03. Control floating layer")
-            .Select(x => x.CheckListId)
+            .Where(x => x.OriginalId == "142142new1")
+            .Select(x => x.Id)
             .FirstOrDefaultAsync();
 
         var dbCase = await sdkDbContext.Cases
@@ -178,10 +178,11 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                     $"<strong>{Translations.LastUpdated}:</strong> {dbCase.DoneAt.Value:dd-MM-yyyy}<br>" +
                     $"<strong>{Translations.StatusOrActivity}:</strong>{statusOrActivity}<br>" +
                     $"<strong>{Translations.ControlLatest}:</strong> {dbCase.DoneAt.Value.AddDays(6):dd-MM-yyyy}";
-                ((Comment) ((DataElement) mainElement.ElementList[0]).DataItemList[3]).Value =
+                ((Comment) ((DataElement) mainElement.ElementList[0]).DataItemList[4]).Value =
                     oldComment;
 
-                mainElement.StartDate = DateTime.Now.AddDays(6).ToUniversalTime();
+                //mainElement.StartDate = DateTime.Now.AddDays(6).ToUniversalTime();
+                mainElement.StartDate = DateTime.Now.AddDays(1).ToUniversalTime();
                 mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
                 mainElement.CheckListFolderName = await sdkDbContext.Folders
                     .Where(x => x.Id == planning.SdkFolderId)
@@ -207,7 +208,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                     FolderTranslation folderTranslation =
                         await sdkDbContext.FolderTranslations.FirstAsync(x =>
                             x.FolderId == folder.Id && x.LanguageId == site.LanguageId);
-                    body = $"{folderTranslation.Name} ({site.Name};{DateTime.Now:dd.MM.yyyy})";
+                    body = $"{folderTranslation.Name} ({site.Name};{mainElement.StartDate:dd.MM.yyyy})";
                 }
 
                 PlanningNameTranslation planningNameTranslation =
@@ -215,8 +216,10 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                         x.PlanningId == planning.Id
                         && x.LanguageId == site.LanguageId);
 
-                mainElement.PushMessageBody = body;
-                mainElement.PushMessageTitle = planningNameTranslation.Name;
+                //mainElement.PushMessageBody = body;
+                mainElement.PushMessageBody = "";
+                //mainElement.PushMessageTitle = planningNameTranslation.Name;
+                mainElement.PushMessageTitle = "";
                 // var _ = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
                 var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) site.MicrotingUid,
                     planning.SdkFolderId);
