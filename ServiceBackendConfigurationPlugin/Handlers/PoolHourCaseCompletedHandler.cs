@@ -183,7 +183,7 @@ public class PoolHourCaseCompletedHandler : IHandleMessages<PoolHourCaseComplete
                     await sdkDbContext.FieldValues.FirstAsync(x =>
                         x.FieldId == areaField.Id && x.CaseId == dbCase.Id);
 
-                poolHourResult = new PoolHourResult()
+                poolHourResult = new PoolHourResult
                 {
                     PoolHourId = poolHour.Id,
                     PlanningId = planning.Id,
@@ -258,7 +258,7 @@ public class PoolHourCaseCompletedHandler : IHandleMessages<PoolHourCaseComplete
                         $"0. Tidligere indsendt data - {areaRule.AreaRuleTranslations.First().Name}";
                     mainElement.ElementList[0].Label = mainElement.Label;
                     var localTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
-                    mainElement.ElementList[0].Description = new CDataValue()
+                    mainElement.ElementList[0].Description = new CDataValue
                     {
                         InderValue =
                             $"Sidst opdateret: {localTime:H:mm}"
@@ -320,7 +320,7 @@ public class PoolHourCaseCompletedHandler : IHandleMessages<PoolHourCaseComplete
                     {
                         var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
                             poolDayFolder.Id);
-                        poolHistorySite = new PoolHistorySite()
+                        poolHistorySite = new PoolHistorySite
                         {
                             AreaRuleId = poolHour.AreaRuleId,
                             Date = historyDate,

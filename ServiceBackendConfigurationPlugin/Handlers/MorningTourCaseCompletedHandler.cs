@@ -94,7 +94,7 @@ public class MorningTourCaseCompletedHandler : IHandleMessages<MorningTourCaseCo
 
         var sdkSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == planningSites.First().SiteId);
         var language = await sdkDbContext.Languages.FirstAsync(x => x.Id == sdkSite.LanguageId);
-        var caseIds = new List<int>() {dbCase.Id};
+        var caseIds = new List<int> {dbCase.Id};
         var fieldValues = await _sdkCore.Advanced_FieldValueReadList(caseIds, language);
         // var chemicalDbContext = _chemicalDbContextHelper.GetDbContext();
         // var folder = await sdkDbContext.Folders.FirstAsync(x => x.Id == areaRule.FolderId);

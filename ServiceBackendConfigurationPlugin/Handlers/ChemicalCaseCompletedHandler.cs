@@ -103,7 +103,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
 
         var sdkSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == planningSites.First().SiteId);
         var language = await sdkDbContext.Languages.FirstAsync(x => x.Id == sdkSite.LanguageId);
-        var caseIds = new List<int>() {dbCase.Id};
+        var caseIds = new List<int> {dbCase.Id};
         var fieldValues = await _sdkCore.Advanced_FieldValueReadList(caseIds, language);
         var chemicalDbContext = _chemicalDbContextHelper.GetDbContext();
         var folder = await sdkDbContext.Folders.FirstAsync(x => x.Id == areaRule.FolderId);
@@ -308,7 +308,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                                 sdkDbContext.Sites.FirstOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
                             var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
                                 folder.Id);
-                            var chemicalProductPropertySite = new ChemicalProductPropertySite()
+                            var chemicalProductPropertySite = new ChemicalProductPropertySite
                             {
                                 ChemicalId = chemical.Id,
                                 SdkCaseId = (int) siteCaseId!,
@@ -373,7 +373,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
 
 
                     await newAreaRulePlanning.Create(backendConfigurationPnDbContext);
-                    ChemicalProductProperty chemicalProductProperty = new ChemicalProductProperty()
+                    ChemicalProductProperty chemicalProductProperty = new ChemicalProductProperty
                     {
                         ChemicalId = chemical.Id,
                         PropertyId = areaRule.PropertyId,
@@ -548,7 +548,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                                     sdkDbContext.Sites.FirstOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
                                 var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
                                     folder.Id);
-                                var chemicalProductPropertySite = new ChemicalProductPropertySite()
+                                var chemicalProductPropertySite = new ChemicalProductPropertySite
                                 {
                                     ChemicalId = chemical.Id,
                                     SdkCaseId = (int) siteCaseId!,
@@ -613,7 +613,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                             areaRule.FolderId);
 
                         await newAreaRulePlanning.Create(backendConfigurationPnDbContext);
-                        ChemicalProductProperty chemicalProductProperty = new ChemicalProductProperty()
+                        ChemicalProductProperty chemicalProductProperty = new ChemicalProductProperty
                         {
                             ChemicalId = chemical.Id,
                             PropertyId = areaRule.PropertyId,

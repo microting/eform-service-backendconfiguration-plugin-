@@ -353,7 +353,7 @@ public class Core : ISdkEventHandler
 
                     try
                     {
-                        var compliance = new Compliance()
+                        var compliance = new Compliance
                         {
                             PlanningId = planning.Id,
                             AreaId = areaRulePlanning.AreaId,

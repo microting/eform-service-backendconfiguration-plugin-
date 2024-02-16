@@ -150,7 +150,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                 await itemsPlanningPnDbContext.Plannings.AsNoTracking()
                     .FirstAsync(x => x.Id == planningCaseSite.PlanningId);
 
-            PlanningCase planningCase = new PlanningCase()
+            PlanningCase planningCase = new PlanningCase
             {
                 PlanningId = planning.Id,
                 Status = 66,

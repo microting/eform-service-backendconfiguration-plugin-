@@ -121,7 +121,7 @@ public class SearchListJob : IJob
                     {
                         int count = chemicals.Count;
                         int i = 0;
-                        var parallelOptions = new ParallelOptions()
+                        var parallelOptions = new ParallelOptions
                         {
                             MaxDegreeOfParallelism = -1
                         };
@@ -189,7 +189,7 @@ public class SearchListJob : IJob
                                                     x.ChemicalId == c.Id && x.FileName == chemicalProduct.FileName);
                                             if (dbProduct == null)
                                             {
-                                                dbProduct = new Product()
+                                                dbProduct = new Product
                                                 {
                                                     FileName = chemicalProduct.FileName,
                                                     Barcode = chemicalProduct.Barcode,
@@ -292,7 +292,7 @@ public class SearchListJob : IJob
                         .Include(x => x.Products).ToListAsync();
 
 
-                    var parallelOptions = new ParallelOptions()
+                    var parallelOptions = new ParallelOptions
                     {
                         MaxDegreeOfParallelism = -1
                     };
@@ -555,7 +555,7 @@ public class SearchListJob : IJob
                                             (int) site!.MicrotingUid!,
                                             folder.Id);
 
-                                        var chemicalProductPropertySite = new ChemicalProductPropertySite()
+                                        var chemicalProductPropertySite = new ChemicalProductPropertySite
                                         {
                                             ChemicalId = chemical.Id,
                                             SdkCaseId = (int) siteCaseId!,
@@ -622,7 +622,7 @@ public class SearchListJob : IJob
 
 
                                 await newAreaRulePlanning.Create(_backendConfigurationDbContext);
-                                ChemicalProductProperty chemicalProductProperty = new ChemicalProductProperty()
+                                ChemicalProductProperty chemicalProductProperty = new ChemicalProductProperty
                                 {
                                     ChemicalId = chemical.Id,
                                     PropertyId = areaRule.PropertyId,
