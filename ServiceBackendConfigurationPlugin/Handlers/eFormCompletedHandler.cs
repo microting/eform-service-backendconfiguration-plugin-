@@ -110,7 +110,7 @@ public class EFormCompletedHandler(
         // }
 
         var eformIdForControlFloatingLayer = await sdkDbContext.CheckLists
-            .Where(x => x.OriginalId == "142142new2")
+            .Where(x => x.OriginalId == "142142new1")
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
 

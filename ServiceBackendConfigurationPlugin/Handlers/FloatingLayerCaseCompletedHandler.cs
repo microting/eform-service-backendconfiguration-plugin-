@@ -39,7 +39,7 @@ public class FloatingLayerCaseCompletedHandler(
             .AsQueryable();
 
         var eformIdForControlFloatingLayer = await eformQuery
-            .Where(x => x.OriginalId == "142142new2")
+            .Where(x => x.OriginalId == "142142new1")
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
 
@@ -170,13 +170,13 @@ public class FloatingLayerCaseCompletedHandler(
                     $"<strong>{Translations.SlurryTank}:</strong> {nameTank}<br>" +
                     $"<strong>{Translations.LastUpdated}:</strong> {dbCase.DoneAt.Value:dd-MM-yyyy}<br>" +
                     $"<strong>{Translations.StatusOrActivity}:</strong>{statusOrActivity}<br>" +
-                    $"<strong>{Translations.ControlLatest}:</strong> {dbCase.DoneAt.Value.AddDays(6):dd-MM-yyyy}";
+                    $"<strong>{Translations.ControlLatest}:</strong> {DateTime.UtcNow.AddDays(14):dd-MM-yyyy}";
                 ((Comment) ((DataElement) mainElement.ElementList[0]).DataItemList[4]).Value =
                     oldComment;
 
                 //mainElement.StartDate = DateTime.Now.AddDays(6).ToUniversalTime();
-                mainElement.StartDate = DateTime.Now.AddDays(1).ToUniversalTime();
-                mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
+                mainElement.StartDate = DateTime.UtcNow;
+                mainElement.EndDate = DateTime.UtcNow.AddDays(14);
                 mainElement.CheckListFolderName = await sdkDbContext.Folders
                     .Where(x => x.Id == planning.SdkFolderId)
                     .Select(x => x.MicrotingUid.ToString())
@@ -290,7 +290,7 @@ public class FloatingLayerCaseCompletedHandler(
                         Body = newHtml,
                         Subject = $"Opfølgning flydelag: {planningNameTranslation.Name}; {property.Name}",
                         To = property.MainMailAddress,
-                        DelayedUntil = DateTime.Now.AddDays(6).ToUniversalTime(),
+                        DelayedUntil = DateTime.UtcNow.AddDays(7),
                         From = "no-reply@microting.com",
                         Status = "not-sent"
                     };
