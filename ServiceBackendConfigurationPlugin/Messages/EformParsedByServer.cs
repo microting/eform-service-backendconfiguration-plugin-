@@ -24,16 +24,9 @@ SOFTWARE.
 
 namespace ServiceBackendConfigurationPlugin.Messages;
 
-public sealed class EformParsedByServer
+public sealed class EformParsedByServer(int? caseId, int? MicrotingUId, int? checkId)
 {
-    public int? CaseId { get; }
-    public int? MicrotingUId { get; }
-    public int? CheckId { get; }
-
-    public EformParsedByServer(int? caseId, int? MicrotingUId, int? checkId)
-    {
-        this.CaseId = caseId;
-        this.MicrotingUId = MicrotingUId;
-        this.CheckId = checkId;
-    }
+    public int? CaseId { get; } = caseId;
+    public int? MicrotingUId { get; } = MicrotingUId;
+    public int? CheckId { get; } = checkId;
 }

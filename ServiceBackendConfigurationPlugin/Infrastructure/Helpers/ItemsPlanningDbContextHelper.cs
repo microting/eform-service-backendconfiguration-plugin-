@@ -27,14 +27,9 @@ using Microting.ItemsPlanningBase.Infrastructure.Data.Factories;
 
 namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 
-public sealed class ItemsPlanningDbContextHelper
+public sealed class ItemsPlanningDbContextHelper(string connectionString)
 {
-    private string ConnectionString { get;}
-
-    public ItemsPlanningDbContextHelper(string connectionString)
-    {
-        ConnectionString = connectionString;
-    }
+    private string ConnectionString { get;} = connectionString;
 
     public ItemsPlanningPnDbContext GetDbContext()
     {

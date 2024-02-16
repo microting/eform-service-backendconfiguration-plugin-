@@ -47,26 +47,17 @@ public static class DateTimeExtensions
     }
 }
 
-public class EformParsedByServerHandler : IHandleMessages<EformParsedByServer>
+public class EformParsedByServerHandler(
+    eFormCore.Core sdkCore,
+    ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
+    BackendConfigurationDbContextHelper backendConfigurationDbContextHelper)
+    : IHandleMessages<EformParsedByServer>
 {
-    private readonly eFormCore.Core _sdkCore;
-    private readonly ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
-    private readonly BackendConfigurationDbContextHelper _backendConfigurationDbContextHelper;
-
-    public EformParsedByServerHandler(eFormCore.Core sdkCore,
-        ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
-        BackendConfigurationDbContextHelper backendConfigurationDbContextHelper)
-    {
-        _sdkCore = sdkCore;
-        _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper;
-        _backendConfigurationDbContextHelper = backendConfigurationDbContextHelper;
-    }
-
     public async Task Handle(EformParsedByServer message)
     {
-        await using MicrotingDbContext sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
-        await using ItemsPlanningPnDbContext itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
-        await using BackendConfigurationPnDbContext backendConfigurationPnDbContext = _backendConfigurationDbContextHelper.GetDbContext();
+        await using MicrotingDbContext sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
+        await using ItemsPlanningPnDbContext itemsPlanningPnDbContext = itemsPlanningDbContextHelper.GetDbContext();
+        await using BackendConfigurationPnDbContext backendConfigurationPnDbContext = backendConfigurationDbContextHelper.GetDbContext();
         var planningCaseSite =
             await itemsPlanningPnDbContext.PlanningCaseSites
                 .AsNoTracking()

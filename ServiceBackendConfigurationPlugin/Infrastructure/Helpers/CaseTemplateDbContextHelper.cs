@@ -27,14 +27,9 @@ using Microting.eFormCaseTemplateBase.Infrastructure.Data.Factories;
 
 namespace ServiceBackendConfigurationPlugin.Infrastructure.Helpers;
 
-public sealed class CaseTemplateDbContextHelper
+public sealed class CaseTemplateDbContextHelper(string connectionString)
 {
-    private string ConnectionString { get;}
-
-    public CaseTemplateDbContextHelper(string connectionString)
-    {
-        ConnectionString = connectionString;
-    }
+    private string ConnectionString { get;} = connectionString;
 
     public CaseTemplatePnDbContext GetDbContext()
     {

@@ -23,12 +23,7 @@ SOFTWARE.
 */
 namespace ServiceBackendConfigurationPlugin.Messages;
 
-public class eFormRetrieved
+public class eFormRetrieved(int caseId)
 {
-    public int CaseId { get; protected set; }
-
-    public eFormRetrieved(int caseId)
-    {
-        this.CaseId = caseId;
-    }
+    public int CaseId { get; protected set; } = caseId;
 }

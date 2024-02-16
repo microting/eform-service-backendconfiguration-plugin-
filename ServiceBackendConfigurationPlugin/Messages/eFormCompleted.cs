@@ -23,18 +23,10 @@ SOFTWARE.
 */
 namespace ServiceBackendConfigurationPlugin.Messages;
 
-public sealed class eFormCompleted
+public sealed class eFormCompleted(int? caseId, int? microtingUId, int? checkId, int? siteUId)
 {
-    public int? CaseId { get;}
-    public int? MicrotingUId { get; }
-    public int? CheckId { get; }
-    public int? SiteUId { get; }
-
-    public eFormCompleted(int? caseId, int? microtingUId, int? checkId, int? siteUId)
-    {
-        CaseId = caseId;
-        MicrotingUId = microtingUId;
-        CheckId = checkId;
-        SiteUId = siteUId;
-    }
+    public int? CaseId { get;} = caseId;
+    public int? MicrotingUId { get; } = microtingUId;
+    public int? CheckId { get; } = checkId;
+    public int? SiteUId { get; } = siteUId;
 }

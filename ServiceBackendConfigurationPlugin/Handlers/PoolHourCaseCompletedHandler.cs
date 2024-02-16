@@ -14,28 +14,19 @@ using ServiceBackendConfigurationPlugin.Messages;
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
 
-public class PoolHourCaseCompletedHandler : IHandleMessages<PoolHourCaseCompleted>
+public class PoolHourCaseCompletedHandler(
+    eFormCore.Core sdkCore,
+    ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
+    BackendConfigurationDbContextHelper backendConfigurationDbContextHelper)
+    : IHandleMessages<PoolHourCaseCompleted>
 {
-    private readonly eFormCore.Core _sdkCore;
-    private readonly ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
-    private readonly BackendConfigurationDbContextHelper _backendConfigurationDbContextHelper;
-
-    public PoolHourCaseCompletedHandler(eFormCore.Core sdkCore,
-        ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
-        BackendConfigurationDbContextHelper backendConfigurationDbContextHelper)
-    {
-        _sdkCore = sdkCore;
-        _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper;
-        _backendConfigurationDbContextHelper = backendConfigurationDbContextHelper;
-    }
-
     public async Task Handle(PoolHourCaseCompleted message)
     {
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var
-            itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
+            itemsPlanningPnDbContext = itemsPlanningDbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
 
 
         var dbCase = await sdkDbContext.Cases
@@ -249,7 +240,7 @@ public class PoolHourCaseCompletedHandler : IHandleMessages<PoolHourCaseComplete
 
                     var sdkSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == planningSite.SiteId);
                     var language = await sdkDbContext.Languages.FirstAsync(x => x.Id == sdkSite.LanguageId);
-                    var mainElement = await _sdkCore.ReadeForm(checkList.CheckListId, language);
+                    var mainElement = await sdkCore.ReadeForm(checkList.CheckListId, language);
                     mainElement.Repeated = 0;
                     mainElement.CheckListFolderName = poolDayFolder.MicrotingUid.ToString();
                     mainElement.StartDate = DateTime.Now.ToUniversalTime();
@@ -318,7 +309,7 @@ public class PoolHourCaseCompletedHandler : IHandleMessages<PoolHourCaseComplete
 
                     if (poolHistorySite == null)
                     {
-                        var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
+                        var caseId = await sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
                             poolDayFolder.Id);
                         poolHistorySite = new PoolHistorySite
                         {
@@ -332,8 +323,8 @@ public class PoolHourCaseCompletedHandler : IHandleMessages<PoolHourCaseComplete
                     }
                     else
                     {
-                        await _sdkCore.CaseDelete(poolHistorySite.SdkCaseId);
-                        var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
+                        await sdkCore.CaseDelete(poolHistorySite.SdkCaseId);
+                        var caseId = await sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
                             poolDayFolder.Id);
                         poolHistorySite.SdkCaseId = (int) caseId;
                         await poolHistorySite.Update(backendConfigurationPnDbContext);

@@ -20,26 +20,19 @@ using ServiceBackendConfigurationPlugin.Resources;
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
 
-public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCaseCompleted>
+public class FloatingLayerCaseCompletedHandler(
+    eFormCore.Core sdkCore,
+    ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
+    BackendConfigurationDbContextHelper backendConfigurationDbContextHelper)
+    : IHandleMessages<FloatingLayerCaseCompleted>
 {
-    private readonly eFormCore.Core _sdkCore;
-    private readonly ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
-    private readonly BackendConfigurationDbContextHelper _backendConfigurationDbContextHelper;
-
-    public FloatingLayerCaseCompletedHandler(eFormCore.Core sdkCore, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper, BackendConfigurationDbContextHelper backendConfigurationDbContextHelper)
-    {
-        _sdkCore = sdkCore;
-        _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper;
-        _backendConfigurationDbContextHelper = backendConfigurationDbContextHelper;
-    }
-
     public async Task Handle(FloatingLayerCaseCompleted message)
     {
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var
-            itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
+            itemsPlanningPnDbContext = itemsPlanningDbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
 
         var eformQuery = sdkDbContext.CheckLists
             .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
@@ -162,7 +155,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                     x => x.Id == itemPlanningSite.SiteId);
                 var siteLanguage =
                     await sdkDbContext.Languages.FirstAsync(x => x.Id == site.LanguageId);
-                var nameTank = await _itemsPlanningDbContextHelper
+                var nameTank = await itemsPlanningDbContextHelper
                     .GetDbContext().PlanningNameTranslation
                     .Where(x => x.PlanningId == itemPlanningId)
                     .Where(x => x.LanguageId == site.LanguageId)
@@ -170,7 +163,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                     .FirstOrDefaultAsync();
 
                 var mainElement =
-                    await _sdkCore.ReadeForm(eformIdForControlFloatingLayer, siteLanguage);
+                    await sdkCore.ReadeForm(eformIdForControlFloatingLayer, siteLanguage);
                 ((DataElement) mainElement.ElementList[0]).DataItemGroupList[0].DataItemList[0]
                     .Description.InderValue =
                     $"<strong>{Translations.FollowUpFloatingLayerCheck}</strong><br>" +
@@ -221,12 +214,12 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                 //mainElement.PushMessageTitle = planningNameTranslation.Name;
                 mainElement.PushMessageTitle = "";
                 // var _ = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, dbCase.FolderId);
-                var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) site.MicrotingUid,
+                var caseId = await sdkCore.CaseCreate(mainElement, "", (int) site.MicrotingUid,
                     planning.SdkFolderId);
 
                 if (caseId != null)
                 {
-                    var caseDto = await _sdkCore.CaseLookupMUId((int) caseId);
+                    var caseDto = await sdkCore.CaseLookupMUId((int) caseId);
                     if (caseDto?.CaseId != null)
                         planningCaseSite.MicrotingSdkCaseId = (int) caseDto.CaseId;
                     await planningCaseSite.Update(itemsPlanningPnDbContext);
@@ -278,7 +271,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                     newHtml = newHtml.Replace("{{slurryTankStatus}}", statusOrActivity);
                     newHtml = newHtml.Replace("{{comment}}", oldComment);
 
-                    var sdkContext =  _sdkCore.DbContextHelper.GetDbContext();
+                    var sdkContext =  sdkCore.DbContextHelper.GetDbContext();
                     var folder = await sdkContext.Folders.FirstAsync(x => x.Id == planning.SdkFolderId);
 
                     FolderTranslation folderTranslation =
@@ -291,7 +284,7 @@ public class FloatingLayerCaseCompletedHandler : IHandleMessages<FloatingLayerCa
                             x.PlanningId == planning.Id
                             && x.LanguageId == 1);
 
-                    var backendConfigurationDbContext = _backendConfigurationDbContextHelper.GetDbContext();
+                    var backendConfigurationDbContext = backendConfigurationDbContextHelper.GetDbContext();
                     var email = new Email
                     {
                         Body = newHtml,

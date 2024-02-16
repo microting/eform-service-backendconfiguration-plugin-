@@ -27,19 +27,12 @@ using Unit = QuestPDF.Infrastructure.Unit;
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
 
-public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseCompleted>
+public class WorkOrderCaseCompletedHandler(
+    BackendConfigurationDbContextHelper backendConfigurationDbContextHelper,
+    ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
+    eFormCore.Core sdkCore)
+    : IHandleMessages<WorkOrderCaseCompleted>
 {
-    private readonly eFormCore.Core _sdkCore;
-    private readonly ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
-    private readonly BackendConfigurationDbContextHelper _backendConfigurationDbContextHelper;
-
-    public WorkOrderCaseCompletedHandler(BackendConfigurationDbContextHelper backendConfigurationDbContextHelper, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper, eFormCore.Core sdkCore)
-    {
-        _backendConfigurationDbContextHelper = backendConfigurationDbContextHelper;
-        _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper;
-        _sdkCore = sdkCore;
-    }
-
     public async Task Handle(WorkOrderCaseCompleted message)
     {
         Console.WriteLine("WorkOrderCaseCompletedHandler .Handle called");
@@ -47,11 +40,11 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
         Console.WriteLine($"message.MicrotingUId: {message.MicrotingUId}");
         Console.WriteLine($"message.CheckId: {message.CheckId}");
         Console.WriteLine($"message.SiteUId: {message.SiteUId}");
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var
-            itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
+            itemsPlanningPnDbContext = itemsPlanningDbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
 
         var eformQuery = sdkDbContext.CheckListTranslations
             .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
@@ -480,9 +473,9 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
     {
         Console.WriteLine($"Deploying eform to {propertyWorkers.Count} workers");
         int? folderId = null;
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
         var i = 0;
         DateTime startDate = new DateTime(2022, 12, 5);
         var displayOrder = (int)(DateTime.UtcNow - startDate).TotalSeconds;
@@ -533,7 +526,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             }
 
             var assignedTo = "";
-            var mainElement = await _sdkCore.ReadeForm(eformId, siteLanguage);
+            var mainElement = await sdkCore.ReadeForm(eformId, siteLanguage);
             mainElement.Label = " ";
             mainElement.ElementList[0].QuickSyncEnabled = true;
             mainElement.EnableQuickSync = true;
@@ -616,7 +609,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             int caseId = 0;
             if (workorderCase.CaseStatusesEnum != CaseStatusesEnum.Completed)
             {
-                caseId = (int)await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, folderId);
+                caseId = (int)await sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, folderId);
             }
             await new WorkorderCase
             {
@@ -643,9 +636,9 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
     private async Task RetractEform(WorkorderCase workOrderCase)
     {
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
 
         if (workOrderCase.ParentWorkorderCaseId != null)
         {
@@ -655,7 +648,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             foreach (var theCase in workOrdersToRetract)
             {
                 try {
-                    await _sdkCore.CaseDelete(theCase.CaseId);
+                    await sdkCore.CaseDelete(theCase.CaseId);
                 } catch (Exception e) {
                     Console.WriteLine(e);
                     Console.WriteLine($"faild to delete case {theCase.CaseId}");
@@ -670,7 +663,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
             {
                 try
                 {
-                    await _sdkCore.CaseDelete(parentCase.CaseId);
+                    await sdkCore.CaseDelete(parentCase.CaseId);
                 } catch (Exception e) {
                     Console.WriteLine(e);
                     Console.WriteLine($"faild to delete case {parentCase.CaseId}");
@@ -700,7 +693,7 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
                         var i = 0;
                         foreach (var imageName in picturesOfTasks)
                         {
-                            var storageResult = _sdkCore.GetFileFromS3Storage(imageName).GetAwaiter().GetResult();
+                            var storageResult = sdkCore.GetFileFromS3Storage(imageName).GetAwaiter().GetResult();
                             x.Item().Image(storageResult.ResponseStream)
                                 .FitArea();
                             if (i < picturesOfTasks.Count - 1)
@@ -720,14 +713,14 @@ public class WorkOrderCaseCompletedHandler : IHandleMessages<WorkOrderCaseComple
 
         // Upload PDF
         // string pdfFileName = null;
-        string hash = await _sdkCore.PdfUpload(tempPDFFilePath);
+        string hash = await sdkCore.PdfUpload(tempPDFFilePath);
         if (hash != null)
         {
             //rename local file
             FileInfo fileInfo = new FileInfo(tempPDFFilePath);
             fileInfo.CopyTo(downloadPath + "/" + hash + ".pdf", true);
             fileInfo.Delete();
-            await _sdkCore.PutFileToStorageSystem(Path.Combine(downloadPath, $"{hash}.pdf"), $"{hash}.pdf");
+            await sdkCore.PutFileToStorageSystem(Path.Combine(downloadPath, $"{hash}.pdf"), $"{hash}.pdf");
 
             // delete local file
             File.Delete(downloadPath + "/" + hash + ".pdf");

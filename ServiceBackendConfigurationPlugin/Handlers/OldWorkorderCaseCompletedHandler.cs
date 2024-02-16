@@ -23,19 +23,12 @@ using KeyValuePair = Microting.eForm.Dto.KeyValuePair;
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
 
-public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCaseCompleted>
+public class OldWorkOrderCaseCompletedHandler(
+    BackendConfigurationDbContextHelper backendConfigurationDbContextHelper,
+    ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
+    eFormCore.Core sdkCore)
+    : IHandleMessages<OldWorkOrderCaseCompleted>
 {
-    private readonly eFormCore.Core _sdkCore;
-    private readonly ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
-    private readonly BackendConfigurationDbContextHelper _backendConfigurationDbContextHelper;
-
-    public OldWorkOrderCaseCompletedHandler(BackendConfigurationDbContextHelper backendConfigurationDbContextHelper, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper, eFormCore.Core sdkCore)
-    {
-        _backendConfigurationDbContextHelper = backendConfigurationDbContextHelper;
-        _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper;
-        _sdkCore = sdkCore;
-    }
-
     public async Task Handle(OldWorkOrderCaseCompleted message)
     {
         Console.WriteLine("EFormCompletedHandler .Handle called");
@@ -43,11 +36,11 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
         Console.WriteLine($"message.MicrotingUId: {message.MicrotingUId}");
         Console.WriteLine($"message.CheckId: {message.CheckId}");
         Console.WriteLine($"message.SiteUId: {message.SiteUId}");
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var
-            itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
+            itemsPlanningPnDbContext = itemsPlanningDbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
 
         var eformQuery = sdkDbContext.CheckListTranslations
             .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
@@ -371,9 +364,9 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
         string updatedByName)
     {
         int? folderId = null;
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
         var i = 0;
         foreach (var propertyWorker in propertyWorkers)
         {
@@ -427,7 +420,7 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
                                    assignedTo +
                                    $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
             var siteLanguage = await sdkDbContext.Languages.FirstAsync(x => x.Id == site.LanguageId);
-            var mainElement = await _sdkCore.ReadeForm(eformId, siteLanguage);
+            var mainElement = await sdkCore.ReadeForm(eformId, siteLanguage);
             mainElement.Label = " ";
             mainElement.ElementList[0].QuickSyncEnabled = true;
             mainElement.EnableQuickSync = true;
@@ -487,7 +480,7 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
             }
 
             mainElement.StartDate = DateTime.Now.ToUniversalTime();
-            var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, folderId);
+            var caseId = await sdkCore.CaseCreate(mainElement, "", (int)site.MicrotingUid, folderId);
             await new WorkorderCase
             {
                 CaseId = (int)caseId,
@@ -510,9 +503,9 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
 
     private async Task RetractEform(WorkorderCase workOrderCase)
     {
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
 
         if (workOrderCase.ParentWorkorderCaseId != null)
         {
@@ -522,7 +515,7 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
             foreach (var theCase in workOrdersToRetract)
             {
                 try {
-                    await _sdkCore.CaseDelete(theCase.CaseId);
+                    await sdkCore.CaseDelete(theCase.CaseId);
                 } catch (Exception e) {
                     Console.WriteLine(e);
                     Console.WriteLine($"faild to delete case {theCase.CaseId}");
@@ -537,7 +530,7 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
             {
                 try
                 {
-                    await _sdkCore.CaseDelete(parentCase.CaseId);
+                    await sdkCore.CaseDelete(parentCase.CaseId);
                 } catch (Exception e) {
                     Console.WriteLine(e);
                     Console.WriteLine($"faild to delete case {parentCase.CaseId}");
@@ -604,14 +597,14 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
 
         // Upload PDF
         // string pdfFileName = null;
-        string hash = await _sdkCore.PdfUpload(tempPDFFilePath);
+        string hash = await sdkCore.PdfUpload(tempPDFFilePath);
         if (hash != null)
         {
             //rename local file
             FileInfo fileInfo = new FileInfo(tempPDFFilePath);
             fileInfo.CopyTo(downloadPath + "/" + hash + ".pdf", true);
             fileInfo.Delete();
-            await _sdkCore.PutFileToStorageSystem(Path.Combine(downloadPath, $"{hash}.pdf"), $"{hash}.pdf");
+            await sdkCore.PutFileToStorageSystem(Path.Combine(downloadPath, $"{hash}.pdf"), $"{hash}.pdf");
 
             // TODO Remove from file storage?
 
@@ -655,7 +648,7 @@ public class OldWorkOrderCaseCompletedHandler : IHandleMessages<OldWorkOrderCase
         }
         else
         {
-            var storageResult = await _sdkCore.GetFileFromS3Storage(imageName);
+            var storageResult = await sdkCore.GetFileFromS3Storage(imageName);
             var stream = storageResult.ResponseStream;
 
             using var image = new MagickImage(stream);

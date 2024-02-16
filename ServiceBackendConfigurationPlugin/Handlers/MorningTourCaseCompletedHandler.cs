@@ -12,28 +12,21 @@ using ServiceBackendConfigurationPlugin.Messages;
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
 
-public class MorningTourCaseCompletedHandler : IHandleMessages<MorningTourCaseCompleted>
+public class MorningTourCaseCompletedHandler(
+    eFormCore.Core sdkCore,
+    ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
+    BackendConfigurationDbContextHelper backendConfigurationDbContextHelper)
+    : IHandleMessages<MorningTourCaseCompleted>
 {
-    private readonly eFormCore.Core _sdkCore;
-    private readonly ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
-    private readonly BackendConfigurationDbContextHelper _backendConfigurationDbContextHelper;
-
-    public MorningTourCaseCompletedHandler(eFormCore.Core sdkCore, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper, BackendConfigurationDbContextHelper backendConfigurationDbContextHelper)
-    {
-        _sdkCore = sdkCore;
-        _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper;
-        _backendConfigurationDbContextHelper = backendConfigurationDbContextHelper;
-    }
-
     public async Task Handle(MorningTourCaseCompleted message)
     {
         return;
 
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var
-            itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
+            itemsPlanningPnDbContext = itemsPlanningDbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
 
         var dbCase = await sdkDbContext.Cases
                          .AsNoTracking()
@@ -95,7 +88,7 @@ public class MorningTourCaseCompletedHandler : IHandleMessages<MorningTourCaseCo
         var sdkSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == planningSites.First().SiteId);
         var language = await sdkDbContext.Languages.FirstAsync(x => x.Id == sdkSite.LanguageId);
         var caseIds = new List<int> {dbCase.Id};
-        var fieldValues = await _sdkCore.Advanced_FieldValueReadList(caseIds, language);
+        var fieldValues = await sdkCore.Advanced_FieldValueReadList(caseIds, language);
         // var chemicalDbContext = _chemicalDbContextHelper.GetDbContext();
         // var folder = await sdkDbContext.Folders.FirstAsync(x => x.Id == areaRule.FolderId);
 
@@ -103,10 +96,10 @@ public class MorningTourCaseCompletedHandler : IHandleMessages<MorningTourCaseCo
         {
 
             var aseSite = await sdkDbContext.Cases.SingleAsync(x => x.Id == caseSite.MicrotingSdkCaseId).ConfigureAwait(false);
-            await _sdkCore.CaseDelete((int) aseSite.MicrotingUid!);
+            await sdkCore.CaseDelete((int) aseSite.MicrotingUid!);
             var site = await sdkDbContext.Sites.FirstAsync(x => x.Id == caseSite.MicrotingSdkSiteId);
             var siteLanguage = await sdkDbContext.Languages.FirstAsync(x => x.Id == site.LanguageId);
-            var mainElement = await _sdkCore.ReadeForm(areaRule.SecondaryeFormId, siteLanguage);
+            var mainElement = await sdkCore.ReadeForm(areaRule.SecondaryeFormId, siteLanguage);
 
             foreach (var fieldValue in fieldValues)
             {
@@ -191,7 +184,7 @@ public class MorningTourCaseCompletedHandler : IHandleMessages<MorningTourCaseCo
             mainElement.StartDate = DateTime.Now.ToUniversalTime();
             mainElement.EndDate = DateTime.Now.AddYears(10).ToUniversalTime();
             mainElement.Repeated = 1;
-            var caseId = await _sdkCore.CaseCreate(mainElement, "", (int)site!.MicrotingUid!, areaRule.FolderId).ConfigureAwait(false);
+            var caseId = await sdkCore.CaseCreate(mainElement, "", (int)site!.MicrotingUid!, areaRule.FolderId).ConfigureAwait(false);
             var planningCase = new PlanningCase
             {
                 PlanningId = planning.Id,

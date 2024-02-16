@@ -24,12 +24,7 @@ SOFTWARE.
 
 namespace ServiceBackendConfigurationPlugin.Messages;
 
-public sealed class EformParsingError
+public sealed class EformParsingError(int caseId)
 {
-    public int CaseId { get; }
-
-    public EformParsingError(int caseId)
-    {
-        CaseId = caseId;
-    }
+    public int CaseId { get; } = caseId;
 }

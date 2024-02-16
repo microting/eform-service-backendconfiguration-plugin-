@@ -10,27 +10,18 @@ using ServiceBackendConfigurationPlugin.Messages;
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
 
-public class EformRetrievedHandler : IHandleMessages<eFormRetrieved>
+public class EformRetrievedHandler(
+    eFormCore.Core sdkCore,
+    ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
+    BackendConfigurationDbContextHelper backendConfigurationDbContextHelper)
+    : IHandleMessages<eFormRetrieved>
 {
-    private readonly eFormCore.Core _sdkCore;
-    private readonly ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
-    private readonly BackendConfigurationDbContextHelper _backendConfigurationDbContextHelper;
-
-    public EformRetrievedHandler(eFormCore.Core sdkCore,
-            ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
-            BackendConfigurationDbContextHelper backendConfigurationDbContextHelper)
-        {
-            _sdkCore = sdkCore;
-            _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper;
-            _backendConfigurationDbContextHelper = backendConfigurationDbContextHelper;
-        }
-
     public async Task Handle(eFormRetrieved message)
     {
-        await using MicrotingDbContext sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
-        await using ItemsPlanningPnDbContext itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
+        await using MicrotingDbContext sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
+        await using ItemsPlanningPnDbContext itemsPlanningPnDbContext = itemsPlanningDbContextHelper.GetDbContext();
         await using BackendConfigurationPnDbContext backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
 
         var theCase = await sdkDbContext.Cases.FirstOrDefaultAsync(x => x.Id == message.CaseId);
 

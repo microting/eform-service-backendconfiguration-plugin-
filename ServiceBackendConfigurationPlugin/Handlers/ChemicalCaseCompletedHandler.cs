@@ -23,29 +23,21 @@ using PlanningSite = Microting.EformBackendConfigurationBase.Infrastructure.Data
 
 namespace ServiceBackendConfigurationPlugin.Handlers;
 
-public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseCompleted>
+public class ChemicalCaseCompletedHandler(
+    ChemicalDbContextHelper chemicalDbContextHelper,
+    BackendConfigurationDbContextHelper backendConfigurationDbContextHelper,
+    ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
+    eFormCore.Core sdkCore)
+    : IHandleMessages<ChemicalCaseCompleted>
 {
-    private readonly eFormCore.Core _sdkCore;
-    private readonly ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
-    private readonly BackendConfigurationDbContextHelper _backendConfigurationDbContextHelper;
-    private readonly ChemicalDbContextHelper _chemicalDbContextHelper;
-
-    public ChemicalCaseCompletedHandler(ChemicalDbContextHelper chemicalDbContextHelper, BackendConfigurationDbContextHelper backendConfigurationDbContextHelper, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper, eFormCore.Core sdkCore)
-    {
-        _chemicalDbContextHelper = chemicalDbContextHelper;
-        _backendConfigurationDbContextHelper = backendConfigurationDbContextHelper;
-        _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper;
-        _sdkCore = sdkCore;
-    }
-
     public async Task Handle(ChemicalCaseCompleted message)
     {
 
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var
-            itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
+            itemsPlanningPnDbContext = itemsPlanningDbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
 
         var dbCase = await sdkDbContext.Cases
                          .AsNoTracking()
@@ -104,8 +96,8 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
         var sdkSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == planningSites.First().SiteId);
         var language = await sdkDbContext.Languages.FirstAsync(x => x.Id == sdkSite.LanguageId);
         var caseIds = new List<int> {dbCase.Id};
-        var fieldValues = await _sdkCore.Advanced_FieldValueReadList(caseIds, language);
-        var chemicalDbContext = _chemicalDbContextHelper.GetDbContext();
+        var fieldValues = await sdkCore.Advanced_FieldValueReadList(caseIds, language);
+        var chemicalDbContext = chemicalDbContextHelper.GetDbContext();
         var folder = await sdkDbContext.Folders.FirstAsync(x => x.Id == areaRule.FolderId);
 
         if (planningCaseSite.MicrotingSdkeFormId == checkListTranslation.CheckListId)
@@ -213,7 +205,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                     if (currentDeployment != null)
                     {
                         // var theCheckListSite = await sdkDbContext.CheckListSites.AsNoTracking().FirstAsync(x => x.Id == currentDeployment.SdkCaseId);
-                        await _sdkCore.CaseDelete(currentDeployment.SdkCaseId);
+                        await sdkCore.CaseDelete(currentDeployment.SdkCaseId);
                         await currentDeployment!.Delete(backendConfigurationPnDbContext);
                     }
 
@@ -225,7 +217,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                     foreach (var chemicalProductPropertySite in chemicalProductPropertySites)
                     {
                         // var checkListSite = await sdkDbContext.CheckListSites.AsNoTracking().FirstAsync(x => x.Id == chemicalProductPropertySite.SdkCaseId);
-                        await _sdkCore.CaseDelete(chemicalProductPropertySite.SdkCaseId);
+                        await sdkCore.CaseDelete(chemicalProductPropertySite.SdkCaseId);
                         await chemicalProductPropertySite.Delete(backendConfigurationPnDbContext);
                     }
 
@@ -263,7 +255,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                         }
                     }
 
-                    var mainElement = await _sdkCore.ReadeForm(checkListTranslation.CheckListId, language);
+                    var mainElement = await sdkCore.ReadeForm(checkListTranslation.CheckListId, language);
                     mainElement = await ModifyChemicalMainElement(mainElement, chemical, product,
                             productName, folderMicrotingId, areaRule, sdkSite, totalLocations.Replace("|", ", "))
                         .ConfigureAwait(false);
@@ -280,7 +272,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                             .RemoveAt(0);
                     }
 
-                    var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
+                    var caseId = await sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
                         folder.Id);
                     var thisDbCase = await sdkDbContext.CheckListSites.AsNoTracking()
                         .FirstAsync(x => x.MicrotingUid == caseId);
@@ -306,7 +298,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                         {
                             var site = await
                                 sdkDbContext.Sites.FirstOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
-                            var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
+                            var siteCaseId = await sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
                                 folder.Id);
                             var chemicalProductPropertySite = new ChemicalProductPropertySite
                             {
@@ -436,12 +428,12 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
 
                     if (cpp.Locations == "")
                     {
-                        await _sdkCore.CaseDelete(cpp.SdkCaseId);
+                        await sdkCore.CaseDelete(cpp.SdkCaseId);
                         await cpp.Delete(backendConfigurationPnDbContext);
                     }
                     else
                     {
-                        await _sdkCore.CaseDelete(cpp.SdkCaseId);
+                        await sdkCore.CaseDelete(cpp.SdkCaseId);
                         await cpp.Delete(backendConfigurationPnDbContext);
                         var chemical = await chemicalDbContext.Chemicals
                             .Include(x => x.ClassificationAndLabeling)
@@ -495,7 +487,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                                 f.MicrotingUid
                             }).FirstAsync(x => x.Name == folderLookUpName && x.ParentId == folder.Id);
                         var folderMicrotingId = folderTranslation.MicrotingUid.ToString();
-                        var mainElement = await _sdkCore.ReadeForm(checkListTranslation.CheckListId, language);
+                        var mainElement = await sdkCore.ReadeForm(checkListTranslation.CheckListId, language);
                         mainElement = await ModifyChemicalMainElement(mainElement, chemical, product,
                             productName, folderMicrotingId, areaRule, sdkSite, cpp.Locations);
                         List<Microting.eForm.Dto.KeyValuePair> options =
@@ -521,7 +513,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                                 .RemoveAt(0);
                         }
 
-                        var caseId = await _sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
+                        var caseId = await sdkCore.CaseCreate(mainElement, "", (int) sdkSite.MicrotingUid,
                             folder.Id);
                         var thisDbCase = await sdkDbContext.CheckListSites.AsNoTracking()
                             .FirstAsync(x => x.MicrotingUid == caseId);
@@ -546,7 +538,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                             {
                                 var site = await
                                     sdkDbContext.Sites.FirstOrDefaultAsync(x => x.Id == propertyWorker.WorkerId);
-                                var siteCaseId = await _sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
+                                var siteCaseId = await sdkCore.CaseCreate(mainElement, "", (int) site!.MicrotingUid!,
                                     folder.Id);
                                 var chemicalProductPropertySite = new ChemicalProductPropertySite
                                 {
@@ -836,9 +828,9 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
                     }
                 }
 
-                var pdfId = await _sdkCore.PdfUpload(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
+                var pdfId = await sdkCore.PdfUpload(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
 
-                await _sdkCore.PutFileToStorageSystem(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
+                await sdkCore.PutFileToStorageSystem(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"),
                     $"{product.FileName}.pdf");
                 File.Delete(Path.Combine(Path.GetTempPath(), $"{product.FileName}.pdf"));
 
@@ -863,7 +855,7 @@ public class ChemicalCaseCompletedHandler : IHandleMessages<ChemicalCaseComplete
     private async Task<Planning> CreateItemPlanningObject(int eformId, string eformName, int folderId,
         AreaRulePlanningModel areaRulePlanningModel, AreaRule areaRule)
     {
-        var _backendConfigurationPnDbContext = _backendConfigurationDbContextHelper.GetDbContext();
+        var _backendConfigurationPnDbContext = backendConfigurationDbContextHelper.GetDbContext();
         var propertyItemPlanningTagId = await _backendConfigurationPnDbContext.Properties
             .Where(x => x.Id == areaRule.PropertyId)
             .Select(x => x.ItemPlanningTagId)

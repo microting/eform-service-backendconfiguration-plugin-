@@ -37,23 +37,15 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
+public class EFormCompletedHandler(
+    eFormCore.Core sdkCore,
+    ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
+    BackendConfigurationDbContextHelper backendConfigurationDbContextHelper,
+    ChemicalDbContextHelper chemicalDbContextHelper,
+    IBus bus)
+    : IHandleMessages<eFormCompleted>
 {
-    private readonly eFormCore.Core _sdkCore;
-    private readonly ItemsPlanningDbContextHelper _itemsPlanningDbContextHelper;
-    private readonly BackendConfigurationDbContextHelper _backendConfigurationDbContextHelper;
-    private readonly ChemicalDbContextHelper _chemicalDbContextHelper;
-    private readonly IBus _bus;
-
-    public EFormCompletedHandler(eFormCore.Core sdkCore, ItemsPlanningDbContextHelper itemsPlanningDbContextHelper,
-        BackendConfigurationDbContextHelper backendConfigurationDbContextHelper, ChemicalDbContextHelper chemicalDbContextHelper, IBus bus)
-    {
-        _sdkCore = sdkCore;
-        _itemsPlanningDbContextHelper = itemsPlanningDbContextHelper;
-        _backendConfigurationDbContextHelper = backendConfigurationDbContextHelper;
-        _chemicalDbContextHelper = chemicalDbContextHelper;
-        _bus = bus;
-    }
+    private readonly ChemicalDbContextHelper _chemicalDbContextHelper = chemicalDbContextHelper;
 
     public async Task Handle(eFormCompleted message)
     {
@@ -62,11 +54,11 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
         Console.WriteLine($"message.MicrotingUId: {message.MicrotingUId}");
         Console.WriteLine($"message.CheckId: {message.CheckId}");
         Console.WriteLine($"message.SiteUId: {message.SiteUId}");
-        await using var sdkDbContext = _sdkCore.DbContextHelper.GetDbContext();
+        await using var sdkDbContext = sdkCore.DbContextHelper.GetDbContext();
         await using var
-            itemsPlanningPnDbContext = _itemsPlanningDbContextHelper.GetDbContext();
+            itemsPlanningPnDbContext = itemsPlanningDbContextHelper.GetDbContext();
         await using var backendConfigurationPnDbContext =
-            _backendConfigurationDbContextHelper.GetDbContext();
+            backendConfigurationDbContextHelper.GetDbContext();
 
         // var eformQuery = sdkDbContext.CheckListTranslations
         //     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
@@ -155,13 +147,13 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
 
         if (eformIdForNewTasks == dbCase.CheckListId && workorderCase != null)
         {
-            await _bus.SendLocal(new WorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
+            await bus.SendLocal(new WorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
                 message.SiteUId));
             // WorkorderCaseCompletedHandler will handle this case
         }
         else if (eformIdForOngoingTasks == dbCase.CheckListId && workorderCase != null)
         {
-            await _bus.SendLocal(new WorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
+            await bus.SendLocal(new WorkOrderCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
                 message.SiteUId));
             // WorkorderCaseCompletedHandler will handle this case
         }
@@ -231,7 +223,7 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
                 if (planningCaseSite.MicrotingSdkeFormId == checkListTranslation.CheckListId)
                 {
                     // ChemicalCaseCompletedHandler will handle this case
-                    await _bus.SendLocal(new ChemicalCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
+                    await bus.SendLocal(new ChemicalCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
                         message.SiteUId));
                 }
                 else
@@ -241,7 +233,7 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
                     if (planningCaseSite.MicrotingSdkeFormId == checkListTranslation.CheckListId)
                     {
                         // ChemicalCaseCompletedHandler will handle this case
-                        await _bus.SendLocal(new ChemicalCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
+                        await bus.SendLocal(new ChemicalCaseCompleted(message.CaseId, message.MicrotingUId, message.CheckId,
                             message.SiteUId));
                     }
                     else
@@ -366,7 +358,7 @@ public class EFormCompletedHandler : IHandleMessages<eFormCompleted>
                 if (eformIdForControlFloatingLayer == dbCase.CheckListId)
                 {
                     // FloatingLayerCaseCompletedHandler will handle this case
-                    await _bus.SendLocal(new FloatingLayerCaseCompleted(message.CaseId, message.MicrotingUId,
+                    await bus.SendLocal(new FloatingLayerCaseCompleted(message.CaseId, message.MicrotingUId,
                         message.CheckId, message.SiteUId));
                 }
 
