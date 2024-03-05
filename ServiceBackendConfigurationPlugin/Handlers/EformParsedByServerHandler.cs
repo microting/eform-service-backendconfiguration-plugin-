@@ -93,7 +93,8 @@ public class EformParsedByServerHandler(
         {
             var property = await backendConfigurationPnDbContext.Properties.FirstAsync(x => x.Id == areaRulePlanning.PropertyId);
 
-            var planning = await itemsPlanningPnDbContext.Plannings.AsNoTracking().FirstAsync(x => x.Id == planningCaseSite.PlanningId);
+            var planning = await itemsPlanningPnDbContext.Plannings.AsNoTracking().FirstAsync(x =>
+                x.Id == planningCaseSite.PlanningId && x.WorkflowState != Constants.WorkflowStates.Removed);
 
             var planningSite = await backendConfigurationPnDbContext.PlanningSites
                 .Where(x => x.WorkflowState != ChemicalsBase.Infrastructure.Constants.Constants.WorkflowStates.Removed)
