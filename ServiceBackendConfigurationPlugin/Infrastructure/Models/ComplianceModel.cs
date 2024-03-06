@@ -24,4 +24,6 @@ public class ComplianceModel
     public int CaseId { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public string FolderName { get; set; }
 }

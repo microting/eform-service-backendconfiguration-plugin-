@@ -1042,6 +1042,12 @@ public class SearchListJob : IJob
                                 .Distinct()
                                 .ToListAsync().ConfigureAwait(false);
 
+                            var sdkFolderName = await _itemsPlanningPnDbContext.Plannings
+                                .Where(x => x.Id == compliance.PlanningId)
+                                .Select(x => x.SdkFolderName)
+                                .FirstAsync()
+                                .ConfigureAwait(false);
+
                             var sitesList = await _sdkDbContext.Sites.Where(x => planningSites.Contains(x.Id))
                                 .ToListAsync()
                                 .ConfigureAwait(false);
@@ -1061,7 +1067,8 @@ public class SearchListJob : IJob
                                 Id = compliance.Id,
                                 ItemName = planningNameTranslation.Name,
                                 PlanningId = compliance.PlanningId,
-                                Responsible = responsible
+                                Responsible = responsible,
+                                FolderName = sdkFolderName
                             };
 
                             entities.Add(complianceModel);
@@ -1783,7 +1790,7 @@ public class SearchListJob : IJob
                       "<td width=\"99\"" +
                       "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
                       "<p align=\"left\" style=\"orphans: 2; widows: 2\">" +
-                      $"<span>{complianceModel.ControlArea}</span></p>" +
+                      $"<span>{complianceModel.FolderName}</span></p>" +
                       "</td>" +
                       "<td width=\"99\"" +
                       "style=\"border-left: 1px solid #000000; border-right: 1px solid #000000; border-bottom: 1px solid #000000;  padding: 0 0.08in\">" +
