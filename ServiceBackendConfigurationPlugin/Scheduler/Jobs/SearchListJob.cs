@@ -835,32 +835,60 @@ public class SearchListJob : IJob
 
                 break;
             }
-            case 5:
+            case 16:
             {
+
+                var brokenPlannings = await _itemsPlanningPnDbContext.Plannings
+                    .Where(x => x.ShowExpireDate == false)
+                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
                 // Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 5:00 - Documents");
-                // var properties = await _backendConfigurationDbContext.Properties
-                //     .Where(x => x.MainMailAddress != null && x.MainMailAddress != "")
-                //     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
+                var property = await _backendConfigurationDbContext.Properties
+                    .Where(x => x.MainMailAddress != null && x.MainMailAddress != "")
+                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).FirstAsync();
                 //
                 // var caseTemplateDbContext = _caseTemplateDbContextHelper.GetDbContext();
-                // var sendGridKey =
-                //     _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
+                var sendGridKey =
+                    _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
                 //
-                // foreach (var property in properties)
-                // {
-                //
-                //     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
-                //         $"Dokumenter: {customerNo} {property.Name}");
-                //     var toEmailAddress = new List<EmailAddress>();
-                //     if (!string.IsNullOrEmpty(property.MainMailAddress))
-                //     {
-                //         toEmailAddress.AddRange(
-                //             property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
-                //     }
-                //
-                //     if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
-                //     {
-                //         var sendGridClient = new SendGridClient(sendGridKey.Value);
+
+                    //
+                var fromEmailAddress = new EmailAddress("no-reply@microting.com",
+                    $"Dokumenter: {customerNo} {property.Name}");
+                var toEmailAddress = new List<EmailAddress>();
+                if (!string.IsNullOrEmpty(property.MainMailAddress))
+                {
+                    toEmailAddress.AddRange(
+                        property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
+                }
+
+                if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
+                {
+                    var sendGridClient = new SendGridClient(sendGridKey.Value);
+
+                    var stringBuilder = new StringBuilder();
+                    stringBuilder.Append("<html><body>");
+                    foreach (var brokenPlanning in brokenPlannings)
+                    {
+                        var planningTranslation = await _itemsPlanningPnDbContext.PlanningNameTranslation
+                            .FirstAsync(x => x.PlanningId == brokenPlanning.Id);
+                        stringBuilder.Append(
+                            $"<p>Planning with id: {brokenPlanning.Id} and name: {planningTranslation.Name} has ShowExpireDate set to false</p>");
+                    }
+
+                    stringBuilder.Append("</body></html>");
+
+                    var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress,
+                        toEmailAddress,
+                        $"Planning ShowExpireDate set to false: {customerNo}", null, stringBuilder.ToString());
+
+                    var responseMessage = await sendGridClient.SendEmailAsync(msg);
+                    if ((int) responseMessage.StatusCode < 200 ||
+                        (int) responseMessage.StatusCode >= 300)
+                    {
+                        throw new Exception($"Status: {responseMessage.StatusCode}");
+                    }
+                }
+
                 //         var assembly = Assembly.GetExecutingAssembly();
                 //         var assemblyName = assembly.GetName().Name;
                 //
