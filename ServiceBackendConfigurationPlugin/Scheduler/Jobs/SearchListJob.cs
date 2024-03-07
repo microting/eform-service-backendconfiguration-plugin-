@@ -835,7 +835,7 @@ public class SearchListJob : IJob
 
                 break;
             }
-            case 16:
+            case 18:
             {
 
                 var brokenPlannings = await _itemsPlanningPnDbContext.Plannings
@@ -844,7 +844,12 @@ public class SearchListJob : IJob
                 // Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 5:00 - Documents");
                 var property = await _backendConfigurationDbContext.Properties
                     .Where(x => x.MainMailAddress != null && x.MainMailAddress != "")
-                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).FirstAsync();
+                    .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).FirstOrDefaultAsync();
+
+                if (property == null)
+                {
+                    return;
+                }
                 //
                 // var caseTemplateDbContext = _caseTemplateDbContextHelper.GetDbContext();
                 var sendGridKey =
@@ -853,7 +858,7 @@ public class SearchListJob : IJob
 
                     //
                 var fromEmailAddress = new EmailAddress("no-reply@microting.com",
-                    $"Dokumenter: {customerNo} {property.Name}");
+                    $"Planning ShowExpireDate set to false: {customerNo}");
                 var toEmailAddress = new List<EmailAddress>();
                 if (!string.IsNullOrEmpty(property.MainMailAddress))
                 {
@@ -869,10 +874,18 @@ public class SearchListJob : IJob
                     stringBuilder.Append("<html><body>");
                     foreach (var brokenPlanning in brokenPlannings)
                     {
-                        var planningTranslation = await _itemsPlanningPnDbContext.PlanningNameTranslation
-                            .FirstAsync(x => x.PlanningId == brokenPlanning.Id);
-                        stringBuilder.Append(
-                            $"<p>Planning with id: {brokenPlanning.Id} and name: {planningTranslation.Name} has ShowExpireDate set to false</p>");
+                        try
+                        {
+                            var planningTranslation = await _itemsPlanningPnDbContext.PlanningNameTranslation
+                                .FirstAsync(x => x.PlanningId == brokenPlanning.Id);
+                            stringBuilder.Append(
+                                $"<p>Planning with id: {brokenPlanning.Id} and name: {planningTranslation.Name} has ShowExpireDate set to false</p>");
+                        }
+                        catch
+                        {
+                            stringBuilder.Append(
+                                $"<p>Planning with id: {brokenPlanning.Id} has ShowExpireDate set to false</p>");
+                        }
                     }
 
                     stringBuilder.Append("</body></html>");
