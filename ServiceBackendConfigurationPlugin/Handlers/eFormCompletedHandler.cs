@@ -355,12 +355,12 @@ public class EFormCompletedHandler(
                     }
                 }
 
-                if (eformIdForControlFloatingLayer == dbCase.CheckListId)
-                {
-                    // FloatingLayerCaseCompletedHandler will handle this case
-                    await bus.SendLocal(new FloatingLayerCaseCompleted(message.CaseId, message.MicrotingUId,
-                        message.CheckId, message.SiteUId));
-                }
+                // if (eformIdForControlFloatingLayer == dbCase.CheckListId)
+                // {
+                //     // FloatingLayerCaseCompletedHandler will handle this case
+                //     await bus.SendLocal(new FloatingLayerCaseCompleted(message.CaseId, message.MicrotingUId,
+                //         message.CheckId, message.SiteUId));
+                // }
 
 
                 // }
