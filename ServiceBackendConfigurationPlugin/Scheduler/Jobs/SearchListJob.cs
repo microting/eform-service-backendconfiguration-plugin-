@@ -866,7 +866,7 @@ public class SearchListJob : IJob
                         property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
                 }
 
-                if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
+                if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value) && brokenPlannings.Count > 0)
                 {
                     var sendGridClient = new SendGridClient(sendGridKey.Value);
 
