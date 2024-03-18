@@ -1202,56 +1202,56 @@ public class SearchListJob : IJob
 
                             newHtml = newHtml.Replace("{{customerNo}}", customerNo);
 
-                            stream =
-                                assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_list.png");
-                            if (stream == null)
-                            {
-                                throw new InvalidOperationException("Resource not found");
-                            }
-
-                            byte[] bytes;
-                            using (var memoryStream = new MemoryStream())
-                            {
-                                await stream.CopyToAsync(memoryStream);
-                                bytes = memoryStream.ToArray();
-                            }
-
-                            var attachment1 = new Attachment
-                            {
-                                Filename = "Compliance_list.png",
-                                Content = Convert.ToBase64String(bytes),
-                                ContentId = "list",
-                                Disposition = "inline"
-                            };
-                            attachments.Add(attachment1);
-
-                            stream =
-                                assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_edit.png");
-
-                            if (stream == null)
-                            {
-                                throw new InvalidOperationException("Resource not found");
-                            }
-
-                            using (var memoryStream = new MemoryStream())
-                            {
-                                await stream.CopyToAsync(memoryStream);
-                                bytes = memoryStream.ToArray();
-                            }
-
-                            var attachment2 = new Attachment
-                            {
-                                Filename = "Compliance_edit.png",
-                                Content = Convert.ToBase64String(bytes),
-                                ContentId = "edit",
-                                Disposition = "inline"
-                            };
-                            attachments.Add(attachment2);
-
+                            // stream =
+                            //     assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_list.png");
+                            // if (stream == null)
+                            // {
+                            //     throw new InvalidOperationException("Resource not found");
+                            // }
+                            //
+                            // byte[] bytes;
+                            // using (var memoryStream = new MemoryStream())
+                            // {
+                            //     await stream.CopyToAsync(memoryStream);
+                            //     bytes = memoryStream.ToArray();
+                            // }
+                            //
+                            // var attachment1 = new Attachment
+                            // {
+                            //     Filename = "Compliance_list.png",
+                            //     Content = Convert.ToBase64String(bytes),
+                            //     ContentId = "list",
+                            //     Disposition = "inline"
+                            // };
+                            // attachments.Add(attachment1);
+                            //
+                            // stream =
+                            //     assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_edit.png");
+                            //
+                            // if (stream == null)
+                            // {
+                            //     throw new InvalidOperationException("Resource not found");
+                            // }
+                            //
+                            // using (var memoryStream = new MemoryStream())
+                            // {
+                            //     await stream.CopyToAsync(memoryStream);
+                            //     bytes = memoryStream.ToArray();
+                            // }
+                            //
+                            // var attachment2 = new Attachment
+                            // {
+                            //     Filename = "Compliance_edit.png",
+                            //     Content = Convert.ToBase64String(bytes),
+                            //     ContentId = "edit",
+                            //     Disposition = "inline"
+                            // };
+                            // attachments.Add(attachment2);
+                            //
                             var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress,
                                 toEmailAddress,
                                 $"Regeloverholdelse: {customerNo} {property.Name}", null, newHtml);
-                            msg.AddAttachments(attachments);
+                            // msg.AddAttachments(attachments);
 
                             var responseMessage = await sendGridClient.SendEmailAsync(msg);
                             if ((int) responseMessage.StatusCode < 200 ||
