@@ -1032,7 +1032,7 @@ public class SearchListJob : IJob
                 foreach (var property in properties)
                 {
                     var fromEmailAddress = new EmailAddress("no-reply@microting.com",
-                        $"Regeloverholdelse: {customerNo} {property.Name}");
+                        $"Opgavestatus: {customerNo} {property.Name}");
                     var toEmailAddress = new List<EmailAddress>();
                     if (!string.IsNullOrEmpty(property.MainMailAddress))
                     {
@@ -1115,6 +1115,7 @@ public class SearchListJob : IJob
                             entities.Add(complianceModel);
                         }
 
+                        var expiredTodayModels = new List<ComplianceModel>();
                         var expiredComplianceModels = new List<ComplianceModel>();
                         var expiringIn1Month = new List<ComplianceModel>();
                         var expiringIn3Months = new List<ComplianceModel>();
@@ -1128,6 +1129,11 @@ public class SearchListJob : IJob
                             if (complianceModel.Deadline < DateTime.Now)
                             {
                                 expiredComplianceModels.Add(complianceModel);
+                                hasCompliances = true;
+                            }
+                            else if (complianceModel.Deadline == DateTime.Now)
+                            {
+                                expiredTodayModels.Add(complianceModel);
                                 hasCompliances = true;
                             }
                             else if (complianceModel.Deadline < DateTime.Now.AddMonths(1))
@@ -1180,11 +1186,10 @@ public class SearchListJob : IJob
                         newHtml = newHtml.Replace("{{dato}}", DateTime.Now.ToString("dd-MM-yyyy"));
                         newHtml = newHtml.Replace("{{emailaddresses}}", property.MainMailAddress);
 
-                        if ((expiringIn1Month.Count > 0 && DateTime.Now.DayOfWeek == DayOfWeek.Thursday) ||
-                            expiredComplianceModels.Count > 0 ||
-                            (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && DateTime.Now.Day < 8 &&
-                             hasCompliances))
+                        if (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && hasCompliances)
                         {
+                            newHtml = newHtml.Replace("{{expiredTodayProducts}}",
+                                await GenerateComplianceList(expiredTodayModels, property.Name));
                             newHtml = newHtml.Replace("{{expiredProducts}}",
                                 await GenerateComplianceList(expiredComplianceModels, property.Name));
                             newHtml = newHtml.Replace("{{expiringIn1Month}}",
@@ -1250,7 +1255,7 @@ public class SearchListJob : IJob
                             //
                             var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress,
                                 toEmailAddress,
-                                $"Regeloverholdelse: {customerNo} {property.Name}", null, newHtml);
+                                $"Opgavestatus: {customerNo} {property.Name}", null, newHtml);
                             // msg.AddAttachments(attachments);
 
                             var responseMessage = await sendGridClient.SendEmailAsync(msg);
