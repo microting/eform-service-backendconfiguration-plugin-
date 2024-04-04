@@ -1206,6 +1206,7 @@ public class SearchListJob : IJob
                             List<Attachment> attachments = new List<Attachment>();
 
                             newHtml = newHtml.Replace("{{customerNo}}", customerNo);
+                            newHtml = newHtml.Replace("{{numberOfExpiredTasks}}", expiredComplianceModels.Count.ToString());
 
                             // stream =
                             //     assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_list.png");
