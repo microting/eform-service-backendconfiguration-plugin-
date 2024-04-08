@@ -1050,7 +1050,17 @@ public class SearchListJob : IJob
                             .OrderBy(x => x.Deadline)
                             .ToListAsync();
 
+                        var completedComplianceWithinLast24HoursList = await _backendConfigurationDbContext.Compliances
+                            .Where(x => x.PropertyId == property.Id)
+                            .Where(x => x.WorkflowState == Constants.WorkflowStates.Removed)
+                            .Where(x => x.UpdatedAt > DateTime.Now.AddDays(-1))
+                            .AsNoTracking()
+                            .OrderBy(x => x.Deadline)
+                            .ToListAsync();
+
                         var entities = new List<ComplianceModel>();
+
+                        complianceList.AddRange(completedComplianceWithinLast24HoursList);
 
                         foreach (var compliance in complianceList)
                         {
@@ -1109,7 +1119,8 @@ public class SearchListJob : IJob
                                 ItemName = planningNameTranslation.Name,
                                 PlanningId = compliance.PlanningId,
                                 Responsible = responsible,
-                                FolderName = sdkFolderName
+                                FolderName = sdkFolderName,
+                                WorkflowState = compliance.WorkflowState
                             };
 
                             entities.Add(complianceModel);
@@ -1117,21 +1128,35 @@ public class SearchListJob : IJob
 
                         var expiredTodayModels = new List<ComplianceModel>();
                         var expiredComplianceModels = new List<ComplianceModel>();
+                        var expiredLast24HoursModels = new List<ComplianceModel>();
                         var expiringIn1Month = new List<ComplianceModel>();
-                        var expiringIn3Months = new List<ComplianceModel>();
-                        var expiringIn6Months = new List<ComplianceModel>();
-                        var expiringIn12Months = new List<ComplianceModel>();
-                        var otherProducts = new List<ComplianceModel>();
+                        // var expiringIn3Months = new List<ComplianceModel>();
+                        // var expiringIn6Months = new List<ComplianceModel>();
+                        // var expiringIn12Months = new List<ComplianceModel>();
+                        var expiringOver1Month = new List<ComplianceModel>();
                         var hasCompliances = false;
 
-                        foreach (var complianceModel in entities)
+                        foreach (var complianceModel in entities.Where(x => x.WorkflowState == Constants.WorkflowStates.Removed))
                         {
-                            if (complianceModel.Deadline < DateTime.Now)
+                            expiredLast24HoursModels.Add(complianceModel);
+                            hasCompliances = true;
+                        }
+
+                        foreach (var complianceModel in entities. Where(x => x.WorkflowState != Constants.WorkflowStates.Removed))
+                        {
+                            if (complianceModel.Deadline < DateTime.Now.AddDays(-1) &&
+                                complianceModel.Deadline > DateTime.Now.AddDays(-2))
+                            {
+                                expiredLast24HoursModels.Add(complianceModel);
+                                hasCompliances = true;
+                            }
+                            else if (complianceModel.Deadline < DateTime.Now)
                             {
                                 expiredComplianceModels.Add(complianceModel);
                                 hasCompliances = true;
                             }
-                            else if (complianceModel.Deadline == DateTime.Now)
+                            else
+                            if (complianceModel.Deadline == DateTime.Now)
                             {
                                 expiredTodayModels.Add(complianceModel);
                                 hasCompliances = true;
@@ -1141,24 +1166,24 @@ public class SearchListJob : IJob
                                 expiringIn1Month.Add(complianceModel);
                                 hasCompliances = true;
                             }
-                            else if (complianceModel.Deadline < DateTime.Now.AddMonths(3))
-                            {
-                                expiringIn3Months.Add(complianceModel);
-                                hasCompliances = true;
-                            }
-                            else if (complianceModel.Deadline < DateTime.Now.AddMonths(6))
-                            {
-                                expiringIn6Months.Add(complianceModel);
-                                hasCompliances = true;
-                            }
-                            else if (complianceModel.Deadline < DateTime.Now.AddMonths(12))
-                            {
-                                expiringIn12Months.Add(complianceModel);
-                                hasCompliances = true;
-                            }
+                            // else if (complianceModel.Deadline < DateTime.Now.AddMonths(3))
+                            // {
+                            //     expiringIn3Months.Add(complianceModel);
+                            //     hasCompliances = true;
+                            // }
+                            // else if (complianceModel.Deadline < DateTime.Now.AddMonths(6))
+                            // {
+                            //     expiringIn6Months.Add(complianceModel);
+                            //     hasCompliances = true;
+                            // }
+                            // else if (complianceModel.Deadline < DateTime.Now.AddMonths(12))
+                            // {
+                            //     expiringIn12Months.Add(complianceModel);
+                            //     hasCompliances = true;
+                            // }
                             else
                             {
-                                otherProducts.Add(complianceModel);
+                                expiringOver1Month.Add(complianceModel);
                                 hasCompliances = true;
                             }
                         }
@@ -1168,7 +1193,7 @@ public class SearchListJob : IJob
                         var assemblyName = assembly.GetName().Name;
 
                         var stream =
-                            assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_report.html");
+                            assembly.GetManifestResourceStream($"{assemblyName}.Resources.new_compliance_report.html");
                         string html;
                         if (stream == null)
                         {
@@ -1186,86 +1211,88 @@ public class SearchListJob : IJob
                         newHtml = newHtml.Replace("{{dato}}", DateTime.Now.ToString("dd-MM-yyyy"));
                         newHtml = newHtml.Replace("{{emailaddresses}}", property.MainMailAddress);
 
-                        if (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && hasCompliances)
+                        // if (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && hasCompliances)
+                        // {
+                        newHtml = newHtml.Replace("{{expiredTodayProducts}}",
+                            await GenerateComplianceList(expiredTodayModels, property.Name));
+                        newHtml = newHtml.Replace("{{expiredProducts}}",
+                            await GenerateComplianceList(expiredComplianceModels, property.Name));
+                        newHtml = newHtml.Replace("{{expiringIn1Month}}",
+                            await GenerateComplianceList(expiringIn1Month, property.Name));
+                        newHtml = newHtml.Replace("{{expiredLast24HoursModels}}",
+                            await GenerateComplianceList(expiredLast24HoursModels, property.Name));
+                        // newHtml = newHtml.Replace("{{expiringIn3Months}}",
+                        //     await GenerateComplianceList(expiringIn3Months, property.Name));
+                        // newHtml = newHtml.Replace("{{expiringIn6Months}}",
+                        //     await GenerateComplianceList(expiringIn6Months, property.Name));
+                        // newHtml = newHtml.Replace("{{expiringIn12Months}}",
+                        //     await GenerateComplianceList(expiringIn12Months, property.Name));
+                        newHtml = newHtml.Replace("{{expiringOver1Month}}",
+                            await GenerateComplianceList(expiringOver1Month, property.Name));
+
+                        List<Attachment> attachments = new List<Attachment>();
+
+                        newHtml = newHtml.Replace("{{customerNo}}", customerNo);
+                        newHtml = newHtml.Replace("{{numberOfExpiredTasks}}", expiredComplianceModels.Count.ToString());
+
+                        // stream =
+                        //     assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_list.png");
+                        // if (stream == null)
+                        // {
+                        //     throw new InvalidOperationException("Resource not found");
+                        // }
+                        //
+                        // byte[] bytes;
+                        // using (var memoryStream = new MemoryStream())
+                        // {
+                        //     await stream.CopyToAsync(memoryStream);
+                        //     bytes = memoryStream.ToArray();
+                        // }
+                        //
+                        // var attachment1 = new Attachment
+                        // {
+                        //     Filename = "Compliance_list.png",
+                        //     Content = Convert.ToBase64String(bytes),
+                        //     ContentId = "list",
+                        //     Disposition = "inline"
+                        // };
+                        // attachments.Add(attachment1);
+                        //
+                        // stream =
+                        //     assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_edit.png");
+                        //
+                        // if (stream == null)
+                        // {
+                        //     throw new InvalidOperationException("Resource not found");
+                        // }
+                        //
+                        // using (var memoryStream = new MemoryStream())
+                        // {
+                        //     await stream.CopyToAsync(memoryStream);
+                        //     bytes = memoryStream.ToArray();
+                        // }
+                        //
+                        // var attachment2 = new Attachment
+                        // {
+                        //     Filename = "Compliance_edit.png",
+                        //     Content = Convert.ToBase64String(bytes),
+                        //     ContentId = "edit",
+                        //     Disposition = "inline"
+                        // };
+                        // attachments.Add(attachment2);
+                        //
+                        var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress,
+                            toEmailAddress,
+                            $"Opgavestatus: {customerNo} {property.Name}", null, newHtml);
+                        // msg.AddAttachments(attachments);
+
+                        var responseMessage = await sendGridClient.SendEmailAsync(msg);
+                        if ((int) responseMessage.StatusCode < 200 ||
+                            (int) responseMessage.StatusCode >= 300)
                         {
-                            newHtml = newHtml.Replace("{{expiredTodayProducts}}",
-                                await GenerateComplianceList(expiredTodayModels, property.Name));
-                            newHtml = newHtml.Replace("{{expiredProducts}}",
-                                await GenerateComplianceList(expiredComplianceModels, property.Name));
-                            newHtml = newHtml.Replace("{{expiringIn1Month}}",
-                                await GenerateComplianceList(expiringIn1Month, property.Name));
-                            newHtml = newHtml.Replace("{{expiringIn3Months}}",
-                                await GenerateComplianceList(expiringIn3Months, property.Name));
-                            newHtml = newHtml.Replace("{{expiringIn6Months}}",
-                                await GenerateComplianceList(expiringIn6Months, property.Name));
-                            newHtml = newHtml.Replace("{{expiringIn12Months}}",
-                                await GenerateComplianceList(expiringIn12Months, property.Name));
-                            newHtml = newHtml.Replace("{{otherProducts}}",
-                                await GenerateComplianceList(otherProducts, property.Name));
-
-                            List<Attachment> attachments = new List<Attachment>();
-
-                            newHtml = newHtml.Replace("{{customerNo}}", customerNo);
-                            newHtml = newHtml.Replace("{{numberOfExpiredTasks}}", expiredComplianceModels.Count.ToString());
-
-                            // stream =
-                            //     assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_list.png");
-                            // if (stream == null)
-                            // {
-                            //     throw new InvalidOperationException("Resource not found");
-                            // }
-                            //
-                            // byte[] bytes;
-                            // using (var memoryStream = new MemoryStream())
-                            // {
-                            //     await stream.CopyToAsync(memoryStream);
-                            //     bytes = memoryStream.ToArray();
-                            // }
-                            //
-                            // var attachment1 = new Attachment
-                            // {
-                            //     Filename = "Compliance_list.png",
-                            //     Content = Convert.ToBase64String(bytes),
-                            //     ContentId = "list",
-                            //     Disposition = "inline"
-                            // };
-                            // attachments.Add(attachment1);
-                            //
-                            // stream =
-                            //     assembly.GetManifestResourceStream($"{assemblyName}.Resources.Compliance_edit.png");
-                            //
-                            // if (stream == null)
-                            // {
-                            //     throw new InvalidOperationException("Resource not found");
-                            // }
-                            //
-                            // using (var memoryStream = new MemoryStream())
-                            // {
-                            //     await stream.CopyToAsync(memoryStream);
-                            //     bytes = memoryStream.ToArray();
-                            // }
-                            //
-                            // var attachment2 = new Attachment
-                            // {
-                            //     Filename = "Compliance_edit.png",
-                            //     Content = Convert.ToBase64String(bytes),
-                            //     ContentId = "edit",
-                            //     Disposition = "inline"
-                            // };
-                            // attachments.Add(attachment2);
-                            //
-                            var msg = MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress,
-                                toEmailAddress,
-                                $"Opgavestatus: {customerNo} {property.Name}", null, newHtml);
-                            // msg.AddAttachments(attachments);
-
-                            var responseMessage = await sendGridClient.SendEmailAsync(msg);
-                            if ((int) responseMessage.StatusCode < 200 ||
-                                (int) responseMessage.StatusCode >= 300)
-                            {
-                                throw new Exception($"Status: {responseMessage.StatusCode}");
-                            }
+                            throw new Exception($"Status: {responseMessage.StatusCode}");
                         }
+                        //}
                     }
                 }
             }

@@ -71,6 +71,9 @@
     <EmbeddedResource Include="Resources\GHSHazardPictogram\GHS09AquaticHazard.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="Resources\new_compliance_report.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\Templates\file.docx" />
     <None Remove="Resources\Templates\page.html" />
     <EmbeddedResource Include="Resources\Templates\page.html" />

@@ -26,4 +26,6 @@ public class ComplianceModel
     public DateTime CreatedAt { get; set; }
 
     public string FolderName { get; set; }
+
+    public string WorkflowState { get; set; }
 }

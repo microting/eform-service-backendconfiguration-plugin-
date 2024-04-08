@@ -1,0 +1,335 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html lang="da-DK">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title></title>
+    <meta name="generator" content="LibreOffice 6.4.7.2 (Linux)"/>
+    <meta name="author" content="Niels Windfeld-lund"/>
+    <meta name="created" content="2022-08-10T09:04:00"/>
+    <meta name="changed" content="2022-08-13T14:15:40.744572267"/>
+    <meta name="AppVersion" content="16.0000"/>
+    <style type="text/css">
+        @page {
+            size: 8.27in 11.69in;
+            margin-left: 0.79in;
+            margin-right: 0.79in;
+            margin-top: 1.18in;
+            margin-bottom: 1.18in
+        }
+
+        p {
+            margin-bottom: 0.1in;
+            direction: ltr;
+            line-height: 115%;
+            text-align: left;
+            orphans: 2;
+            widows: 2;
+            background: transparent
+        }
+    </style>
+</head>
+<body lang="da-DK" link="#000080" vlink="#800000" dir="ltr"><p style="margin-bottom: 0.11in; line-height: 108%">
+    Rapport sendt fra: Microting eForm</p>
+<p style="margin-bottom: 0.11in; line-height: 108%">Rapport
+    fremsendt: {{dato}}</p>
+<!--<p style="margin-bottom: 0.11in; line-height: 108%">Rapport fremsendt-->
+<!--&lt;!&ndash;    til: {{emailaddresses}}</p>&ndash;&gt;-->
+<p style="margin-bottom: 0.11in; line-height: 108%">Rapport gældende
+    for: {{propertyName}}</p>
+<p style="margin-bottom: 0.11in; line-height: 108%"><br/>
+
+</p>
+<p style="margin-bottom: 0.11in; line-height: 108%"><b>Antal overskredne opgaver:</b>{{numberOfExpiredTasks}}</p>
+<p style="margin-bottom: 0.11in; line-height: 108%">Se evt. overskredne opgaver nederst i tabel og efterudfyld på web</p>
+<br>
+<p style="margin-bottom: 0.11in; line-height: 108%"><b>Udført sidste 24 timer</b></p>
+<table width="642" cellpadding="7" cellspacing="0">
+    <col width="99"/>
+
+    <col width="65"/>
+
+    <col width="61"/>
+
+    <col width="99"/>
+
+    <col width="88"/>
+
+    <col width="65"/>
+
+    <col width="64"/>
+
+    <tr valign="top">
+        <td width="99" bgcolor="#c1f0c8" style="background: #c1f0c8; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Id</span></p>
+        </td>
+        <td width="99" bgcolor="#c1f0c8" style="background: #c1f0c8; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ejendomme</span></p>
+        </td>
+        <td width="99" bgcolor="#c1f0c8" style="background: #c1f0c8; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Mapper</span></p>
+        </td>
+        <td width="99" bgcolor="#c1f0c8" style="background: #c1f0c8; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Opgave</span></p>
+        </td>
+        <td width="99" bgcolor="#c1f0c8" style="background: #c1f0c8; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ansvarlig</span></p>
+        </td>
+        <td width="99" bgcolor="#c1f0c8" style="background: #c1f0c8; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Udløbsdato</span></p>
+        </td>
+    </tr>
+    {{doneLast24Hours}}
+</table>
+<p style="margin-bottom: 0.11in; line-height: 108%"><br/>
+<p style="margin-bottom: 0.11in; line-height: 108%"><b>Overskredet sidste 24 timer</b></p>
+<table width="642" cellpadding="7" cellspacing="0">
+    <col width="99"/>
+
+    <col width="65"/>
+
+    <col width="61"/>
+
+    <col width="99"/>
+
+    <col width="88"/>
+
+    <col width="65"/>
+
+    <col width="64"/>
+
+    <tr valign="top">
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Id</span></p>
+        </td>
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ejendomme</span></p>
+        </td>
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Mapper</span></p>
+        </td>
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Opgave</span></p>
+        </td>
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ansvarlig</span></p>
+        </td>
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Udløbsdato</span></p>
+        </td>
+    </tr>
+    {{expiredLast24Hours}}
+</table>
+<p style="margin-bottom: 0.11in; line-height: 108%"><br/>
+<p style="margin-bottom: 0.11in; line-height: 108%"><b>Udløber i dag</b></p>
+<table width="642" cellpadding="7" cellspacing="0">
+    <col width="99"/>
+
+    <col width="65"/>
+
+    <col width="61"/>
+
+    <col width="99"/>
+
+    <col width="88"/>
+
+    <col width="65"/>
+
+    <col width="64"/>
+
+    <tr valign="top">
+        <td width="99" bgcolor="#ffd966" style="background: #ffd966; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Id</span></p>
+        </td>
+        <td width="99" bgcolor="#ffd966" style="background: #ffd966; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ejendomme</span></p>
+        </td>
+        <td width="99" bgcolor="#ffd966" style="background: #ffd966; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Mapper</span></p>
+        </td>
+        <td width="99" bgcolor="#ffd966" style="background: #ffd966; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Opgave</span></p>
+        </td>
+        <td width="99" bgcolor="#ffd966" style="background: #ffd966; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ansvarlig</span></p>
+        </td>
+        <td width="99" bgcolor="#ffd966" style="background: #ffd966; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Udløbsdato</span></p>
+        </td>
+    </tr>
+    {{expiredTodayProducts}}
+</table>
+<p style="margin-bottom: 0.11in; line-height: 108%"><br/>
+
+</p>
+<p style="margin-bottom: 0.11in; line-height: 108%"><b>Udløber 1-30 dage</b></p>
+<table width="642" cellpadding="7" cellspacing="0">
+    <col width="99"/>
+
+    <col width="65"/>
+
+    <col width="61"/>
+
+    <col width="99"/>
+
+    <col width="88"/>
+
+    <col width="65"/>
+
+    <col width="64"/>
+
+    <tr valign="top">
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Id</span></p>
+        </td>
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ejendomme</span></p>
+        </td>
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Mapper</span></p>
+        </td>
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+			<span>Opgave</span></p>
+        </td>
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ansvarlig</span></p>
+        </td>
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Udløbsdato</span></p>
+        </td>
+    </tr>
+    {{expiringIn1Month}}
+</table>
+<p style="margin-bottom: 0.11in; line-height: 108%"><br/>
+
+</p><p style="margin-bottom: 0.11in; line-height: 108%"><b>Udløber over 30 dage</b></p>
+<table width="642" cellpadding="7" cellspacing="0">
+    <col width="99"/>
+
+    <col width="65"/>
+
+    <col width="61"/>
+
+    <col width="99"/>
+
+    <col width="88"/>
+
+    <col width="65"/>
+
+    <col width="64"/>
+
+    <tr valign="top">
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Id</span></p>
+        </td>
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ejendomme</span></p>
+        </td>
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+			<span>Mappe</span></p>
+        </td>
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+			<span>Opgave</span></p>
+        </td>
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ansvarlig</span></p>
+        </td>
+        <td width="99" bgcolor="#e7e6e6" style="background: #e7e6e6; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Udløbsdato</span></p>
+        </td>
+    </tr>
+    {{expiringOver1Month}}
+</table>
+<p style="margin-bottom: 0.11in; line-height: 108%"><br/>
+
+</p>
+
+<p style="margin-bottom: 0.11in; line-height: 108%"><b>Overskredne opgaver</b></p>
+<table width="642" cellpadding="7" cellspacing="0">
+    <col width="99"/>
+
+    <col width="65"/>
+
+    <col width="61"/>
+
+    <col width="99"/>
+
+    <col width="88"/>
+
+    <col width="65"/>
+
+    <col width="64"/>
+
+    <tr valign="top">
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Id</span></p>
+        </td>
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ejendomme</span></p>
+        </td>
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Mapper</span></p>
+        </td>
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Opgave</span></p>
+        </td>
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Ansvarlig</span></p>
+        </td>
+        <td width="99" bgcolor="#f4b083" style="background: #f4b083; border: 1px solid #000; padding: 0 0.08in"><p
+                align="left" style="orphans: 2; widows: 2">
+            <span>Udløbsdato</span></p>
+        </td>
+    </tr>
+    {{expiredProducts}}
+</table>
+<p style="margin-bottom: 0.11in; line-height: 108%"><br/>
+
+</p>
+
+<p  style="margin-bottom: 0.11in; line-height: 108%">Log på <a href="https://{{customerNo}}.microting.com">https://{{customerNo}}.microting.com</a></p>
+<p style="margin-bottom: 0.11in; line-height: 108%">Vælg menupunktet ”Aktive planlagte opgaver” og tryk på <b>Redigér (blå blyant)</b> for at efterudfylde den
+overskredne opgave.</p>
+
+<p style="margin-bottom: 0.11in; line-height: 108%">Venlig hilsen</p>
+<p style="margin-bottom: 0.11in; line-height: 108%">
+
+</p>
+<p style="margin-bottom: 0.11in; line-height: 108%">Microting Support</p>
+<p style="margin-bottom: 0.11in; line-height: 108%">Tlf. 66 11 10 66</p>
+</body>
+</html>
