@@ -1019,7 +1019,7 @@ public class SearchListJob : IJob
 
             }
                 break;
-            case 7:
+            case 5:
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 6:00 - Compliance");
                 var properties = await _backendConfigurationDbContext.Properties
@@ -1129,6 +1129,7 @@ public class SearchListJob : IJob
                         var expiredTodayModels = new List<ComplianceModel>();
                         var expiredComplianceModels = new List<ComplianceModel>();
                         var expiredLast24HoursModels = new List<ComplianceModel>();
+                        var completedLast24HoursModels = new List<ComplianceModel>();
                         var expiringIn1Month = new List<ComplianceModel>();
                         // var expiringIn3Months = new List<ComplianceModel>();
                         // var expiringIn6Months = new List<ComplianceModel>();
@@ -1138,7 +1139,7 @@ public class SearchListJob : IJob
 
                         foreach (var complianceModel in entities.Where(x => x.WorkflowState == Constants.WorkflowStates.Removed))
                         {
-                            expiredLast24HoursModels.Add(complianceModel);
+                            completedLast24HoursModels.Add(complianceModel);
                             hasCompliances = true;
                         }
 
@@ -1219,8 +1220,10 @@ public class SearchListJob : IJob
                             await GenerateComplianceList(expiredComplianceModels, property.Name));
                         newHtml = newHtml.Replace("{{expiringIn1Month}}",
                             await GenerateComplianceList(expiringIn1Month, property.Name));
-                        newHtml = newHtml.Replace("{{expiredLast24HoursModels}}",
+                        newHtml = newHtml.Replace("{{expiredLast24Hours}}",
                             await GenerateComplianceList(expiredLast24HoursModels, property.Name));
+                        newHtml = newHtml.Replace("{{doneLast24Hours}}",
+                            await GenerateComplianceList(completedLast24HoursModels, property.Name));
                         // newHtml = newHtml.Replace("{{expiringIn3Months}}",
                         //     await GenerateComplianceList(expiringIn3Months, property.Name));
                         // newHtml = newHtml.Replace("{{expiringIn6Months}}",
