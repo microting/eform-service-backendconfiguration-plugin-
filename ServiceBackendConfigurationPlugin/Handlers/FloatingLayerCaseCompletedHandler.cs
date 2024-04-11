@@ -142,14 +142,15 @@ public class FloatingLayerCaseCompletedHandler(
             // }
 
             var planning =
-                await itemsPlanningPnDbContext.Plannings.AsNoTracking()
+                await itemsPlanningPnDbContext.Plannings
                     .FirstAsync(x => x.Id == itemPlanningId);
-            planning.NextExecutionTime = DateTime.UtcNow.AddDays(7);
+            var nextExecutionTime = DateTime.UtcNow.AddDays(7);
+            planning.NextExecutionTime = new DateTime(nextExecutionTime.Year, nextExecutionTime.Month, nextExecutionTime.Day, 0, 0, 0, DateTimeKind.Utc) ;
             planning.RepeatEvery = 7;
             planning.RepeatType = RepeatType.Day;
             await planning.Update(itemsPlanningPnDbContext);
 
-            var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.AsNoTracking()
+            var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings
                 .Include(x => x.AreaRule.AreaRuleTranslations)
                 .Where(x => x.ItemPlanningId == itemPlanningId).FirstAsync();
 
@@ -323,11 +324,10 @@ public class FloatingLayerCaseCompletedHandler(
             var planning =
                 await itemsPlanningPnDbContext.Plannings.AsNoTracking()
                     .FirstAsync(x => x.Id == itemPlanningId);
-            planning.NextExecutionTime = DateTime.UtcNow.AddDays(7);
             planning.RepeatEvery = 1;
             planning.RepeatType = RepeatType.Month;
-            planning.NextExecutionTime = new DateTime(planning.NextExecutionTime.Value.Year,
-                planning.NextExecutionTime.Value.AddMonths(1).Month, 1);
+            planning.NextExecutionTime = new DateTime(DateTime.Now.Year,
+                DateTime.Now.AddMonths(1).Month, 1, 0, 0, 0);
             await planning.Update(itemsPlanningPnDbContext);
 
             var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.AsNoTracking()
