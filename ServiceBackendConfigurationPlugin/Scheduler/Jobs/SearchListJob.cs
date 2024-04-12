@@ -1019,7 +1019,7 @@ public class SearchListJob : IJob
 
             }
                 break;
-            case 7:
+            case 5:
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 6:00 - Compliance");
                 var properties = await _backendConfigurationDbContext.Properties
@@ -1036,9 +1036,11 @@ public class SearchListJob : IJob
                     var toEmailAddress = new List<EmailAddress>();
                     if (!string.IsNullOrEmpty(property.MainMailAddress))
                     {
-                        toEmailAddress.AddRange(
-                            property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
+                        // toEmailAddress.AddRange(
+                        //     property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
                     }
+                    toEmailAddress.Add(new EmailAddress("rm@microting.com"));
+                    toEmailAddress.Add(new EmailAddress("nwl@microting.com"));
 
                     if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
                     {
