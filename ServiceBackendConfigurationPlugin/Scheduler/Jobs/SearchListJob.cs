@@ -1019,7 +1019,7 @@ public class SearchListJob : IJob
 
             }
                 break;
-            case 10:
+            case 7:
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 6:00 - Compliance");
                 var properties = await _backendConfigurationDbContext.Properties
