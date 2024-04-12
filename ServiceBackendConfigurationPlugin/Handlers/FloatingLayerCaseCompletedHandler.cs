@@ -100,7 +100,11 @@ public class FloatingLayerCaseCompletedHandler(
             .Where(x => x.MicrotingSdkCaseId == dbCase.Id)
             .Select(x => x.PlanningId)
             .FirstOrDefaultAsync();
-        if (checkBoxFloatingLayerOk == false)
+
+        var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings
+            .Include(x => x.AreaRule)
+            .Where(x => x.ItemPlanningId == itemPlanningId).FirstAsync();
+        if (checkBoxFloatingLayerOk == false && !backendPlanning.AreaRule.CreatedInGuide)
         {
             // retract old eform
             // await _sdkCore.CaseDelete(dbCase.Id);
@@ -149,10 +153,6 @@ public class FloatingLayerCaseCompletedHandler(
             planning.RepeatEvery = 7;
             planning.RepeatType = RepeatType.Day;
             await planning.Update(itemsPlanningPnDbContext);
-
-            var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings
-                .Include(x => x.AreaRule.AreaRuleTranslations)
-                .Where(x => x.ItemPlanningId == itemPlanningId).FirstAsync();
 
             backendPlanning.RepeatEvery = 7;
             backendPlanning.RepeatType = 0;
@@ -329,10 +329,6 @@ public class FloatingLayerCaseCompletedHandler(
             planning.NextExecutionTime = new DateTime(DateTime.Now.Year,
                 DateTime.Now.AddMonths(1).Month, 1, 0, 0, 0);
             await planning.Update(itemsPlanningPnDbContext);
-
-            var backendPlanning = await backendConfigurationPnDbContext.AreaRulePlannings.AsNoTracking()
-                .Include(x => x.AreaRule.AreaRuleTranslations)
-                .Where(x => x.ItemPlanningId == itemPlanningId).FirstAsync();
 
             backendPlanning.RepeatEvery = 1;
             backendPlanning.RepeatType = 2;
