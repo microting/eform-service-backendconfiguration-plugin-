@@ -1139,16 +1139,18 @@ public class SearchListJob : IJob
                         var expiringOver1Month = new List<ComplianceModel>();
                         var hasCompliances = false;
 
-                        foreach (var complianceModel in entities.Where(x => x.WorkflowState == Constants.WorkflowStates.Removed))
+                        var removed = entities.Where(x => x.WorkflowState == Constants.WorkflowStates.Removed);
+                        foreach (var complianceModel in removed)
                         {
                             completedLast24HoursModels.Add(complianceModel);
                             hasCompliances = true;
                         }
 
-                        foreach (var complianceModel in entities. Where(x => x.WorkflowState != Constants.WorkflowStates.Removed))
+                        var notRemoved = entities.Where(x => x.WorkflowState != Constants.WorkflowStates.Removed);
+                        foreach (var complianceModel in notRemoved)
                         {
-                            if (complianceModel.Deadline < DateTime.Now.AddDays(-1) &&
-                                complianceModel.Deadline > DateTime.Now.AddDays(-2))
+                            if (complianceModel.Deadline < DateTime.Now.AddDays(-2) &&
+                                complianceModel.Deadline > DateTime.Now.AddDays(-3))
                             {
                                 expiredLast24HoursModels.Add(complianceModel);
                                 hasCompliances = true;
@@ -1159,7 +1161,7 @@ public class SearchListJob : IJob
                                 hasCompliances = true;
                             }
                             else
-                            if (complianceModel.Deadline == DateTime.Now)
+                            if (complianceModel.Deadline == DateTime.Now.AddDays(-1))
                             {
                                 expiredTodayModels.Add(complianceModel);
                                 hasCompliances = true;
