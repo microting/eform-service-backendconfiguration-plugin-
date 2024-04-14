@@ -1149,8 +1149,8 @@ public class SearchListJob : IJob
                         var notRemoved = entities.Where(x => x.WorkflowState != Constants.WorkflowStates.Removed);
                         foreach (var complianceModel in notRemoved)
                         {
-                            if (complianceModel.Deadline < DateTime.Now.AddDays(-2) &&
-                                complianceModel.Deadline > DateTime.Now.AddDays(-3))
+                            if (complianceModel.Deadline < DateTime.Now.AddDays(-1) &&
+                                complianceModel.Deadline > DateTime.Now.AddDays(-2))
                             {
                                 expiredLast24HoursModels.Add(complianceModel);
                                 hasCompliances = true;
