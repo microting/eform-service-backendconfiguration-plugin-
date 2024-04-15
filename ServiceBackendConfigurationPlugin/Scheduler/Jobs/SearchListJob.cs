@@ -1056,6 +1056,7 @@ public class SearchListJob : IJob
                         var completedComplianceWithinLast24HoursList = await _backendConfigurationDbContext.Compliances
                             .Where(x => x.PropertyId == property.Id)
                             .Where(x => x.WorkflowState == Constants.WorkflowStates.Removed)
+                            .Where(x => x.MicrotingSdkCaseId != 0)
                             .Where(x => x.UpdatedAt > DateTime.Now.AddDays(-1))
                             .AsNoTracking()
                             .OrderBy(x => x.Deadline)
@@ -1154,6 +1155,7 @@ public class SearchListJob : IJob
                                 complianceModel.Deadline > DateTime.Now.AddDays(-2))
                             {
                                 expiredLast24HoursModels.Add(complianceModel);
+                                expiredComplianceModels.Add(complianceModel);
                                 hasCompliances = true;
                             }
                             else if (complianceModel.Deadline < DateTime.Now)
@@ -1165,6 +1167,7 @@ public class SearchListJob : IJob
                             if (complianceModel.Deadline == DateTime.Now.AddDays(-1))
                             {
                                 expiredTodayModels.Add(complianceModel);
+                                expiredComplianceModels.Add(complianceModel);
                                 hasCompliances = true;
                             }
                             else if (complianceModel.Deadline < DateTime.Now.AddMonths(1))
