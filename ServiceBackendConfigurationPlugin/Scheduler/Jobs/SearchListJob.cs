@@ -860,11 +860,12 @@ public class SearchListJob : IJob
                 var fromEmailAddress = new EmailAddress("no-reply@microting.com",
                     $"Planning ShowExpireDate set to false: {customerNo}");
                 var toEmailAddress = new List<EmailAddress>();
-                if (!string.IsNullOrEmpty(property.MainMailAddress))
-                {
-                    toEmailAddress.AddRange(
-                        property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
-                }
+                // if (!string.IsNullOrEmpty(property.MainMailAddress))
+                // {
+                //     toEmailAddress.AddRange(
+                //         property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
+                // }
+                toEmailAddress.Add(new EmailAddress("rm@microting.com"));
 
                 if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value) && brokenPlannings.Count > 0)
                 {
