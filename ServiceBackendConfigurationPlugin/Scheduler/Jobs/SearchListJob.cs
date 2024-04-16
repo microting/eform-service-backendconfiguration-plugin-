@@ -1053,18 +1053,29 @@ public class SearchListJob : IJob
                             .OrderBy(x => x.Deadline)
                             .ToListAsync();
 
+                        var startOfLast24Hours = DateTime.Now.AddDays(-1);
+
                         var completedComplianceWithinLast24HoursList = await _backendConfigurationDbContext.Compliances
                             .Where(x => x.PropertyId == property.Id)
                             .Where(x => x.WorkflowState == Constants.WorkflowStates.Removed)
                             .Where(x => x.MicrotingSdkCaseId != 0)
-                            .Where(x => x.UpdatedAt > DateTime.Now.AddDays(-1))
+                            .Where(x => x.UpdatedAt > startOfLast24Hours)
                             .AsNoTracking()
                             .OrderBy(x => x.Deadline)
                             .ToListAsync();
 
+                        foreach (var compliance in completedComplianceWithinLast24HoursList)
+                        {
+                            var sdkCase =
+                                await _sdkDbContext.Cases.FirstAsync(x => x.Id == compliance.MicrotingSdkCaseId);
+                            if (sdkCase.Status == 100)
+                            {
+                                complianceList.Add(compliance);
+                            }
+                        }
+
                         var entities = new List<ComplianceModel>();
 
-                        complianceList.AddRange(completedComplianceWithinLast24HoursList);
 
                         foreach (var compliance in complianceList)
                         {
@@ -1164,7 +1175,8 @@ public class SearchListJob : IJob
                                 hasCompliances = true;
                             }
                             else
-                            if (complianceModel.Deadline == DateTime.Now.AddDays(-1))
+                            if (complianceModel.Deadline > DateTime.Now &&
+                                complianceModel.Deadline < DateTime.Now.AddDays(1))
                             {
                                 expiredTodayModels.Add(complianceModel);
                                 expiredComplianceModels.Add(complianceModel);
