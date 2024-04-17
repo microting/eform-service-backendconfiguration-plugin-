@@ -1024,6 +1024,7 @@ public class SearchListJob : IJob
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 6:00 - Compliance");
                 var properties = await _backendConfigurationDbContext.Properties
+                    .Where(x => x.Id == 1)
                     .Where(x => x.MainMailAddress != null && x.MainMailAddress != "")
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
 
@@ -1160,6 +1161,8 @@ public class SearchListJob : IJob
                         }
 
                         var notRemoved = entities.Where(x => x.WorkflowState != Constants.WorkflowStates.Removed);
+                        var today = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0,0);
+                        var tomorrow = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0,0).AddDays(1);
                         foreach (var complianceModel in notRemoved)
                         {
                             if (complianceModel.Deadline < DateTime.Now.AddDays(-1) &&
@@ -1169,16 +1172,14 @@ public class SearchListJob : IJob
                                 expiredComplianceModels.Add(complianceModel);
                                 hasCompliances = true;
                             }
-                            else if (complianceModel.Deadline < DateTime.Now)
-                            {
-                                expiredComplianceModels.Add(complianceModel);
-                                hasCompliances = true;
-                            }
-                            else
-                            if (complianceModel.Deadline > DateTime.Now &&
-                                complianceModel.Deadline < DateTime.Now.AddDays(1))
+                            else if (complianceModel.Deadline >= today &&
+                                     complianceModel.Deadline < tomorrow)
                             {
                                 expiredTodayModels.Add(complianceModel);
+                                hasCompliances = true;
+                            }
+                            else if (complianceModel.Deadline < DateTime.Now)
+                            {
                                 expiredComplianceModels.Add(complianceModel);
                                 hasCompliances = true;
                             }
@@ -1187,21 +1188,6 @@ public class SearchListJob : IJob
                                 expiringIn1Month.Add(complianceModel);
                                 hasCompliances = true;
                             }
-                            // else if (complianceModel.Deadline < DateTime.Now.AddMonths(3))
-                            // {
-                            //     expiringIn3Months.Add(complianceModel);
-                            //     hasCompliances = true;
-                            // }
-                            // else if (complianceModel.Deadline < DateTime.Now.AddMonths(6))
-                            // {
-                            //     expiringIn6Months.Add(complianceModel);
-                            //     hasCompliances = true;
-                            // }
-                            // else if (complianceModel.Deadline < DateTime.Now.AddMonths(12))
-                            // {
-                            //     expiringIn12Months.Add(complianceModel);
-                            //     hasCompliances = true;
-                            // }
                             else
                             {
                                 expiringOver1Month.Add(complianceModel);
