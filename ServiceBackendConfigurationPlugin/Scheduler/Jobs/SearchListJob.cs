@@ -1109,11 +1109,16 @@ public class SearchListJob : IJob
                                 .Distinct()
                                 .ToListAsync().ConfigureAwait(false);
 
-                            var sdkFolderName = await _itemsPlanningPnDbContext.Plannings
+                            var sdkFolderId = await _itemsPlanningPnDbContext.Plannings
                                 .Where(x => x.Id == compliance.PlanningId)
-                                .Select(x => x.SdkFolderName)
+                                .Select(x => x.SdkFolderId)
                                 .FirstAsync()
                                 .ConfigureAwait(false);
+
+                            var sdkFolderName = await _sdkDbContext.FolderTranslations
+                                .Where(x => x.Id == sdkFolderId)
+                                .Select(x => x.Name)
+                                .FirstAsync();
 
                             var sitesList = await _sdkDbContext.Sites.Where(x => planningSites.Contains(x.Id))
                                 .ToListAsync()
