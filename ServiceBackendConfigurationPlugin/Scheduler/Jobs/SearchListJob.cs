@@ -1029,6 +1029,8 @@ public class SearchListJob : IJob
 
                 var sendGridKey =
                     _baseDbContext.ConfigurationValues.Single(x => x.Id == "EmailSettings:SendGridKey");
+                var danishLanguage = await _sdkDbContext.Languages.FirstAsync(x => x.LanguageCode == "da")
+                    .ConfigureAwait(false);
 
                 foreach (var property in properties)
                 {
@@ -1116,6 +1118,7 @@ public class SearchListJob : IJob
 
                             var sdkFolderName = await _sdkDbContext.FolderTranslations
                                 .Where(x => x.Id == sdkFolderId)
+                                .Where(x => x.LanguageId == danishLanguage.Id)
                                 .Select(x => x.Name)
                                 .FirstOrDefaultAsync() ?? await _itemsPlanningPnDbContext.Plannings
                                 .Where(x => x.Id == compliance.PlanningId)
