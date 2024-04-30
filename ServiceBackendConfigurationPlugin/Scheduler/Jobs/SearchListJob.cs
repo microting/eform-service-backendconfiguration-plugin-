@@ -1177,6 +1177,12 @@ public class SearchListJob : IJob
                         var removed = entities.Where(x => x.WorkflowState == Constants.WorkflowStates.Removed);
                         foreach (var complianceModel in removed)
                         {
+                            var planningCaseSites = await _itemsPlanningPnDbContext.PlanningCaseSites
+                                .Where(x => x.PlanningId == complianceModel.PlanningId)
+                                .Where(x => x.Status == 100)
+                                .FirstAsync();
+                            var sdkCase = await _sdkDbContext.Cases.FirstAsync(x => x.Id == planningCaseSites.MicrotingSdkCaseId);
+                            complianceModel.Deadline = sdkCase.DoneAtUserModifiable!.Value;
                             completedLast24HoursModels.Add(complianceModel);
                             hasCompliances = true;
                         }
