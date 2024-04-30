@@ -1116,6 +1116,16 @@ public class SearchListJob : IJob
                                 .FirstAsync()
                                 .ConfigureAwait(false);
 
+                            if (sdkFolderId is 0 or null)
+                            {
+                                // send email to RM about missing folder
+                                 MailHelper.CreateSingleEmailToMultipleRecipients(fromEmailAddress,
+                                     [new EmailAddress("rm@microting.dk")],
+                                    $"Missing folder for compliance: {customerNo} {property.Name}",
+                                    $"Compliance with id: {compliance.Id} is missing a folder",
+                                    $"Compliance with id: {compliance.Id} is missing a folder");
+                            }
+
                             var sdkFolderName = await _sdkDbContext.FolderTranslations
                                 .Where(x => x.Id == sdkFolderId)
                                 .Where(x => x.LanguageId == danishLanguage.Id)
