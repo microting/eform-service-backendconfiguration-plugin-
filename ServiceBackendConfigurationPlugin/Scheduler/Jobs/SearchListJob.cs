@@ -1047,7 +1047,7 @@ public class SearchListJob : IJob
 
                     if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
                     {
-
+                        var today = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0,0);
                         var complianceList = await _backendConfigurationDbContext.Compliances
                             .Where(x => x.PropertyId == property.Id)
                             .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed)
@@ -1055,7 +1055,7 @@ public class SearchListJob : IJob
                             .OrderBy(x => x.Deadline)
                             .ToListAsync();
 
-                        var startOfLast24Hours = DateTime.Now.AddDays(-1);
+                        var startOfLast24Hours = today.AddDays(-1);
 
                         var completedComplianceWithinLast24HoursList = await _backendConfigurationDbContext.Compliances
                             .Where(x => x.PropertyId == property.Id)
@@ -1177,18 +1177,15 @@ public class SearchListJob : IJob
                         var removed = entities.Where(x => x.WorkflowState == Constants.WorkflowStates.Removed);
                         foreach (var complianceModel in removed)
                         {
-                            var planningCaseSites = await _itemsPlanningPnDbContext.PlanningCaseSites
-                                .Where(x => x.PlanningId == complianceModel.PlanningId)
-                                .Where(x => x.Status == 100)
-                                .FirstAsync();
-                            var sdkCase = await _sdkDbContext.Cases.FirstAsync(x => x.Id == planningCaseSites.MicrotingSdkCaseId);
+                            var sdkCase =
+                                await _sdkDbContext.Cases.FirstAsync(x => x.Id == complianceModel.CaseId);
                             complianceModel.Deadline = sdkCase.DoneAtUserModifiable!.Value;
                             completedLast24HoursModels.Add(complianceModel);
                             hasCompliances = true;
                         }
 
                         var notRemoved = entities.Where(x => x.WorkflowState != Constants.WorkflowStates.Removed);
-                        var today = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0,0);
+
                         var tomorrow = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0,0).AddDays(1);
                         foreach (var complianceModel in notRemoved)
                         {
