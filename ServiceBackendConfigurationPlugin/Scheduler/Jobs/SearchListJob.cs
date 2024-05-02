@@ -1020,7 +1020,7 @@ public class SearchListJob : IJob
 
             }
                 break;
-            case 5:
+            case 8:
             {
                 Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 6:00 - Compliance");
                 var properties = await _backendConfigurationDbContext.Properties
@@ -1127,7 +1127,7 @@ public class SearchListJob : IJob
                             }
 
                             var sdkFolderName = await _sdkDbContext.FolderTranslations
-                                .Where(x => x.Id == sdkFolderId)
+                                .Where(x => x.FolderId == sdkFolderId)
                                 .Where(x => x.LanguageId == danishLanguage.Id)
                                 .Select(x => x.Name)
                                 .FirstOrDefaultAsync() ?? await _itemsPlanningPnDbContext.Plannings
