@@ -1022,7 +1022,7 @@ public class SearchListJob : IJob
                 break;
             case 8:
             {
-                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 8:00 - Opgavestatus");
+                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 8:00 UTC - Opgavestatus");
                 var properties = await _backendConfigurationDbContext.Properties
                     .Where(x => x.MainMailAddress != null && x.MainMailAddress != "")
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
@@ -1078,7 +1078,7 @@ public class SearchListJob : IJob
 
                         var entities = new List<ComplianceModel>();
 
-                        Log.LogEvent("Opgavestatus. Found " + complianceList.Count + " compliances");
+                        Log.LogEvent("Opgavestatus. Found " + complianceList.Count + " compliances for property: " + property.Name);
                         foreach (var compliance in complianceList)
                         {
                             var language = await _sdkDbContext.Languages.FirstAsync(x => x.LanguageCode == "da")
@@ -1113,7 +1113,7 @@ public class SearchListJob : IJob
                             var sdkFolderId = await _itemsPlanningPnDbContext.Plannings
                                 .Where(x => x.Id == compliance.PlanningId)
                                 .Select(x => x.SdkFolderId)
-                                .FirstAsync()
+                                .FirstOrDefaultAsync()
                                 .ConfigureAwait(false);
 
                             if (sdkFolderId is 0 or null)
