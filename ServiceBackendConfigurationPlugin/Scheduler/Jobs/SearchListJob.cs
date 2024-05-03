@@ -1022,7 +1022,7 @@ public class SearchListJob : IJob
                 break;
             case 8:
             {
-                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 6:00 - Compliance");
+                Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 8:00 - Opgavestatus");
                 var properties = await _backendConfigurationDbContext.Properties
                     .Where(x => x.MainMailAddress != null && x.MainMailAddress != "")
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
@@ -1078,7 +1078,7 @@ public class SearchListJob : IJob
 
                         var entities = new List<ComplianceModel>();
 
-
+                        Log.LogEvent("Opgavestatus. Found " + complianceList.Count + " compliances");
                         foreach (var compliance in complianceList)
                         {
                             var language = await _sdkDbContext.Languages.FirstAsync(x => x.LanguageCode == "da")
