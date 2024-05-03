@@ -1239,7 +1239,10 @@ public class SearchListJob : IJob
 
                         var newHtml = html;
                         newHtml = newHtml.Replace("{{propertyName}}", property.Name);
-                        newHtml = newHtml.Replace("{{dato}}", DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss"));
+                        TimeZoneInfo copenhagenTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
+                        DateTime utcTime = DateTime.UtcNow;
+                        DateTime copenhagenTime = TimeZoneInfo.ConvertTimeFromUtc(utcTime, copenhagenTimeZone);
+                        newHtml = newHtml.Replace("{{dato}}", copenhagenTime.ToString("dd-MM-yyyy HH:mm:ss"));
                         newHtml = newHtml.Replace("{{emailaddresses}}", property.MainMailAddress);
 
                         // if (DateTime.Now.DayOfWeek == DayOfWeek.Thursday && hasCompliances)
