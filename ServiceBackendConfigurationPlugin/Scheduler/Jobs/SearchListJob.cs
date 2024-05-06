@@ -1039,11 +1039,9 @@ public class SearchListJob : IJob
                     var toEmailAddress = new List<EmailAddress>();
                     if (!string.IsNullOrEmpty(property.MainMailAddress))
                     {
-                        // toEmailAddress.AddRange(
-                        //     property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
+                        toEmailAddress.AddRange(
+                            property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
                     }
-                    toEmailAddress.Add(new EmailAddress("rm@microting.com"));
-                    toEmailAddress.Add(new EmailAddress("nwl@microting.com"));
 
                     if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
                     {
