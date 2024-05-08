@@ -1040,7 +1040,7 @@ public class SearchListJob : IJob
                     if (!string.IsNullOrEmpty(property.MainMailAddress))
                     {
                         toEmailAddress.AddRange(
-                            property.MainMailAddress.Split(";").Select(s => new EmailAddress(s)));
+                            property.MainMailAddress.Split(";").Select(s => new EmailAddress(s.Trim())));
                     }
 
                     if (toEmailAddress.Count > 0 && !string.IsNullOrEmpty(sendGridKey.Value))
