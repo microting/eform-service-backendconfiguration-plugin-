@@ -233,32 +233,32 @@ public class WorkOrderCaseCompletedHandler(
             switch (workOrderCase.Priority)
             {
                 case "1":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Urgent}<br><br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.Urgent}<br><br>";
                     break;
                 case "2":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.High}<br><br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.High}<br><br>";
                     break;
                 case "3":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br><br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.Medium}<br><br>";
                     break;
                 case "4":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br><br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.Low}<br><br>";
                     break;
             }
 
-            var label = $"<strong>{Translations.AssignedTo}:</strong> {assignedToName}<br>" +
-                        $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+            var label = $"<strong>{SharedResource.AssignedTo}:</strong> {assignedToName}<br>" +
+                        $"<strong>{SharedResource.Location}:</strong> {property.Name}<br>" +
                         (!string.IsNullOrEmpty(areaName)
-                            ? $"<strong>{Translations.Area}:</strong> {areaName}<br>"
+                            ? $"<strong>{SharedResource.Area}:</strong> {areaName}<br>"
                             : "") +
-                        $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br>" +
+                        $"<strong>{SharedResource.Description}:</strong> {commentFieldValue.Value}<br>" +
                         priorityText +
-                        $"<strong>{Translations.CreatedBy}:</strong> {createdBySite.Name}<br>" +
+                        $"<strong>{SharedResource.CreatedBy}:</strong> {createdBySite.Name}<br>" +
                         (!string.IsNullOrEmpty(createdByTextFieldValue.Value)
-                            ? $"<strong>{Translations.CreatedBy}:</strong> {createdByTextFieldValue.Value}<br>"
+                            ? $"<strong>{SharedResource.CreatedBy}:</strong> {createdByTextFieldValue.Value}<br>"
                             : "") +
-                        $"<strong>{Translations.CreatedDate}:</strong> {newWorkOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                        $"<strong>{Translations.Status}:</strong> {Translations.Ongoing}<br><br>";
+                        $"<strong>{SharedResource.CreatedDate}:</strong> {newWorkOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
+                        $"<strong>{SharedResource.Status}:</strong> {SharedResource.Ongoing}<br><br>";
 
             var pushMessageTitle = !string.IsNullOrEmpty(areaName)
                 ? $"{property.Name}; {areaName}"
@@ -346,19 +346,19 @@ public class WorkOrderCaseCompletedHandler(
             switch (statusFieldValue.Value)
             {
                 case "1":
-                    textStatus = Translations.Ongoing;
+                    textStatus = SharedResource.Ongoing;
                     workOrderCase.CaseStatusesEnum = CaseStatusesEnum.Ongoing;
                     break;
                 case "2":
-                    textStatus = Translations.Completed;
+                    textStatus = SharedResource.Completed;
                     workOrderCase.CaseStatusesEnum = CaseStatusesEnum.Completed;
                     break;
                 case "3":
-                    textStatus = Translations.Ordered;
+                    textStatus = SharedResource.Ordered;
                     workOrderCase.CaseStatusesEnum = CaseStatusesEnum.Ordered;
                     break;
                 case "4":
-                    textStatus = Translations.Awaiting;
+                    textStatus = SharedResource.Awaiting;
                     workOrderCase.CaseStatusesEnum = CaseStatusesEnum.Awaiting;
                     break;
             }
@@ -404,7 +404,7 @@ public class WorkOrderCaseCompletedHandler(
 
             var hash = await GeneratePdf(picturesOfTasks, updatedBySite.Id);
 
-            var description = $"<strong>{Translations.AssignedTo}:</strong> {assignedSite.Name}<br>";
+            var description = $"<strong>{SharedResource.AssignedTo}:</strong> {assignedSite.Name}<br>";
 
             var pushMessageTitle = !string.IsNullOrEmpty(workOrderCase.SelectedAreaName)
                 ? $"{property.Name}; {workOrderCase.SelectedAreaName}"
@@ -420,33 +420,33 @@ public class WorkOrderCaseCompletedHandler(
             switch (workOrderCase.Priority)
             {
                 case "1":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Urgent}<br><br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.Urgent}<br><br>";
                     break;
                 case "2":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.High}<br><br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.High}<br><br>";
                     break;
                 case "3":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br><br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.Medium}<br><br>";
                     break;
                 case "4":
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br><br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.Low}<br><br>";
                     break;
             }
 
-            description += $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+            description += $"<strong>{SharedResource.Location}:</strong> {property.Name}<br>" +
                            (!string.IsNullOrEmpty(workOrderCase.SelectedAreaName)
-                               ? $"<strong>{Translations.Area}:</strong> {workOrderCase.SelectedAreaName}<br>"
+                               ? $"<strong>{SharedResource.Area}:</strong> {workOrderCase.SelectedAreaName}<br>"
                                : "") +
-                           $"<strong>{Translations.Description}:</strong> {commentFieldValue.Value}<br>" +
+                           $"<strong>{SharedResource.Description}:</strong> {commentFieldValue.Value}<br>" +
                            priorityText +
-                           $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByName}<br>" +
+                           $"<strong>{SharedResource.CreatedBy}:</strong> {workOrderCase.CreatedByName}<br>" +
                            (!string.IsNullOrEmpty(workOrderCase.CreatedByText)
-                               ? $"<strong>{Translations.CreatedBy}:</strong> {workOrderCase.CreatedByText}<br>"
+                               ? $"<strong>{SharedResource.CreatedBy}:</strong> {workOrderCase.CreatedByText}<br>"
                                : "") +
-                           $"<strong>{Translations.CreatedDate}:</strong> {workOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
-                           $"<strong>{Translations.LastUpdatedBy}:</strong> {updatedBySite.Name}<br>" +
-                           $"<strong>{Translations.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
-                           $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
+                           $"<strong>{SharedResource.CreatedDate}:</strong> {workOrderCase.CaseInitiated: dd.MM.yyyy}<br><br>" +
+                           $"<strong>{SharedResource.LastUpdatedBy}:</strong> {updatedBySite.Name}<br>" +
+                           $"<strong>{SharedResource.LastUpdatedDate}:</strong> {DateTime.UtcNow: dd.MM.yyyy}<br><br>" +
+                           $"<strong>{SharedResource.Status}:</strong> {textStatus}<br><br>";
             // retract eform
             await RetractEform(workOrderCase);
             // deploy eform to ongoing status
@@ -491,19 +491,19 @@ public class WorkOrderCaseCompletedHandler(
             {
                 case "1":
                     displayOrder = 100_000_000 + displayOrder;
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Urgent}<br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.Urgent}<br>";
                     break;
                 case "2":
                     displayOrder = 200_000_000 + displayOrder;
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.High}<br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.High}<br>";
                     break;
                 case "3":
                     displayOrder = 300_000_000 + displayOrder;
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Medium}<br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.Medium}<br>";
                     break;
                 case "4":
                     displayOrder = 400_000_000 + displayOrder;
-                    priorityText = $"<strong>{Translations.Priority}:</strong> {Translations.Low}<br>";
+                    priorityText = $"<strong>{SharedResource.Priority}:</strong> {SharedResource.Low}<br>";
                     break;
             }
 
@@ -512,16 +512,16 @@ public class WorkOrderCaseCompletedHandler(
             switch (workorderCase.CaseStatusesEnum)
             {
                 case CaseStatusesEnum.Ongoing:
-                    textStatus = Translations.Ongoing;
+                    textStatus = SharedResource.Ongoing;
                     break;
                 case CaseStatusesEnum.Completed:
-                    textStatus = Translations.Completed;
+                    textStatus = SharedResource.Completed;
                     break;
                 case CaseStatusesEnum.Awaiting:
-                    textStatus = Translations.Awaiting;
+                    textStatus = SharedResource.Awaiting;
                     break;
                 case CaseStatusesEnum.Ordered:
-                    textStatus = Translations.Ordered;
+                    textStatus = SharedResource.Ordered;
                     break;
             }
 
@@ -537,7 +537,7 @@ public class WorkOrderCaseCompletedHandler(
             // if (status == CaseStatusesEnum.Completed || site.Name == siteName)
             // {
             // }
-            assignedTo = site.Name == assignedSite.Name ? "" : $"<strong>{Translations.AssignedTo}:</strong> {assignedSite.Name}<br>";
+            assignedTo = site.Name == assignedSite.Name ? "" : $"<strong>{SharedResource.AssignedTo}:</strong> {assignedSite.Name}<br>";
             if (site.Name == assignedSite.Name)
             {
                 mainElement.CheckListFolderName = sdkDbContext.Folders.First(x => x.Id == (workorderCase.Priority != "1" ? property.FolderIdForOngoingTasks : property.FolderIdForTasks))
@@ -553,18 +553,18 @@ public class WorkOrderCaseCompletedHandler(
                     .MicrotingUid.ToString();
             }
 
-            //var assignedTo = site.Name == assignedSite.Name ? "" : $"<strong>{Translations.AssignedTo}:</strong> {assignedSite.Name}<br>";
+            //var assignedTo = site.Name == assignedSite.Name ? "" : $"<strong>{SharedResource.AssignedTo}:</strong> {assignedSite.Name}<br>";
 
             var areaName = !string.IsNullOrEmpty(workorderCase.SelectedAreaName)
-                ? $"<strong>{Translations.Area}:</strong> {workorderCase.SelectedAreaName}<br>"
+                ? $"<strong>{SharedResource.Area}:</strong> {workorderCase.SelectedAreaName}<br>"
                 : "";
 
-            var outerDescription = $"<strong>{Translations.Location}:</strong> {property.Name}<br>" +
+            var outerDescription = $"<strong>{SharedResource.Location}:</strong> {property.Name}<br>" +
                                    areaName +
-                                   $"<strong>{Translations.Description}:</strong> {newDescription}<br>" +
+                                   $"<strong>{SharedResource.Description}:</strong> {newDescription}<br>" +
                                    priorityText +
                                    assignedTo +
-                                   $"<strong>{Translations.Status}:</strong> {textStatus}<br><br>";
+                                   $"<strong>{SharedResource.Status}:</strong> {textStatus}<br><br>";
             mainElement.ElementList[0].Description.InderValue = outerDescription.Replace("\n", "<br>");
             // TODO uncomment when new app has been released.
             ((DataElement)mainElement.ElementList[0]).DataItemList[0].Description.InderValue = description.Replace("\n", "<br>");

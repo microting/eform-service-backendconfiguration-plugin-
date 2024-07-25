@@ -483,7 +483,7 @@ public class Core : ISdkEventHandler
                             await workorderCase.Delete(backendConfigurationPnDbContext).ConfigureAwait(false);
 
                             await DeployEform(propertyWorker, eformId.Id, property,
-                                $"<strong>{Translations.Location}:</strong> {property.Name}",
+                                $"<strong>{SharedResource.Location}:</strong> {property.Name}",
                                 int.Parse(areasGroupUid), int.Parse(deviceUsersGroupUid)).ConfigureAwait(false);
                         }
                     }
