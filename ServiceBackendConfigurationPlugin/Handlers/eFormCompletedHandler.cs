@@ -258,7 +258,8 @@ public class EFormCompletedHandler(
                 // }
                 // else
                 // {
-                while (planningCaseSite.Status != 100)
+                int count = 0;
+                while (planningCaseSite.Status != 100 && count < 100)
                 {
                     Thread.Sleep(1000);
                     Console.WriteLine($"Waiting for case {planningCaseSite.Id} to be completed");
@@ -270,6 +271,12 @@ public class EFormCompletedHandler(
                             itemsPlanningPnDbContext.PlanningCaseSites.AsNoTracking()
                                 .First(x => x.Id == planningCaseSite.Id);
                     }
+                    count++;
+                }
+                if (planningCaseSite.Status != 100)
+                {
+                    Console.WriteLine($"planningCaseSite {planningCaseSite.Id} is not completed");
+                    return;
                 }
 
                 Console.WriteLine($"planningCaseSite {planningCaseSite.Id} is completed");
