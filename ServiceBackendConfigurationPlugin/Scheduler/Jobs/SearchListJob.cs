@@ -840,6 +840,7 @@ public class SearchListJob : IJob
 
                 var brokenPlannings = await _itemsPlanningPnDbContext.Plannings
                     .Where(x => x.ShowExpireDate == false)
+                    .Where(x => x.Enabled)
                     .Where(x => x.WorkflowState != Constants.WorkflowStates.Removed).ToListAsync();
                 // Log.LogEvent("SearchListJob.Task: SearchListJob.Execute got called at 5:00 - Documents");
                 var property = await _backendConfigurationDbContext.Properties
