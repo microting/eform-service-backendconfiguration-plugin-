@@ -885,6 +885,22 @@ public class SearchListJob : IJob
                         }
                         catch
                         {
+                            var planningCaseSite = await _itemsPlanningPnDbContext.PlanningCaseSites
+                                .FirstOrDefaultAsync(x => x.PlanningId == brokenPlanning.Id);
+                            if (planningCaseSite != null)
+                            {
+                                var planningSites = await _itemsPlanningPnDbContext.PlanningSites
+                                    .Where(x => x.PlanningId == brokenPlanning.Id).ToListAsync();
+                                if (!planningSites.Any())
+                                {
+                                    var planningCases = await _itemsPlanningPnDbContext.PlanningCases
+                                        .Where(x => x.PlanningId == brokenPlanning.Id).ToListAsync();
+                                    if (!planningCases.Any())
+                                    {
+                                        await brokenPlanning.Delete(_itemsPlanningPnDbContext).ConfigureAwait(false);
+                                    }
+                                }
+                            }
                             stringBuilder.Append(
                                 $"<p>Planning with id: {brokenPlanning.Id} has ShowExpireDate set to false</p>");
                         }
