@@ -23,6 +23,7 @@ SOFTWARE.
 */
 
 
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using ChemicalsBase.Infrastructure;
 using ChemicalsBase.Infrastructure.Data.Factories;
@@ -169,6 +170,19 @@ public class Core : ISdkEventHandler
         {
             var dbNameSection = Regex.Match(sdkConnectionString, @"(Database=\w*;)").Groups[0].Value;
             var dbPrefix = Regex.Match(sdkConnectionString, @"Database=(\d*)_").Groups[1].Value;
+
+            int number = int.Parse(dbPrefix);
+            SentrySdk.ConfigureScope(scope =>
+            {
+                scope.SetTag("customerNo", number.ToString());
+                Console.WriteLine("customerNo: " + number);
+                scope.SetTag("osVersion", Environment.OSVersion.ToString());
+                Console.WriteLine("osVersion: " + Environment.OSVersion);
+                scope.SetTag("osArchitecture", RuntimeInformation.OSArchitecture.ToString());
+                Console.WriteLine("osArchitecture: " + RuntimeInformation.OSArchitecture);
+                scope.SetTag("osName", RuntimeInformation.OSDescription);
+                Console.WriteLine("osName: " + RuntimeInformation.OSDescription);
+            });
 
             var pluginDbName = $"Database={dbPrefix}_eform-backend-configuration-plugin;";
             var connectionString = sdkConnectionString.Replace(dbNameSection, pluginDbName);
