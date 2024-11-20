@@ -885,6 +885,7 @@ public class SearchListJob : IJob
                         }
                         catch
                         {
+                            await brokenPlanning.Delete(_itemsPlanningPnDbContext).ConfigureAwait(false);
                             var planningCaseSite = await _itemsPlanningPnDbContext.PlanningCaseSites
                                 .FirstOrDefaultAsync(x => x.PlanningId == brokenPlanning.Id);
                             if (planningCaseSite != null)
@@ -897,7 +898,7 @@ public class SearchListJob : IJob
                                         .Where(x => x.PlanningId == brokenPlanning.Id).ToListAsync();
                                     if (!planningCases.Any())
                                     {
-                                        await brokenPlanning.Delete(_itemsPlanningPnDbContext).ConfigureAwait(false);
+
                                     }
                                 }
                             }
