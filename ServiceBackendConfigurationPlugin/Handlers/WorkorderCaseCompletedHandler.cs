@@ -325,8 +325,10 @@ public class WorkOrderCaseCompletedHandler(
 
             // var assignedTo = await sdkDbContext.EntityItems.FirstAsync(x =>
             //     x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
-            var assignedToEntityItem = await sdkDbContext.EntityItems.FirstAsync(x =>
-                x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value));
+            var assignedToEntityItem = await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
+                                           x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value)) ??
+                                       await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
+                                           x.EntityGroupId == deviceUsersGroup.Id);
             var propertyWorker = await backendConfigurationPnDbContext.PropertyWorkers.Where(x => x.EntityItemId == assignedToEntityItem.Id).FirstOrDefaultAsync();
 
             var assignedSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == propertyWorker.WorkerId);
@@ -360,6 +362,10 @@ public class WorkOrderCaseCompletedHandler(
                 case "4":
                     textStatus = SharedResource.Awaiting;
                     workOrderCase.CaseStatusesEnum = CaseStatusesEnum.Awaiting;
+                    break;
+                default:
+                    textStatus = SharedResource.Ongoing;
+                    workOrderCase.CaseStatusesEnum = CaseStatusesEnum.Ongoing;
                     break;
             }
 

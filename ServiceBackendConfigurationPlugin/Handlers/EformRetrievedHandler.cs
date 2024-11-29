@@ -56,18 +56,20 @@ public class EformRetrievedHandler(
 
             if (areaRulePlanning != null)
             {
-                var property =
-                    await backendConfigurationPnDbContext.Properties.FirstAsync(
-                        x => x.Id == areaRulePlanning.PropertyId);
-
-                var planning = await itemsPlanningPnDbContext.Plannings.AsNoTracking()
-                    .FirstAsync(x => x.Id == planningCaseSite.PlanningId);
+                // var property =
+                //     await backendConfigurationPnDbContext.Properties.FirstAsync(
+                //         x => x.Id == areaRulePlanning.PropertyId);
+                //
+                // var planning = await itemsPlanningPnDbContext.Plannings.AsNoTracking()
+                //     .FirstAsync(x => x.Id == planningCaseSite.PlanningId);
 
                 var planningSite = await backendConfigurationPnDbContext.PlanningSites
                     .Where(x =>
                         x.WorkflowState != ChemicalsBase.Infrastructure.Constants.Constants.WorkflowStates.Removed)
-                    .FirstAsync(x =>
+                    .FirstOrDefaultAsync(x =>
                         x.SiteId == planningCaseSite.MicrotingSdkSiteId && x.AreaRulePlanningsId == areaRulePlanning.Id);
+
+                if (planningSite == null) return;
 
                 planningSite.Status = 77;
                 await planningSite.Update(backendConfigurationPnDbContext);
