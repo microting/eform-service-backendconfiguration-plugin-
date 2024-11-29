@@ -151,10 +151,12 @@ public class WorkOrderCaseCompletedHandler(
             var deviceUsersGroup = await sdkDbContext.EntityGroups
                 .FirstAsync(x => x.Id == property.EntitySelectListDeviceUsers);
 
-            var assignedToEntityItem = await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
-                                           x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value)) ??
-                                       await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
-                                           x.EntityGroupId == deviceUsersGroup.Id);
+            var assignedToEntityItem = !string.IsNullOrEmpty(assignedToSelectFieldValue.Value) ? await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
+                    x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value)) ??
+                await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
+                    x.EntityGroupId == deviceUsersGroup.Id) : await sdkDbContext.EntityItems
+                    .FirstOrDefaultAsync(x =>
+                        x.EntityGroupId == deviceUsersGroup.Id);
 
             var propertyWorker = await backendConfigurationPnDbContext.PropertyWorkers.Where(x => x.EntityItemId == assignedToEntityItem.Id).FirstOrDefaultAsync();
 
@@ -321,10 +323,12 @@ public class WorkOrderCaseCompletedHandler(
             var statusFieldValue =
                 await sdkDbContext.FieldValues.FirstAsync(x => x.FieldId == statusField.Id && x.CaseId == dbCase.Id);
 
-            var assignedToEntityItem = await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
-                                           x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value)) ??
-                                       await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
-                                           x.EntityGroupId == deviceUsersGroup.Id);
+            var assignedToEntityItem = !string.IsNullOrEmpty(assignedToSelectFieldValue.Value) ? await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
+                    x.EntityGroupId == deviceUsersGroup.Id && x.Id == int.Parse(assignedToSelectFieldValue.Value)) ??
+                await sdkDbContext.EntityItems.FirstOrDefaultAsync(x =>
+                    x.EntityGroupId == deviceUsersGroup.Id) : await sdkDbContext.EntityItems
+                    .FirstOrDefaultAsync(x =>
+                        x.EntityGroupId == deviceUsersGroup.Id);
             var propertyWorker = await backendConfigurationPnDbContext.PropertyWorkers.Where(x => x.EntityItemId == assignedToEntityItem.Id).FirstOrDefaultAsync();
 
             var assignedSite = await sdkDbContext.Sites.FirstAsync(x => x.Id == propertyWorker.WorkerId);
