@@ -27,7 +27,7 @@
     <PackageReference Include="Sentry" Version="4.13.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.8" />
     <PackageReference Include="System.ComponentModel.Composition" Version="8.0.0" />
-    <PackageReference Include="Microting.eFormApi.BasePn" Version="8.0.73" />
+    <PackageReference Include="Microting.eFormApi.BasePn" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Resources\SharedResource.Designer.cs">
