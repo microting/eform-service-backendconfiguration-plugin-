@@ -551,6 +551,7 @@ public class WorkOrderCaseCompletedHandler(
                 folderId = property.FolderIdForOngoingTasks;
                 mainElement.PushMessageTitle = pushMessageTitle;
                 mainElement.PushMessageBody = pushMessageBody;
+                mainElement.BadgeCountEnabled = true;
             }
             else
             {
@@ -685,8 +686,8 @@ public class WorkOrderCaseCompletedHandler(
         string downloadPath = Path.Combine(Path.GetTempPath(), "reports", "results");
         Directory.CreateDirectory(downloadPath);
         string timeStamp = DateTime.UtcNow.ToString("yyyyMMdd") + "_" + DateTime.UtcNow.ToString("hhmmss");
-        string tempPDFFileName = $"{timeStamp}{sitId}_temp.pdf";
-        string tempPDFFilePath = Path.Combine(downloadPath, tempPDFFileName);
+        string tempPdfFileName = $"{timeStamp}{sitId}_temp.pdf";
+        string tempPdfFilePath = Path.Combine(downloadPath, tempPdfFileName);
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -712,18 +713,18 @@ public class WorkOrderCaseCompletedHandler(
             });
         }).GeneratePdf();
 
-        await using var fileStream = new FileStream(tempPDFFilePath, FileMode.Create, FileAccess.Write);
+        await using var fileStream = new FileStream(tempPdfFilePath, FileMode.Create, FileAccess.Write);
         // save the byte[] to a file.
         await fileStream.WriteAsync(document, 0, document.Length);
         await fileStream.FlushAsync();
 
         // Upload PDF
         // string pdfFileName = null;
-        string hash = await sdkCore.PdfUpload(tempPDFFilePath);
+        string hash = await sdkCore.PdfUpload(tempPdfFilePath);
         if (hash != null)
         {
             //rename local file
-            FileInfo fileInfo = new FileInfo(tempPDFFilePath);
+            FileInfo fileInfo = new FileInfo(tempPdfFilePath);
             fileInfo.CopyTo(downloadPath + "/" + hash + ".pdf", true);
             fileInfo.Delete();
             await sdkCore.PutFileToStorageSystem(Path.Combine(downloadPath, $"{hash}.pdf"), $"{hash}.pdf");
